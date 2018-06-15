@@ -46,8 +46,6 @@ const LOOKUP_PORT_END = 9000;
 let selectedProtocol = PROTOCOL.HTTP;
 let agentInfo = {};
 let found = false;
-const tryInterval = 2500;
-let pollingId = null;
 let socket = null;
 let portsPolling = null;
 
@@ -161,14 +159,11 @@ const tryPorts = hostname => {
   const pluginLookups = [];
 
   for (let port = LOOKUP_PORT_START; port < LOOKUP_PORT_END; port += 1) {
-    pluginLookups.push(fetch(`${selectedProtocol}://${hostname}:${port}/info`).then(response => {
-      return response.json().then(data => {
-        return {
-          response,
-          data
-        };
-      });
-    })
+    pluginLookups.push(fetch(`${selectedProtocol}://${hostname}:${port}/info`).then(response =>
+      response.json().then(data => ({
+        response,
+        data
+      })))
       .catch(() => {
         // We expect most of those call to fail, because there's only one agent
         // So we have to resolve them with a false value to let the Promise.all catch all the deferred data
@@ -206,22 +201,6 @@ const SocketDaemon = (callbacks) => {
 
   addPortsCallback(callbacks.onPortsUpdate);
   addSerialCallback(callbacks.onSerialOutput);
-
-  /**
-   * Set onPortUpdate callback.
-   */
-  const onPortsUpdate = (onPortsUpdateCb) => {
-    callbacks.onPortsUpdate = onPortsUpdateCb;
-    addPortsCallback(callbacks.onPortsUpdate);
-  };
-
-  /**
-   * Set onSerialOutput callback.
-   */
-  const onSerialOutput = (onSerialOutputCb) => {
-    callbacks.onSerialOutput = onSerialOutputCb;
-    addSerialCallback(callbacks.onSerialOutput);
-  };
 
   /**
    * Set onSocketConnect callback.
@@ -288,8 +267,8 @@ const SocketDaemon = (callbacks) => {
     stopUpload,
     onDisconnect,
     onConnect,
-    onPortsUpdate,
-    onSerialOutput,
+    onPortsUpdate: addPortsCallback,
+    onSerialOutput: addSerialCallback,
     onError
   };
 };
