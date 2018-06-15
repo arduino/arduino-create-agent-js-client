@@ -18,6 +18,7 @@
   "extends": "airbnb-base",
   "env": {
     "browser": true,
-    "jest": true
+    "jest": true,
+    "webextensions": true
   }
 }

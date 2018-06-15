@@ -57,10 +57,10 @@ const callback = (name, data) => {
   if (!callbacks || !callbacks[name] || !callbacks[name].length) {
     return;
   }
-  for (const i in callbacks[name]) {
-    callbacks[name][i](data);
-  }
-}
+  callbacks[name].forEach(cb => {
+    cb(data);
+  });
+};
 
 const onMessage = (msg) => {
   if (msg.version) {
@@ -75,64 +75,73 @@ const onMessage = (msg) => {
     }
     disconnected = false;
     connectCb();
-  } else if (msg.supportedBoards) {
+  }
+  else if (msg.supportedBoards) {
     boardsCb(msg.supportedBoards);
-  } else if (msg.ports) {
-    const ports = msg.ports.map(port => {
-      return {
-        Name: port.name,
-        SerialNumber: port.serialNumber,
-        IsOpen: port.isOpen,
-        VendorID: port.vendorId,
-        ProductID: port.productId
-      };
-    });
+  }
+  else if (msg.ports) {
+    const ports = msg.ports.map(p => ({
+      Name: p.name,
+      SerialNumber: p.serialNumber,
+      IsOpen: p.isOpen,
+      VendorID: p.vendorId,
+      ProductID: p.productId
+    }));
 
     callback('ports', ports);
-  } else if (msg.uploadStatus) {
+  }
+  else if (msg.uploadStatus) {
     if (msg.uploadStatus === 'success') {
       uploading = false;
-      callback('program', {done: true});
-    } else if (msg.uploadStatus === 'error') {
+      callback('program', { done: true });
+    }
+    else if (msg.uploadStatus === 'error') {
       uploading = false;
 
       const errorMessage = msg.message;
 
-      callback('program', {done: true, err: errorMessage + '\n'});
+      callback('program', { done: true, err: `${errorMessage}\n` });
 
       if (errorMessage === 'Free trial expired') {
         errorCb('freeTrialExpired');
-      } else if (errorMessage == 'Unlicensed education user') {
+      }
+      else if (errorMessage === 'Unlicensed education user') {
         errorCb('unlicensedEducationUser');
       }
-    } else if (msg.uploadStatus === 'message') {
-      callback('program', {done: false, msg: msg.message + '\n'});
     }
-  } else if (msg.portOpenStatus) {
+    else if (msg.uploadStatus === 'message') {
+      callback('program', { done: false, msg: `${msg.message}\n` });
+    }
+  }
+  else if (msg.portOpenStatus) {
     if (msg.portOpenStatus === 'success') {
       if (promises.open.length) {
-        var promise = promises.open.shift();
+        const promise = promises.open.shift();
         promise.resolve(true);
       }
-    } else if (promises.open.length) {
-      var promise = promises.open.shift();
+    }
+    else if (promises.open.length) {
+      const promise = promises.open.shift();
       promise.reject(msg.message);
     }
-  } else if (msg.portCloseStatus) {
+  }
+  else if (msg.portCloseStatus) {
     if (msg.portCloseStatus === 'success') {
       if (promises.close.length) {
-        var promise = promises.close.shift();
+        const promise = promises.close.shift();
         promise.resolve(true);
       }
-    } else if (promises.close.length) {
-      var promise = promises.close.shift();
+    }
+    else if (promises.close.length) {
+      const promise = promises.close.shift();
 
       promise.reject(msg.message);
     }
-  } else if (msg.serialData) {
-    callback('serial', {data: msg.serialData});
   }
-}
+  else if (msg.serialData) {
+    callback('serial', { data: msg.serialData });
+  }
+};
 
 const onChromeDisconnect = () => {
   disconnected = true;
@@ -142,19 +151,20 @@ const onChromeDisconnect = () => {
     polling = undefined;
   }
   disconnectCb();
-}
+};
 
 const connect = (chromeExtensionId) => {
-  if ( (port === null || disconnected) && chrome.runtime) {
+  if ((port === null || disconnected) && chrome.runtime) {
     port = chrome.runtime.connect(chromeExtensionId);
     port.onMessage.addListener(onMessage);
     port.onDisconnect.addListener(onChromeDisconnect);
-  } else {
-    errorCb("chromeExtensionNotFound");
   }
-}
+  else {
+    errorCb('chromeExtensionNotFound');
+  }
+};
 
-const perform = (action, data, cb) => {
+const perform = (action, data) => {
   const deferred = new Deferred();
 
   if (uploading) {
@@ -166,7 +176,8 @@ const perform = (action, data, cb) => {
   if (action === 'req_downloadtool') {
     // Chrome app doesn't support downloading tools, just fail
     deferred.resolve();
-  } else if (action === 'req_serial_monitor_open') {
+  }
+  else if (action === 'req_serial_monitor_open') {
     port.postMessage({
       command: 'openPort',
       data: {
@@ -176,7 +187,8 @@ const perform = (action, data, cb) => {
     });
 
     promises.open = deferred;
-  } else if (action === 'req_serial_monitor_close') {
+  }
+  else if (action === 'req_serial_monitor_close') {
     port.postMessage({
       command: 'closePort',
       data: {
@@ -185,7 +197,8 @@ const perform = (action, data, cb) => {
     });
 
     promises.close = deferred;
-  } else if (action === 'req_serial_monitor_write') {
+  }
+  else if (action === 'req_serial_monitor_write') {
     port.postMessage({
       command: 'writePort',
       data: {
@@ -196,7 +209,7 @@ const perform = (action, data, cb) => {
   }
 
   return deferred.promise;
-}
+};
 
 // Perform an upload via http on the daemon
 // file = {name: 'filename', data: 'base64data'}
@@ -223,7 +236,7 @@ const upload = (target, data, cb) => {
   // At least one file to upload
   if (data.files.length === 0) {
     uploading = false;
-    callback('program', {done: true, err: 'You need at least one file to upload'});
+    callback('program', { done: true, err: 'You need at least one file to upload' });
     return;
   }
 
@@ -245,48 +258,48 @@ const upload = (target, data, cb) => {
       }
     });
   });
-}
+};
 
 const onPortsUpdate = (cb) => {
   if (typeof cb === 'function') {
     callbacks.ports.push(cb);
   }
-}
+};
 
 const onSerialOutput = (cb) => {
   if (typeof cb === 'function') {
     callbacks.serial.push(cb);
   }
-}
+};
 
 const onConnect = (cb) => {
   if (typeof cb === 'function') {
     connectCb = cb;
   }
-}
+};
 
 const onDisconnect = (cb) => {
   if (typeof cb === 'function') {
     disconnectCb = cb;
   }
-}
+};
 
 const onError = (cb) => {
   if (typeof cb === 'function') {
     errorCb = cb;
   }
-}
+};
 
 const onSupportedBoards = (cb) => {
   if (typeof cb === 'function') {
     boardsCb = cb;
   }
-}
+};
 
 const DaemonCromeApp = (params) => {
 
   if (params) {
-    onPortsUpdate(params.onPortsUpdate)
+    onPortsUpdate(params.onPortsUpdate);
     onSerialOutput(params.onSerialOutput);
     onConnect(params.onConnect);
     onDisconnect(params.onDisconnect);
