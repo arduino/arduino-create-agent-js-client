@@ -28,7 +28,7 @@
  */
 
 import io from 'socket.io-client';
-import { parseMessage, sendMessage, addPortsCallback, addSerialCallback, initSocket, initPluginUrl, upload, stopUpload } from './readMessages';
+import { parseMessage, perform, addPortsCallback, addSerialCallback, initSocket, initPluginUrl, upload, stopUpload } from './readMessages';
 
 // Required agent version
 const MIN_VERSION = '1.1.69';
@@ -98,7 +98,7 @@ const update = () => new Promise(resolve => {
  *
  * @return {Promise}
  */
-const connect = () => {
+const wsConnect = () => {
   if (socket) {
     return;
   }
@@ -145,7 +145,7 @@ const connect = () => {
     if (typeof wsDisconnectCb === 'function') {
       wsDisconnectCb();
     }
-    connect();
+    wsConnect();
   });
 
   // Parse messages
@@ -180,7 +180,7 @@ const tryPorts = hostname => {
     found = responses.some(r => {
       if (r && r.response && r.response.status === 200) {
         agentInfo = r.data;
-        connect();
+        wsConnect();
         if (r.response.url.indexOf(PROTOCOL.HTTPS) === 0) {
           selectedProtocol = PROTOCOL.HTTPS;
         }
@@ -198,11 +198,11 @@ const tryPorts = hostname => {
   });
 };
 
-const DaemonAgent = (callbacks) => {
+const SocketDaemon = (callbacks) => {
 
-  wsConnectCb = callbacks.onSocketConnect;
-  wsErrorCb = callbacks.onSocketError;
-  wsDisconnectCb = callbacks.onSocketDisconnect;
+  wsConnectCb = callbacks.onConnect;
+  wsErrorCb = callbacks.onError;
+  wsDisconnectCb = callbacks.onDisconnect;
 
   addPortsCallback(callbacks.onPortsUpdate);
   addSerialCallback(callbacks.onSerialOutput);
@@ -226,7 +226,7 @@ const DaemonAgent = (callbacks) => {
   /**
    * Set onSocketConnect callback.
    */
-  const onSocketConnect = (onSocketConnectCb) => {
+  const onConnect = (onSocketConnectCb) => {
     wsConnectCb = onSocketConnectCb;
   };
 
@@ -255,7 +255,7 @@ const DaemonAgent = (callbacks) => {
    * First search in http://LOOPBACK_ADDRESS, after in https://LOOPBACK_HOSTNAME.
    * @return {object} The found agent info values.
    */
-  const findService = () => {
+  const connect = () => {
     if (found) {
       return fetch(agentInfo[selectedProtocol])
         .then(response => response.json())
@@ -270,18 +270,6 @@ const DaemonAgent = (callbacks) => {
   };
 
   /**
-   * Perform a find() every interval ms
-   * @return {object} The found agent info values.
-   */
-  const waitForPlugin = (interval = tryInterval) => {
-    pollingId = setInterval(() => {
-      this.findService().then(() => {
-        clearInterval(pollingId);
-      });
-    }, interval);
-  };
-
-  /**
    * Pauses the plugin
    * @return {Promise}
    */
@@ -293,19 +281,17 @@ const DaemonAgent = (callbacks) => {
 
   return {
     connect,
+    perform,
     connected,
-    findService,
-    waitForPlugin,
     stopPlugin,
     upload,
     stopUpload,
-    sendMessage,
     onDisconnect,
-    onSocketConnect,
+    onConnect,
     onPortsUpdate,
     onSerialOutput,
     onError
   };
 };
 
-export default DaemonAgent;
+export default SocketDaemon;

@@ -27,9 +27,9 @@
  * the GNU General Public License.
  */
 
-import DaemonAgent from './daemonAgent';
-import DaemonChromeApp from './daemonChromeApp';
+import socketDaemon from './socketDaemon';
+import chromeAppDaemon from './chromeAppDaemon';
 
-const Daemon = window.navigator.userAgent.indexOf(' CrOS ') !== -1 ? DaemonChromeApp : DaemonAgent;
+const Daemon = window.navigator.userAgent.indexOf(' CrOS ') !== -1 ? chromeAppDaemon : socketDaemon;
 
 export default Daemon;

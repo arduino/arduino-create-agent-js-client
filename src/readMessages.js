@@ -177,6 +177,7 @@ const parseMessage = message => {
   }
 };
 
+// Stolen from https://developer.mozilla.org/en-US/docs/Mozilla/JavaScript_code_modules/Promise.jsm/Deferred
 function Deferred() {
 	// update 062115 for typeof
 	if (typeof(Promise) != 'undefined' && Promise.defer) {
@@ -214,7 +215,7 @@ function Deferred() {
 	}
 }
 
-const sendMessage = (action, data, cb) => {
+const perform = (action, data, cb) => {
 
   let deferred = new Deferred();
   const replacementStrategy = 'keep';
@@ -366,11 +367,12 @@ const stopUpload = () => {
 
 export {
   parseMessage,
-  sendMessage,
+  perform,
   addPortsCallback,
   addSerialCallback,
   initSocket,
   initPluginUrl,
   upload,
-  stopUpload
+  stopUpload,
+  Deferred
 };
