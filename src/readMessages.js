@@ -47,15 +47,17 @@ const callback = (name, data) => {
   if (!callbacks || !callbacks[name] || !callbacks[name].length) {
     return;
   }
-  for (const cb of callbacks[name]) {
+
+  callbacks[name].forEach(cb => {
     cb(data);
-  }
+  });
 };
 
 const parseMessageList = (data) => {
   if (data.Network) {
     networkPorts = data.Ports;
-  } else {
+  }
+  else {
     serialPorts = data.Ports;
   }
   callback('ports', serialPorts.concat(networkPorts));
@@ -66,16 +68,19 @@ const parseMessageCommand = (data) => {
     if (promises.open) {
       promises.open.resolve(true);
     }
-  } else if (data.Cmd === 'OpenFail') {
+  }
+  else if (data.Cmd === 'OpenFail') {
     if (promises.open) {
       promises.open.reject(data.Desc);
     }
-  } else if (data.Cmd === 'Close') {
+  }
+  else if (data.Cmd === 'Close') {
     if (promises.close) {
       promises.close.resolve(true);
       promises.close = null;
     }
-  } else if (data.Cmd === 'CloseFail') {
+  }
+  else if (data.Cmd === 'CloseFail') {
     if (promises.close) {
       promises.close.reject(data.Desc);
       promises.close = null;
@@ -88,7 +93,7 @@ const parseFlash = (data) => {
     return;
   }
   uploading = false;
-  callback('program', {done: true, msg: data.Flash + '\n'});
+  callback('program', { done: true, msg: `${data.Flash}\n` });
 };
 
 const parseProgram = (data) => {
@@ -96,30 +101,36 @@ const parseProgram = (data) => {
     return;
   }
   if (data.ProgrammerStatus === 'Starting') {
-    callback('program', {done: false, msg: 'Programming with: ' + data.Cmd + '\n'});
-  } else if (data.ProgrammerStatus === 'Busy') {
-    callback('program', {done: false, msg: data.Msg + '\n'});
-  } else if (data.ProgrammerStatus === 'Error') {
+    callback('program', { done: false, msg: `Programming with: ${data.Cmd}\n` });
+  }
+  else if (data.ProgrammerStatus === 'Busy') {
+    callback('program', { done: false, msg: `${data.Msg}\n` });
+  }
+  else if (data.ProgrammerStatus === 'Error') {
     uploading = false;
-    callback('program', {done: true, err: data.Msg + '\n'});
-  } else if (data.ProgrammerStatus === 'Killed') {
+    callback('program', { done: true, err: `${data.Msg}\n` });
+  }
+  else if (data.ProgrammerStatus === 'Killed') {
     uploading = false;
-    callback('program', {done: false, msg: 'terminated by user\n'});
-    callback('program', {done: true, msg: 'terminated by user\n'});
-  } else if (data.ProgrammerStatus === 'Error 404 Not Found') {
+    callback('program', { done: false, msg: `terminated by user\n` });
+    callback('program', { done: true, msg: `terminated by user\n` });
+  }
+  else if (data.ProgrammerStatus === 'Error 404 Not Found') {
     uploading = false;
-    callback('program', {done: true, err: data.Msg + '\n'});
+    callback('program', { done: true, err: `${data.Msg}\n` });
   }
 };
 
 const parseDownload = (data) => {
   if (data.DownloadStatus === 'Pending') {
     callback('download', data.Msg);
-  } else if (data.DownloadStatus === 'Success') {
+  }
+  else if (data.DownloadStatus === 'Success') {
     if (promises.download) {
       promises.download.resolve(data.Msg);
     }
-  } else if (promises.download) {
+  }
+  else if (promises.download) {
     promises.download.reject(data.Msg);
   }
 };
@@ -129,7 +140,8 @@ const parseMessage = message => {
 
   try {
     jsonMessage = JSON.parse(message);
-  } catch (SyntaxError) {
+  }
+  catch (SyntaxError) {
     return;
   }
 
@@ -159,7 +171,7 @@ const parseMessage = message => {
   }
 
   if (jsonMessage.Err) {
-    return callback('program', {done: false, err: jsonMessage.Err + '\n'});
+    return callback('program', { done: false, err: `${jsonMessage.Err}\n` });
   }
 
   if (jsonMessage && jsonMessage.ProgrammerStatus) {
@@ -173,50 +185,43 @@ const parseMessage = message => {
 
   // Data read from the serial
   if (jsonMessage.D) {
-    return callback('serial', {data: jsonMessage.D});
+    return callback('serial', { data: jsonMessage.D });
   }
 };
 
+// Stolen from https://developer.mozilla.org/en-US/docs/Mozilla/JavaScript_code_modules/Promise.jsm/Deferred
 function Deferred() {
-	// update 062115 for typeof
-	if (typeof(Promise) != 'undefined' && Promise.defer) {
-		//need import of Promise.jsm for example: Cu.import('resource:/gree/modules/Promise.jsm');
-		return Promise.defer();
-	} else if (typeof(PromiseUtils) != 'undefined'  && PromiseUtils.defer) {
-		//need import of PromiseUtils.jsm for example: Cu.import('resource:/gree/modules/PromiseUtils.jsm');
-		return PromiseUtils.defer();
-	} else {
-		/* A method to resolve the associated Promise with the value passed.
-		 * If the promise is already settled it does nothing.
-		 *
-		 * @param {anything} value : This value is used to resolve the promise
-		 * If the value is a Promise then the associated promise assumes the state
-		 * of Promise passed as value.
-		 */
-		this.resolve = null;
+  /* A method to resolve the associated Promise with the value passed.
+    * If the promise is already settled it does nothing.
+    *
+    * @param {anything} value : This value is used to resolve the promise
+    * If the value is a Promise then the associated promise assumes the state
+    * of Promise passed as value.
+    */
+  this.resolve = null;
 
-		/* A method to reject the assocaited Promise with the value passed.
-		 * If the promise is already settled it does nothing.
-		 *
-		 * @param {anything} reason: The reason for the rejection of the Promise.
-		 * Generally its an Error object. If however a Promise is passed, then the Promise
-		 * itself will be the reason for rejection no matter the state of the Promise.
-		 */
-		this.reject = null;
+  /* A method to reject the assocaited Promise with the value passed.
+    * If the promise is already settled it does nothing.
+    *
+    * @param {anything} reason: The reason for the rejection of the Promise.
+    * Generally its an Error object. If however a Promise is passed, then the Promise
+    * itself will be the reason for rejection no matter the state of the Promise.
+    */
+  this.reject = null;
 
-		/* A newly created Promise object.
-		 * Initially in pending state.
-		 */
-		this.promise = new Promise(function (resolve, reject){
-			this.resolve = resolve;
-			this.reject = reject;
-		}.bind(this));
-	}
+  /* A newly created Promise object.
+    * Initially in pending state.
+    */
+  this.promise = new Promise((resolve, reject) => {
+    this.resolve = resolve;
+    this.reject = reject;
+  });
+
 }
 
-const sendMessage = (action, data, cb) => {
+const perform = (action, data, cb) => {
 
-  let deferred = new Deferred();
+  const deferred = new Deferred();
   const replacementStrategy = 'keep';
 
   if (!socket) {
@@ -230,29 +235,33 @@ const sendMessage = (action, data, cb) => {
   }
 
   if (action === 'req_serial_monitor_open') {
-    socket.emit('command', 'open ' + data.com_name + ' ' + data.baudrate + ' timed', function () {
+    socket.emit('command', `open ${data.com_name} ${data.baudrate} timed`, () => {
       promises.open = deferred;
     });
-  } else if (action === 'req_serial_monitor_write') {
-    socket.emit('command', 'send ' + data.com_name + ' ' + data.data, () => {
+  }
+  else if (action === 'req_serial_monitor_write') {
+    socket.emit('command', `send ${data.com_name} ${data.data}`, () => {
       deferred.resolve(true);
     });
-  } else if (action === 'req_serial_monitor_close') {
-    socket.emit('command', 'close ' + data.com_name, () => {
+  }
+  else if (action === 'req_serial_monitor_close') {
+    socket.emit('command', `close ${data.com_name}`, () => {
       if (promises.close) {
         return promises.close;
       }
       promises.close = deferred;
     });
-  } else if (action === 'req_downloadtool') {
+  }
+  else if (action === 'req_downloadtool') {
     if (cb) {
       callbacks.download = [cb];
     }
     if (data.tool) {
-      socket.emit('command', 'downloadtool ' + data.tool + ' ' + data.tool_version + ' ' + data.package + ' ' + replacementStrategy, () => {
+      socket.emit('command', `downloadtool ${data.tool} ${data.tool_version} ${data.package} ${replacementStrategy}`, () => {
         promises.download = deferred;
       });
-    } else {
+    }
+    else {
       deferred.resolve('no need to download a nonexistent tool');
       promises.download = null;
     }
@@ -278,7 +287,7 @@ const addSerialCallback = (serialCb) => {
 
 const initPluginUrl = (selectedPluginUrl) => {
   pluginURL = selectedPluginUrl;
-}
+};
 
 /**
  * Perform an upload via http on the daemon
@@ -309,7 +318,7 @@ const upload = (target, data, cb) => {
   // At least one file to upload
   if (data.files.length === 0) {
     uploading = false;
-    callback('program', {done: true, err: 'You need at least one file to upload'});
+    callback('program', { done: true, err: 'You need at least one file to upload' });
     return;
   }
 
@@ -343,8 +352,8 @@ const upload = (target, data, cb) => {
     extrafiles: data.extrafiles || []
   };
 
-  for (let i = 1; i < data.files.length; i++) {
-    payload.extrafiles.push({filename: data.files[i].name, hex: data.files[i].data});
+  for (let i = 1; i < data.files.length; i += 1) {
+    payload.extrafiles.push({ filename: data.files[i].name, hex: data.files[i].data });
   }
 
   return fetch(`${pluginURL}/upload`, {
@@ -355,7 +364,7 @@ const upload = (target, data, cb) => {
     body: JSON.stringify(payload)
   })
     .catch(error => {
-      callback('program', {done: true, err: error});
+      callback('program', { done: true, err: error });
     });
 };
 
@@ -366,11 +375,12 @@ const stopUpload = () => {
 
 export {
   parseMessage,
-  sendMessage,
+  perform,
   addPortsCallback,
   addSerialCallback,
   initSocket,
   initPluginUrl,
   upload,
-  stopUpload
+  stopUpload,
+  Deferred
 };

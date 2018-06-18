@@ -28,7 +28,7 @@
  */
 
 import io from 'socket.io-client';
-import { parseMessage, sendMessage, addPortsCallback, addSerialCallback, initSocket, initPluginUrl, upload, stopUpload } from './readMessages';
+import { parseMessage, perform, addPortsCallback, addSerialCallback, initSocket, initPluginUrl, upload, stopUpload } from './readMessages';
 
 // Required agent version
 const MIN_VERSION = '1.1.69';
@@ -46,8 +46,6 @@ const LOOKUP_PORT_END = 9000;
 let selectedProtocol = PROTOCOL.HTTP;
 let agentInfo = {};
 let found = false;
-const tryInterval = 2500;
-let pollingId = null;
 let socket = null;
 let portsPolling = null;
 
@@ -98,7 +96,7 @@ const update = () => new Promise(resolve => {
  *
  * @return {Promise}
  */
-const connect = () => {
+const wsConnect = () => {
   if (socket) {
     return;
   }
@@ -145,7 +143,7 @@ const connect = () => {
     if (typeof wsDisconnectCb === 'function') {
       wsDisconnectCb();
     }
-    connect();
+    wsConnect();
   });
 
   // Parse messages
@@ -161,14 +159,11 @@ const tryPorts = hostname => {
   const pluginLookups = [];
 
   for (let port = LOOKUP_PORT_START; port < LOOKUP_PORT_END; port += 1) {
-    pluginLookups.push(fetch(`${selectedProtocol}://${hostname}:${port}/info`).then(response => {
-      return response.json().then(data => {
-        return {
-          response,
-          data
-        };
-      });
-    })
+    pluginLookups.push(fetch(`${selectedProtocol}://${hostname}:${port}/info`).then(response =>
+      response.json().then(data => ({
+        response,
+        data
+      })))
       .catch(() => {
         // We expect most of those call to fail, because there's only one agent
         // So we have to resolve them with a false value to let the Promise.all catch all the deferred data
@@ -180,7 +175,7 @@ const tryPorts = hostname => {
     found = responses.some(r => {
       if (r && r.response && r.response.status === 200) {
         agentInfo = r.data;
-        connect();
+        wsConnect();
         if (r.response.url.indexOf(PROTOCOL.HTTPS) === 0) {
           selectedProtocol = PROTOCOL.HTTPS;
         }
@@ -198,35 +193,19 @@ const tryPorts = hostname => {
   });
 };
 
-const DaemonAgent = (callbacks) => {
+const SocketDaemon = (callbacks) => {
 
-  wsConnectCb = callbacks.onSocketConnect;
-  wsErrorCb = callbacks.onSocketError;
-  wsDisconnectCb = callbacks.onSocketDisconnect;
+  wsConnectCb = callbacks.onConnect;
+  wsErrorCb = callbacks.onError;
+  wsDisconnectCb = callbacks.onDisconnect;
 
   addPortsCallback(callbacks.onPortsUpdate);
   addSerialCallback(callbacks.onSerialOutput);
 
   /**
-   * Set onPortUpdate callback.
-   */
-  const onPortsUpdate = (onPortsUpdateCb) => {
-    callbacks.onPortsUpdate = onPortsUpdateCb;
-    addPortsCallback(callbacks.onPortsUpdate);
-  };
-
-  /**
-   * Set onSerialOutput callback.
-   */
-  const onSerialOutput = (onSerialOutputCb) => {
-    callbacks.onSerialOutput = onSerialOutputCb;
-    addSerialCallback(callbacks.onSerialOutput);
-  };
-
-  /**
    * Set onSocketConnect callback.
    */
-  const onSocketConnect = (onSocketConnectCb) => {
+  const onConnect = (onSocketConnectCb) => {
     wsConnectCb = onSocketConnectCb;
   };
 
@@ -255,7 +234,7 @@ const DaemonAgent = (callbacks) => {
    * First search in http://LOOPBACK_ADDRESS, after in https://LOOPBACK_HOSTNAME.
    * @return {object} The found agent info values.
    */
-  const findService = () => {
+  const connect = () => {
     if (found) {
       return fetch(agentInfo[selectedProtocol])
         .then(response => response.json())
@@ -270,18 +249,6 @@ const DaemonAgent = (callbacks) => {
   };
 
   /**
-   * Perform a find() every interval ms
-   * @return {object} The found agent info values.
-   */
-  const waitForPlugin = (interval = tryInterval) => {
-    pollingId = setInterval(() => {
-      this.findService().then(() => {
-        clearInterval(pollingId);
-      });
-    }, interval);
-  };
-
-  /**
    * Pauses the plugin
    * @return {Promise}
    */
@@ -293,19 +260,17 @@ const DaemonAgent = (callbacks) => {
 
   return {
     connect,
+    perform,
     connected,
-    findService,
-    waitForPlugin,
     stopPlugin,
     upload,
     stopUpload,
-    sendMessage,
     onDisconnect,
-    onSocketConnect,
-    onPortsUpdate,
-    onSerialOutput,
+    onConnect,
+    onPortsUpdate: addPortsCallback,
+    onSerialOutput: addSerialCallback,
     onError
   };
 };
 
-export default DaemonAgent;
+export default SocketDaemon;
