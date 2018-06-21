@@ -62,7 +62,7 @@
     "agent",
     "plugin"
   ],
-  "author": "Stefania Mellai",
+  "author": "Stefania Mellai, Fabrizio Mirabito",
   "license": "MIT",
   "bugs": {
     "url": "https://github.com/bcmi-labs/create-plugin-communication/issues"

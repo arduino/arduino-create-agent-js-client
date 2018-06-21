@@ -31,7 +31,7 @@ import io from 'socket.io-client';
 import { parseMessage, perform, addPortsCallback, addSerialCallback, initSocket, initPluginUrl, upload, stopUpload } from './readMessages';
 
 // Required agent version
-const MIN_VERSION = '1.1.69';
+const MIN_VERSION = '1.1.71';
 
 const PROTOCOL = {
   HTTP: 'http',
@@ -88,6 +88,8 @@ const update = () => new Promise(resolve => {
 
   return fetch(`${agentInfo[selectedProtocol]}/update`, {
     method: 'POST'
+  }).then(() => {
+    return deferred.reject(); // We reject the promise because the daemon will be restarted, we need to continue looking for the port
   });
 });
 
