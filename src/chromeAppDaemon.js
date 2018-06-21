@@ -312,7 +312,7 @@ const DaemonCromeApp = (params) => {
     connect,
     perform,
     // Return daemon connection status
-    connected: () => !disconnected,
+    isConnected: () => !disconnected,
     stopPlugin() {
       // Not supported by the chrome app
     },

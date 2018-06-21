@@ -29,7 +29,7 @@
 
 import io from 'socket.io-client';
 import { parseMessage, perform, addPortsCallback, addSerialCallback, initSocket, initPluginUrl, upload, stopUpload } from './readMessages';
-
+import { getProvisioningSketch, configure } from './boardConfiguration';
 // Required agent version
 const MIN_VERSION = '1.1.71';
 
@@ -161,16 +161,15 @@ const tryPorts = hostname => {
   const pluginLookups = [];
 
   for (let port = LOOKUP_PORT_START; port < LOOKUP_PORT_END; port += 1) {
-    pluginLookups.push(fetch(`${selectedProtocol}://${hostname}:${port}/info`).then(response =>
-      response.json().then(data => ({
-        response,
-        data
-      })))
-      .catch(() => {
-        // We expect most of those call to fail, because there's only one agent
-        // So we have to resolve them with a false value to let the Promise.all catch all the deferred data
-        Promise.resolve(false);
-      }));
+    pluginLookups.push(fetch(`${selectedProtocol}://${hostname}:${port}/info`)
+      .then(response => response.json()
+        .then(data => ({
+          response,
+          data
+        })))
+      .catch(() => Promise.resolve(false)));
+  // We expect most of those call to fail, because there's only one agent
+  // So we have to resolve them with a false value to let the Promise.all catch all the deferred data
   }
 
   return Promise.all(pluginLookups).then(responses => {
@@ -196,7 +195,6 @@ const tryPorts = hostname => {
 };
 
 const SocketDaemon = (callbacks) => {
-
   wsConnectCb = callbacks.onConnect;
   wsErrorCb = callbacks.onError;
   wsDisconnectCb = callbacks.onDisconnect;
@@ -229,7 +227,7 @@ const SocketDaemon = (callbacks) => {
    * Check if socket connected.
    * @return {boolean} The connection status flag.
    */
-  const connected = () => socket && socket.connected;
+  const isConnected = () => socket && socket.connected;
 
   /**
    * Look for the agent endpoint.
@@ -256,17 +254,19 @@ const SocketDaemon = (callbacks) => {
    */
   const stopPlugin = () => {
     if (found) {
-      return fetch(`${agentInfo[selectedProtocol]}/pause`);
+      return fetch(`${agentInfo[selectedProtocol]}/pause`, { method: 'POST' });
     }
   };
 
   return {
     connect,
     perform,
-    connected,
+    isConnected,
     stopPlugin,
     upload,
     stopUpload,
+    getProvisioningSketch,
+    configure,
     onDisconnect,
     onConnect,
     onPortsUpdate: addPortsCallback,
