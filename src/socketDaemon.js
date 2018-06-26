@@ -81,16 +81,15 @@ const semVerCompare = (a, b) => {
 /**
  * Check the agent version and call the update if needed.
  */
-const update = () => new Promise(resolve => {
+const update = () => new Promise((resolve, reject) => {
   if (agentInfo.version && (semVerCompare(agentInfo.version, MIN_VERSION) >= 0 || agentInfo.version.indexOf('dev') !== -1)) {
     resolve(agentInfo);
   }
 
   return fetch(`${agentInfo[selectedProtocol]}/update`, {
     method: 'POST'
-  }).then(() => {
-    return deferred.reject(); // We reject the promise because the daemon will be restarted, we need to continue looking for the port
-  });
+  }).then(() => reject()); // We reject the promise because the daemon will be restarted, we need to continue looking for the port
+
 });
 
 /**
@@ -258,6 +257,19 @@ const SocketDaemon = (callbacks) => {
     }
   };
 
+  /**
+   * Uploads the sketch and performs action in order to configure the board for Arduino Cloud
+   * @param {Object} compiledSketch the Object containing the provisioning sketch, ready to be compiled
+   * @param {Object} board contains the board data
+   * @param {function} createDeviceCb used to create the device associated to the user
+   */
+  const configureBoard = (compiledSketch, board, createDeviceCb) => {
+    if (!isConnected()) {
+      return Promise.reject(new Error('We were not able to generate the CSR.'));
+    }
+    return configure(compiledSketch, board, createDeviceCb);
+  };
+
   return {
     connect,
     perform,
@@ -266,7 +278,7 @@ const SocketDaemon = (callbacks) => {
     upload,
     stopUpload,
     getProvisioningSketch,
-    configure,
+    configureBoard,
     onDisconnect,
     onConnect,
     onPortsUpdate: addPortsCallback,

@@ -28,7 +28,7 @@
  */
 
 import { provisioningSketch } from './sketches/provisioning.ino';
-import SocketDaemon from './socketDaemon';
+import { perform, upload, addSerialCallback } from './readMessages';
 
 /**
  * Returns the correct Provisioning sketch after adding fqbn
@@ -44,10 +44,6 @@ const getProvisioningSketch = (fqbn) => {
 const getCsr = (board) => {
   let partialCsr = '';
   let gettingCsr = new Promise((resolve, reject) => {
-    if (!SocketDaemon.isConnected()) {
-      return reject(new Error('We were not able to generate the CSR.'));
-    }
-
     const parseCsrQuestions = message => {
       // TODO: store partial messages
 
@@ -68,14 +64,14 @@ const getCsr = (board) => {
           com_name: board.port,
           data: 'y\n'
         };
-        SocketDaemon.perform('req_serial_monitor_write', serialData);
+        perform('req_serial_monitor_write', serialData);
       }
       if (message.indexOf('Your ECCX08 is unlocked, would you like to lock it (y/N):') !== -1) {
         const serialData = {
           com_name: board.port,
           data: 'y\n'
         };
-        SocketDaemon.perform('req_serial_monitor_write', serialData);
+        perform('req_serial_monitor_write', serialData);
       }
       partialCsr += message;
       const begin = partialCsr.indexOf('-----BEGIN CERTIFICATE REQUEST-----');
@@ -86,7 +82,7 @@ const getCsr = (board) => {
       }
     };
 
-    SocketDaemon.onSerialOutput(parseCsrQuestions);
+    addSerialCallback(parseCsrQuestions);
   })
     .finally(() => {
       gettingCsr = false;
@@ -96,9 +92,6 @@ const getCsr = (board) => {
 
 const storeCertificate = (compressedCert, board) => {
   const storing = new Promise((resolve, reject) => {
-    if (!SocketDaemon.isConnected()) {
-      return reject(new Error('We were not able to store the certificate on your board'));
-    }
 
     const parseCsr = (message) => {
       if (message.indexOf('Compressed cert') !== -1) {
@@ -108,7 +101,7 @@ const storeCertificate = (compressedCert, board) => {
         return reject(new Error(message));
       }
     };
-    SocketDaemon.onSerialOutput(parseCsr);
+    addSerialCallback(parseCsr);
     const notBefore = new Date(compressedCert.not_before);
     const notAfter = new Date(compressedCert.not_after);
     // eslint-disable-next-line prefer-template
@@ -125,7 +118,7 @@ const storeCertificate = (compressedCert, board) => {
       com_name: board.port,
       data: answers
     };
-    SocketDaemon.perform('req_serial_monitor_write', serialData);
+    perform('req_serial_monitor_write', serialData);
   });
 
   return storing;
@@ -143,13 +136,13 @@ const configure = (compiledSketch, board, createDeviceCb) => {
     baudrate: 9600
   };
 
-  SocketDaemon.upload(board, compiledSketch)
-    .then(() => SocketDaemon.perform('req_serial_monitor_open', serialData))
+  upload(board, compiledSketch)
+    .then(() => perform('req_serial_monitor_open', serialData))
     .then(() => getCsr(board))
-    .then(csr => createDeviceCb(board.customName, board.id, csr))
+    .then(csr => createDeviceCb(csr))
     .then(data => storeCertificate(data.compressed))
     .catch(reason => new Error(`Couldn't configure board: ${reason}`))
-    .finally(() => SocketDaemon.perform('req_serial_monitor_close', serialData));
+    .finally(() => perform('req_serial_monitor_close', serialData));
 };
 
 export {

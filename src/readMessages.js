@@ -61,8 +61,8 @@ const parseMessageList = (data) => {
     serialPorts = data.Ports;
   }
   callback('ports', {
-    serial: this.serialPorts,
-    network: this.networkPorts
+    serial: serialPorts,
+    network: networkPorts
   });
 };
 
