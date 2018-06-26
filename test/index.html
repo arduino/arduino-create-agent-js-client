@@ -1,0 +1,28 @@
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="ie=edge">
+  <title>Test Daemon</title>
+  <style>
+  #error {
+    color: red
+  }
+
+  pre {
+    background: #f9f9f9;
+  }
+  </style>
+</head>
+<body>
+  <h1>Test Daemon</h1>
+  <p>Agent status: <span id="agent-status">-</span></p>
+  <pre id="agent-info"></pre>
+  <p>Web socket status: <span id="ws-status">-</span></p>
+  <p>Boards:</p>
+  <ul id="boards-list"></ul>
+  <p id="error"></p>
+
+  <button id="connect">Connnect</button>
+</body>
+</html>
