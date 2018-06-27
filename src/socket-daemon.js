@@ -140,16 +140,15 @@ export default class SocketDaemon {
    * @return {Promise}
    */
   wsConnect() {
-    if (this.socket) {
+    if (this.isConnected()) {
       return;
     }
 
     const wsProtocol = this.selectedProtocol === PROTOCOL.HTTPS ? 'ws' : 'wss';
     const address = this.agentInfo[wsProtocol];
-    this.socket = io(address);
+    this.socket = io(address, { reconnection: false, forceNew: true });
 
     this.socket.on('connect', () => {
-
       initSocket(this.socket);
 
       // On connect download windows drivers which are indispensable for detection of boards
