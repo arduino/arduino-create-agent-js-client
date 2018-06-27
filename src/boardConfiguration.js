@@ -136,7 +136,30 @@ const configure = (compiledSketch, board, createDeviceCb) => {
     baudrate: 9600
   };
 
-  upload(board, compiledSketch)
+  const uploadTarget = {
+    board: board.fqbn,
+    port: board.port,
+    network: false
+  };
+
+  const file = {
+    name: compiledSketch.name + board.upload[0].ext,
+    data: compiledSketch.hex
+  };
+
+  const uploadData = {
+    files: [file],
+    commandline: board.upload[0].commandline,
+    signature: board.upload[0].options.signature,
+    extrafiles: [],
+    options: {
+      wait_for_upload_port: (board.upload[0].options.wait_for_upload_port === true || board.upload[0].options.wait_for_upload_port === 'true'), // eslint-disable-line camelcase
+      use_1200bps_touch: (board.upload[0].options.use_1200bps_touch === true || board.upload[0].options.use_1200bps_touch === 'true'), // eslint-disable-line camelcase
+      params_verbose: '-v' // eslint-disable-line camelcase
+    }
+  };
+
+  upload(uploadTarget, uploadData)
     .then(() => perform('req_serial_monitor_open', serialData))
     .then(() => getCsr(board))
     .then(csr => createDeviceCb(csr))
