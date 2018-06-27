@@ -35,6 +35,7 @@ import {
   interval
 } from 'rxjs';
 import { parseMessage, initSocket, initPluginUrl } from './readMessages';
+import { debug } from 'util';
 // Required agent version
 const MIN_VERSION = '1.1.71';
 
@@ -50,8 +51,8 @@ const LOOKUP_PORT_END = 9000;
 
 const CANT_FIND_AGENT_MESSAGE = 'Arduino Create Agent cannot be found';
 
-export const AGENT_STATUS_CONNECTED = 'AGENT_CONNECTED';
-export const AGENT_STATUS_DISCONNECTED = 'AGENT_DISCONNECTED';
+export const AGENT_STATUS_FOUND = 'AGENT_FOUND';
+export const AGENT_STATUS_NOT_FOUND = 'AGENT_NOT_FOUND';
 export const WS_STATUS_CONNECTED = 'WS_CONNECTED';
 export const WS_STATUS_DISCONNECTED = 'WS_DISCONNECTED';
 
@@ -61,7 +62,7 @@ export default class SocketDaemon {
     this.agentInfo = {};
     this.found = false;
 
-    this.agentConnectionStatus = new BehaviorSubject(AGENT_STATUS_DISCONNECTED);
+    this.agentDiscoveryStatus = new BehaviorSubject(AGENT_STATUS_NOT_FOUND);
     this.wsConnectionStatus = new BehaviorSubject(WS_STATUS_DISCONNECTED);
     this.wsError = new Subject();
   }
@@ -71,19 +72,26 @@ export default class SocketDaemon {
    * First search in http://LOOPBACK_ADDRESS, after in https://LOOPBACK_HOSTNAME.
    * @return {object} The found agent info values.
    */
-  connect() {
-    if (this.found) {
-      return fetch(this.agentInfo[this.selectedProtocol])
-        .then(response => response.json())
-        .catch(() => {
-          this.found = false;
-          return Promise.reject(new Error(CANT_FIND_AGENT_MESSAGE));
+  findAgent() {
+    const find = () => {
+      return this.tryAllPorts()
+        .catch(err => {
+          this.agentDiscoveryStatus.next(AGENT_STATUS_NOT_FOUND);
+          return err;
+        })
+        .finally(() => {
+          if (!this.isConnected()) {
+            setTimeout(find, 3000);
+          }
         });
-    }
+    };
+    return find();
+  }
 
+  tryAllPorts() {
     return this.tryPorts(LOOPBACK_ADDRESS)
       .catch(() => this.tryPorts(LOOPBACK_HOSTNAME)
-        .catch(() => Promise.reject(new Error(CANT_FIND_AGENT_MESSAGE))));
+        .catch(err => Promise.reject(err)));
   }
 
   /**
@@ -92,6 +100,7 @@ export default class SocketDaemon {
    * @return {object} info - The agent info values.
    */
   tryPorts(hostname) {
+    console.log('tryPorts\n');
     const pluginLookups = [];
 
     for (let port = LOOKUP_PORT_START; port < LOOKUP_PORT_END; port += 1) {
@@ -102,27 +111,27 @@ export default class SocketDaemon {
       // So we have to resolve them with a false value to let the Promise.all catch all the deferred data
     }
 
-    return Promise.all(pluginLookups).then(responses => {
-      this.found = responses.some(r => {
-        if (r && r.response && r.response.status === 200) {
-          this.agentInfo = r.data;
-          this.agentConnectionStatus.next(AGENT_STATUS_CONNECTED);
-          this.wsConnect();
-          if (r.response.url.indexOf(PROTOCOL.HTTPS) === 0) {
-            this.selectedProtocol = PROTOCOL.HTTPS;
+    return Promise.all(pluginLookups)
+      .then(responses => {
+        this.found = responses.some(r => {
+          if (r && r.response && r.response.status === 200) {
+            this.agentInfo = r.data;
+            this.agentDiscoveryStatus.next(AGENT_STATUS_FOUND);
+            this.wsConnect();
+            if (r.response.url.indexOf(PROTOCOL.HTTPS) === 0) {
+              this.selectedProtocol = PROTOCOL.HTTPS;
+            }
+            initPluginUrl(this.agentInfo[this.selectedProtocol]);
+            return true;
           }
-          initPluginUrl(this.agentInfo[this.selectedProtocol]);
-          return true;
-        }
-        return false;
-      });
+          return false;
+        });
 
-      if (this.found) {
-        return this.update()
-          .then(() => this.agentInfo);
-      }
-      return Promise.reject(new Error(`${CANT_FIND_AGENT_MESSAGE} at ${hostname}`));
-    });
+        if (this.found) {
+          return this.update();
+        }
+        return Promise.reject(new Error(`${CANT_FIND_AGENT_MESSAGE} at ${hostname}`));
+      });
   }
 
   /**
@@ -163,7 +172,7 @@ export default class SocketDaemon {
         this.portsPollingSubscription.unsubscribe();
       }
       this.wsConnectionStatus.next(WS_STATUS_DISCONNECTED);
-      this.wsConnect();
+      this.findAgent();
     });
 
     // Parse messages
@@ -176,7 +185,7 @@ export default class SocketDaemon {
   update() {
     return new Promise((resolve, reject) => {
       if (this.agentInfo.version && (semVerCompare(this.agentInfo.version, MIN_VERSION) >= 0 || this.agentInfo.version.indexOf('dev') !== -1)) {
-        resolve(this.agentInfo);
+        return resolve(this.agentInfo);
       }
 
       return fetch(`${this.agentInfo[this.selectedProtocol]}/update`, {
