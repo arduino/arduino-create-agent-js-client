@@ -60,7 +60,10 @@ const parseMessageList = (data) => {
   else {
     serialPorts = data.Ports;
   }
-  callback('ports', serialPorts.concat(networkPorts));
+  callback('ports', {
+    serial: serialPorts,
+    network: networkPorts
+  });
 };
 
 const parseMessageCommand = (data) => {
@@ -145,47 +148,48 @@ const parseMessage = message => {
     return;
   }
 
-  // Result of a list command
-  if (jsonMessage && jsonMessage.Ports) {
-    return parseMessageList(jsonMessage);
-  }
-
-  // Result of a Open or Close command
-  if (jsonMessage && jsonMessage.Cmd) {
-    return parseMessageCommand(jsonMessage);
-  }
-
-  if (jsonMessage && jsonMessage.Error) {
-    if (jsonMessage.Error.indexOf('could not find') !== -1) {
-      if (promises.close) {
-        promises.close.reject(jsonMessage.Error);
-        promises.close = null;
-      }
+  if (jsonMessage) {
+    // Result of a list command
+    if (jsonMessage.Ports) {
+      return parseMessageList(jsonMessage);
     }
-    return;
-  }
+    // Result of a Open or Close command
+    if (jsonMessage.Cmd) {
+      return parseMessageCommand(jsonMessage);
+    }
 
-  // Result of a Program command
-  if (jsonMessage && jsonMessage.Flash) {
-    return parseFlash(jsonMessage);
-  }
+    if (jsonMessage.Error) {
+      if (jsonMessage.Error.indexOf('could not find') !== -1) {
+        if (promises.close) {
+          promises.close.reject(jsonMessage.Error);
+          promises.close = null;
+        }
+      }
+      return;
+    }
 
-  if (jsonMessage.Err) {
-    return callback('program', { done: false, err: `${jsonMessage.Err}\n` });
-  }
+    // Result of a Program command
+    if (jsonMessage.Flash) {
+      return parseFlash(jsonMessage);
+    }
 
-  if (jsonMessage && jsonMessage.ProgrammerStatus) {
-    return parseProgram(jsonMessage);
-  }
+    if (jsonMessage.Err) {
+      return callback('program', { done: false, err: `${jsonMessage.Err}\n` });
+    }
 
-  // Result of a download command
-  if (jsonMessage && jsonMessage.DownloadStatus) {
-    return parseDownload(jsonMessage);
-  }
+    if (jsonMessage.ProgrammerStatus) {
+      return parseProgram(jsonMessage);
+    }
 
-  // Data read from the serial
-  if (jsonMessage.D) {
-    return callback('serial', { data: jsonMessage.D });
+    // Result of a download command
+    if (jsonMessage.DownloadStatus) {
+      return parseDownload(jsonMessage);
+    }
+
+    // Data read from the serial
+    if (jsonMessage.D) {
+      return callback('serial', { data: jsonMessage.D });
+    }
   }
 };
 
@@ -236,7 +240,7 @@ const perform = (action, data, cb) => {
   }
   else if (action === 'req_downloadtool') {
     if (cb) {
-      callbacks.download = [cb];
+      callbacks.download.push(cb);
     }
     if (data.tool) {
       socket.emit('command', `downloadtool ${data.tool} ${data.tool_version} ${data.package} ${replacementStrategy}`, () => {
