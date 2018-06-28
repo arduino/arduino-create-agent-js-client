@@ -34,8 +34,8 @@ import {
   BehaviorSubject,
   interval
 } from 'rxjs';
-import { parseMessage, initSocket, initPluginUrl } from './readMessages';
-import { debug } from 'util';
+import ReaderWriter from './reader-writer';
+
 // Required agent version
 const MIN_VERSION = '1.1.71';
 
@@ -64,7 +64,33 @@ export default class SocketDaemon {
 
     this.agentDiscoveryStatus = new BehaviorSubject(AGENT_STATUS_NOT_FOUND);
     this.wsConnectionStatus = new BehaviorSubject(WS_STATUS_DISCONNECTED);
+    this.devicesListStatus = new Subject();
     this.wsError = new Subject();
+
+    this.devicesList = {
+      serial: [],
+      network: []
+    };
+
+    this.devicesListStatus.subscribe(devicesInfo => {
+      if (devicesInfo.Network) {
+        this.devicesList.network = devicesInfo.Ports;
+      }
+      else {
+        this.devicesList.serial = devicesInfo.Ports;
+      }
+      console.log(this.devicesList);
+    });
+
+    this.readerWriter = null;
+    this.wsConnectionStatus.subscribe(status => {
+      if (status === WS_STATUS_CONNECTED) {
+        this.readerWriter = new ReaderWriter(this.socket, this.agentInfo[this.selectedProtocol], this.devicesListStatus);
+      }
+      else {
+        this.readerWriter = null;
+      }
+    });
   }
 
   /**
@@ -100,7 +126,6 @@ export default class SocketDaemon {
    * @return {object} info - The agent info values.
    */
   tryPorts(hostname) {
-    console.log('tryPorts\n');
     const pluginLookups = [];
 
     for (let port = LOOKUP_PORT_START; port < LOOKUP_PORT_END; port += 1) {
@@ -121,7 +146,6 @@ export default class SocketDaemon {
             if (r.response.url.indexOf(PROTOCOL.HTTPS) === 0) {
               this.selectedProtocol = PROTOCOL.HTTPS;
             }
-            initPluginUrl(this.agentInfo[this.selectedProtocol]);
             return true;
           }
           return false;
@@ -149,8 +173,6 @@ export default class SocketDaemon {
     this.socket = io(address, { reconnection: false, forceNew: true });
 
     this.socket.on('connect', () => {
-      initSocket(this.socket);
-
       // On connect download windows drivers which are indispensable for detection of boards
       this.socket.emit('command', 'downloadtool windows-drivers latest arduino keep');
       this.socket.emit('command', 'downloadtool bossac 1.7.0 arduino keep');
@@ -173,9 +195,6 @@ export default class SocketDaemon {
       this.wsConnectionStatus.next(WS_STATUS_DISCONNECTED);
       this.findAgent();
     });
-
-    // Parse messages
-    this.socket.on('message', parseMessage);
   }
 
   /**
@@ -188,7 +207,10 @@ export default class SocketDaemon {
       }
 
       return fetch(`${this.agentInfo[this.selectedProtocol]}/update`, {
-        method: 'POST'
+        method: 'POST',
+        headers: {
+          'Content-Type': 'text/plain; charset=utf-8'
+        }
       }).then(() => reject()); // We reject the promise because the daemon will be restarted, we need to continue looking for the port
     });
   }
