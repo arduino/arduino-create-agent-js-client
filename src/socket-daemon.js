@@ -74,31 +74,12 @@ export default class SocketDaemon {
 
     this.agentDiscoveryStatus = new BehaviorSubject(AGENT_STATUS_NOT_FOUND);
     this.wsConnectionStatus = new BehaviorSubject(WS_STATUS_DISCONNECTED);
-    this.devicesListStatus = new Subject();
     this.wsError = new Subject();
 
-    this.devicesList = {
-      serial: [],
-      network: []
-    };
-
-    this.devicesListStatus.subscribe(devicesInfo => {
-      if (devicesInfo.Network) {
-        this.devicesList.network = devicesInfo.Ports;
-      }
-      else {
-        this.devicesList.serial = devicesInfo.Ports;
-      }
-      console.log(this.devicesList);
-    });
-
-    this.readerWriter = null;
+    this.readerWriter = new ReaderWriter();
     this.wsConnectionStatus.subscribe(status => {
       if (status === WS_STATUS_CONNECTED) {
-        this.readerWriter = new ReaderWriter(this.socket, this.agentInfo[this.selectedProtocol], this.devicesListStatus);
-      }
-      else {
-        this.readerWriter = null;
+        this.readerWriter.initSocket(this.socket);
       }
     });
   }
@@ -154,10 +135,14 @@ export default class SocketDaemon {
             if (r.response.url.indexOf(PROTOCOL.HTTPS) === 0) {
               this.selectedProtocol = PROTOCOL.HTTPS;
             }
+<<<<<<< HEAD
             else {
               // Protocol http, force 127.0.0.1 for old agent versions too
               this.agentInfo[this.selectedProtocol] = this.agentInfo[this.selectedProtocol].replace('localhost', '127.0.0.1');
             }
+=======
+            this.readerWriter.initPluginUrl(this.agentInfo[this.selectedProtocol]);
+>>>>>>> 93943b354033c52810ae98200bee481ba5eef5d9
             return true;
           }
           return false;

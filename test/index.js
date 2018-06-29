@@ -32,3 +32,7 @@ document.getElementById('connect').addEventListener('click', () => {
   Daemon.findAgent()
     .catch(showError);
 });
+
+Daemon.readerWriter.messageSubject.subscribe(devicesInfo => {
+  document.getElementById('boards-list').innerHTML = JSON.stringify(devicesInfo, null, 2);
+});
