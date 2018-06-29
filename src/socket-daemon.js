@@ -29,6 +29,8 @@
 
 import io from 'socket.io-client';
 import semVerCompare from 'semver-compare';
+import { detect } from 'detect-browser';
+
 import {
   Subject,
   BehaviorSubject,
@@ -38,6 +40,7 @@ import ReaderWriter from './reader-writer';
 
 // Required agent version
 const MIN_VERSION = '1.1.71';
+const browser = detect();
 
 const PROTOCOL = {
   HTTP: 'http',
@@ -50,11 +53,18 @@ const LOOKUP_PORT_START = 8991;
 const LOOKUP_PORT_END = 9000;
 
 const CANT_FIND_AGENT_MESSAGE = 'Arduino Create Agent cannot be found';
+let updateAttempts = 0;
 
 export const AGENT_STATUS_FOUND = 'AGENT_FOUND';
 export const AGENT_STATUS_NOT_FOUND = 'AGENT_NOT_FOUND';
 export const WS_STATUS_CONNECTED = 'WS_CONNECTED';
 export const WS_STATUS_DISCONNECTED = 'WS_DISCONNECTED';
+
+let orderedPluginAddresses = [LOOPBACK_ADDRESS, LOOPBACK_HOSTNAME];
+
+if (browser.name !== 'chrome' && browser.name !== 'firefox') {
+  orderedPluginAddresses = [LOOPBACK_HOSTNAME, LOOPBACK_ADDRESS];
+}
 
 export default class SocketDaemon {
   constructor() {
@@ -95,28 +105,26 @@ export default class SocketDaemon {
 
   /**
    * Look for the agent endpoint.
-   * First search in http://LOOPBACK_ADDRESS, after in https://LOOPBACK_HOSTNAME.
+   * First search in http://LOOPBACK_ADDRESS, after in https://LOOPBACK_HOSTNAME if in Chrome or Firefox, otherwise vice versa.
    * @return {object} The found agent info values.
    */
   findAgent() {
-    const find = () => {
-      return this.tryAllPorts()
-        .catch(err => {
-          this.agentDiscoveryStatus.next(AGENT_STATUS_NOT_FOUND);
-          return err;
-        })
-        .finally(() => {
-          if (!this.isConnected()) {
-            setTimeout(find, 3000);
-          }
-        });
-    };
+    const find = () => this.tryAllPorts()
+      .catch(err => {
+        this.agentDiscoveryStatus.next(AGENT_STATUS_NOT_FOUND);
+        return err;
+      })
+      .finally(() => {
+        if (!this.isConnected()) {
+          setTimeout(find, 3000);
+        }
+      });
     return find();
   }
 
   tryAllPorts() {
-    return this.tryPorts(LOOPBACK_ADDRESS)
-      .catch(() => this.tryPorts(LOOPBACK_HOSTNAME)
+    return this.tryPorts(orderedPluginAddresses[0])
+      .catch(() => this.tryPorts(orderedPluginAddresses[1])
         .catch(err => Promise.reject(err)));
   }
 
@@ -146,13 +154,26 @@ export default class SocketDaemon {
             if (r.response.url.indexOf(PROTOCOL.HTTPS) === 0) {
               this.selectedProtocol = PROTOCOL.HTTPS;
             }
+            else {
+              // Protocol http, force 127.0.0.1 for old agent versions too
+              this.agentInfo[this.selectedProtocol] = this.agentInfo[this.selectedProtocol].replace('localhost', '127.0.0.1');
+            }
             return true;
           }
           return false;
         });
 
         if (this.found) {
-          return this.update();
+          if (this.agentInfo.version && (semVerCompare(this.agentInfo.version, MIN_VERSION) >= 0 || this.agentInfo.version.indexOf('dev') !== -1)) {
+            return this.agentInfo;
+          }
+          if (updateAttempts === 0) {
+            updateAttempts += 1;
+            return this.update();
+          }
+          if (updateAttempts < 10) {
+            return setTimeout(() => this.update(), 10000);
+          }
         }
         return Promise.reject(new Error(`${CANT_FIND_AGENT_MESSAGE} at ${hostname}`));
       });
@@ -201,18 +222,12 @@ export default class SocketDaemon {
    * Check the agent version and call the update if needed.
    */
   update() {
-    return new Promise((resolve, reject) => {
-      if (this.agentInfo.version && (semVerCompare(this.agentInfo.version, MIN_VERSION) >= 0 || this.agentInfo.version.indexOf('dev') !== -1)) {
-        return resolve(this.agentInfo);
+    return fetch(`${this.agentInfo[this.selectedProtocol]}/update`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'text/plain; charset=utf-8'
       }
-
-      return fetch(`${this.agentInfo[this.selectedProtocol]}/update`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'text/plain; charset=utf-8'
-        }
-      }).then(() => reject()); // We reject the promise because the daemon will be restarted, we need to continue looking for the port
-    });
+    }).then(() => Promise.reject()); // We reject the promise because the daemon will be restarted, we need to continue looking for the port
   }
 
   /**
