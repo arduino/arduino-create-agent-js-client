@@ -9,20 +9,20 @@
     color: red
   }
 
+  .found {
+    color: green;
+  }
+
+  .not-found {
+    color: red;
+  }
+
   pre {
     background: #f9f9f9;
   }
   </style>
 </head>
 <body>
-  <h1>Test Daemon</h1>
-  <p>Agent status: <span id="agent-status">-</span></p>
-  <pre id="agent-info"></pre>
-  <p>Web socket status: <span id="ws-status">-</span></p>
-  <p>Boards:</p>
-  <ul id="boards-list"></ul>
-  <p id="error"></p>
-
-  <button id="connect">Connect</button>
+  <div id="root"></div>
 </body>
 </html>
