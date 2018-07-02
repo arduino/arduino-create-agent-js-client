@@ -58,7 +58,7 @@ class App extends React.Component {
 
     return (
       <div>
-        <h1>Test Daemon</h1>
+        <h1>Test Arduino Create Plugin</h1>
         <p>Agent status: <span id="agent-status" className={ this.state.agentStatus === AGENT_STATUS_FOUND ? 'found' : 'not-found' }>
           { this.state.agentStatus }
         </span></p>
