@@ -5,6 +5,7 @@ export default class ReaderWriter {
     this.socket = null;
     this.pluginURL = null;
     this.messageSubject = new Subject();
+    this.serialMonitorSubject = new Subject();
     this.devicesList = {
       serial: [],
       network: []
@@ -32,7 +33,6 @@ export default class ReaderWriter {
       else {
         this.devicesList.serial = devicesInfo.Ports;
       }
-      console.log(this.devicesList);
     }
   }
 
@@ -65,6 +65,7 @@ export default class ReaderWriter {
     this.openingSerial = new Promise((resolve, reject) => {
       checkOpen = message => {
         if (message.Cmd === 'Open') {
+          this.readSerial();
           return resolve();
         }
         if (message.Cmd === 'OpenFail') {
@@ -89,6 +90,9 @@ export default class ReaderWriter {
       return Promise.reject(new Error('No board found'));
     }
     if (!serialPort.IsOpen) {
+      if (!this.readSerialSubscription) {
+        this.readSerialSubscription.unsubscribe();
+      }
       return Promise.resolve();
     }
     let checkClosed = null;
@@ -108,5 +112,16 @@ export default class ReaderWriter {
     });
     this.socket.emit('command', `close ${port}`);
     return this.closingSerial;
+  }
+
+  readSerial() {
+    const onMessage = message => {
+      if (message.D) {
+        this.serialMonitorSubject.next(message.D);
+      }
+    };
+    if (!this.readSerialSubscription) {
+      this.readSerialSubscription = this.messageSubject.subscribe(onMessage);
+    }
   }
 }

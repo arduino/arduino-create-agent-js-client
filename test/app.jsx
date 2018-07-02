@@ -2,14 +2,10 @@ import React from 'react';
 import Daemon from '../src';
 import { WS_STATUS_CONNECTED, AGENT_STATUS_FOUND } from '../src/socket-daemon';
 
-const handleOpen = (e, port) => {
-  e.preventDefault();
-  Daemon.readerWriter.openSerialMonitor(port);
-};
-
-const handleClose = (e, port) => {
-  e.preventDefault();
-  Daemon.readerWriter.closeSerialMonitor(port);
+const scrollToBottom = (target) => {
+  if (target) {
+    target.scrollTop = target.scrollHeight; // eslint-disable-line no-param-reassign
+  }
 };
 
 class App extends React.Component {
@@ -21,9 +17,13 @@ class App extends React.Component {
       wsStatus: '-',
       serialDevices: [],
       networkDevices: [],
-      agentInfo: ''
+      agentInfo: '',
+      serialMonitorContent: ''
     };
+
     this.connect = this.connect.bind(this);
+    this.handleOpen = this.handleOpen.bind(this);
+    this.handleClose = this.handleClose.bind(this);
   }
 
   componentDidMount() {
@@ -46,6 +46,12 @@ class App extends React.Component {
         networkDevices: Daemon.readerWriter.devicesList.network
       });
     });
+
+    const serialTextarea = document.getElementById('serial-textarea');
+    Daemon.readerWriter.serialMonitorSubject.subscribe(message => {
+      this.setState({ serialMonitorContent: this.state.serialMonitorContent + message });
+      scrollToBottom(serialTextarea);
+    });
   }
 
   showError(err) {
@@ -62,8 +68,19 @@ class App extends React.Component {
       .catch(this.showError);
   }
 
+  handleOpen(e, port) {
+    this.setState({ serialMonitorContent: '' });
+    e.preventDefault();
+    Daemon.readerWriter.openSerialMonitor(port);
+  }
+
+  handleClose(e, port) {
+    e.preventDefault();
+    Daemon.readerWriter.closeSerialMonitor(port);
+  }
+
   render() {
-    const listSerialDevices = this.state.serialDevices.map((device, i) => (<li key={i}>{device.Name} - IsOpen: {device.IsOpen ? 'true' : 'false'} - <a href="#" onClick={(e) => handleOpen(e, device.Name)}>open</a> - <a href="#" onClick={(e) => handleClose(e, device.Name)}>close</a></li>));
+    const listSerialDevices = this.state.serialDevices.map((device, i) => (<li key={i}>{device.Name} - IsOpen: {device.IsOpen ? 'true' : 'false'} - <a href="#" onClick={(e) => this.handleOpen(e, device.Name)}>open</a> - <a href="#" onClick={(e) => this.handleClose(e, device.Name)}>close</a></li>));
     const listNetworkDevices = this.state.networkDevices.map((device, i) => <li key={i}>{device.Name}</li>);
 
     return (
@@ -91,6 +108,10 @@ class App extends React.Component {
           <p id="error"></p>
         </div>
         <button id="connect" onClick={ this.connect }>Connect</button>
+        <div className="serial-monitor">
+          <h2>Serial Monitor</h2>
+          <textarea id="serial-textarea" value={ this.state.serialMonitorContent }/>
+        </div>
       </div>
     );
   }
