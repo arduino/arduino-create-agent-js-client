@@ -2,6 +2,16 @@ import React from 'react';
 import Daemon from '../src';
 import { WS_STATUS_CONNECTED, AGENT_STATUS_FOUND } from '../src/socket-daemon';
 
+const handleOpen = (e, port) => {
+  e.preventDefault();
+  Daemon.readerWriter.openSerialMonitor(port);
+};
+
+const handleClose = (e, port) => {
+  e.preventDefault();
+  Daemon.readerWriter.closeSerialMonitor(port);
+};
+
 class App extends React.Component {
   constructor() {
     super();
@@ -53,8 +63,8 @@ class App extends React.Component {
   }
 
   render() {
-    const listSerialDevices = this.state.serialDevices.map(device => <li>{device.Name}</li>);
-    const listNetworkDevices = this.state.networkDevices.map(device => <li>{device.Name}</li>);
+    const listSerialDevices = this.state.serialDevices.map((device, i) => (<li key={i}>{device.Name} - IsOpen: {device.IsOpen ? 'true' : 'false'} - <a href="#" onClick={(e) => handleOpen(e, device.Name)}>open</a> - <a href="#" onClick={(e) => handleClose(e, device.Name)}>close</a></li>));
+    const listNetworkDevices = this.state.networkDevices.map((device, i) => <li key={i}>{device.Name}</li>);
 
     return (
       <div>
