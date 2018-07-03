@@ -36,7 +36,7 @@ class App extends React.Component {
       this.setState({ wsStatus: status });
     });
 
-    this.daemon.wsError.subscribe(this.showError);
+    this.daemon.error.subscribe(this.showError);
 
     this.daemon.readerWriter.messageSubject.subscribe(() => {
       this.setState({

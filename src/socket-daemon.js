@@ -34,8 +34,10 @@ import { detect } from 'detect-browser';
 import {
   Subject,
   BehaviorSubject,
-  interval
+  interval,
+  timer
 } from 'rxjs';
+import { filter, startWith, takeUntil } from 'rxjs/operators';
 import ReaderWriter from './reader-writer';
 
 // Required agent version
@@ -52,6 +54,8 @@ const LOOPBACK_HOSTNAME = 'localhost';
 const LOOKUP_PORT_START = 8991;
 const LOOKUP_PORT_END = 9000;
 
+const POLLING_INTERVAL = 1000;
+
 const CANT_FIND_AGENT_MESSAGE = 'Arduino Create Agent cannot be found';
 let updateAttempts = 0;
 
@@ -65,29 +69,32 @@ export default class SocketDaemon {
   constructor() {
     this.selectedProtocol = PROTOCOL.HTTP;
     this.agentInfo = {};
-
     this.agentFound = new BehaviorSubject(false);
     this.wsConnected = new BehaviorSubject(false);
-    this.wsError = new Subject();
-
+    this.error = new Subject();
     this.readerWriter = new ReaderWriter();
+
     this.wsConnected
-      .subscribe(status => {
-        if (status) {
+      .subscribe(wsConnected => {
+        if (wsConnected) {
           this.readerWriter.initSocket(this.socket);
+          interval(POLLING_INTERVAL)
+            .pipe(startWith(0))
+            .pipe(takeUntil(this.wsConnected.pipe(filter(status => !status))))
+            .subscribe(() => this.socket.emit('command', 'list'));
         }
         else {
-          this.findAgent();
+          this.agentFound.next(false);
         }
       });
 
     this.agentFound
-      .subscribe(status => {
-        if (status) {
-          this.wsConnect();
+      .subscribe(agentFound => {
+        if (agentFound) {
+          this._wsConnect();
         }
         else {
-          this.agentInfo = {};
+          this.findAgent();
         }
       });
   }
@@ -95,34 +102,20 @@ export default class SocketDaemon {
   /**
    * Look for the agent endpoint.
    * First search in http://LOOPBACK_ADDRESS, after in https://LOOPBACK_HOSTNAME if in Chrome or Firefox, otherwise vice versa.
-   * @return {object} The found agent info values.
    */
   findAgent() {
-    const find = () => this.tryAllPorts()
-      .catch(err => {
-        this.agentFound.next(false);
-        return err;
-      })
-      .finally(() => {
-        if (!this.isConnected()) {
-          setTimeout(find, 3000);
-        }
-      });
-    return find();
-  }
-
-  tryAllPorts() {
-    return this.tryPorts(orderedPluginAddresses[0])
-      .catch(() => this.tryPorts(orderedPluginAddresses[1])
-        .catch(err => Promise.reject(err)));
+    this._tryPorts(orderedPluginAddresses[0])
+      .catch(() => this._tryPorts(orderedPluginAddresses[1]))
+      .then(() => this.agentFound.next(true))
+      .catch(() => timer(POLLING_INTERVAL).subscribe(() => this.findAgent()));
   }
 
   /**
    * Try ports for the selected hostname. From LOOKUP_PORT_START to LOOKUP_PORT_END
    * @param {string} hostname - The hostname value (LOOPBACK_ADDRESS or LOOPBACK_HOSTNAME).
-   * @return {object} info - The agent info values.
+   * @return {Promise} info - A promise resolving with the agent info values.
    */
-  tryPorts(hostname) {
+  _tryPorts(hostname) {
     const pluginLookups = [];
 
     for (let port = LOOKUP_PORT_START; port < LOOKUP_PORT_END; port += 1) {
@@ -146,7 +139,6 @@ export default class SocketDaemon {
               this.agentInfo[this.selectedProtocol] = this.agentInfo[this.selectedProtocol].replace('localhost', '127.0.0.1');
             }
             this.readerWriter.initPluginUrl(this.agentInfo[this.selectedProtocol]);
-            this.agentFound.next(true);
             return true;
           }
           return false;
@@ -170,14 +162,8 @@ export default class SocketDaemon {
 
   /**
    * Uses the websocket protocol to connect to the agent
-   *
-   * @return {Promise}
    */
-  wsConnect() {
-    if (this.isConnected()) {
-      return;
-    }
-
+  _wsConnect() {
     const wsProtocol = this.selectedProtocol === PROTOCOL.HTTPS ? 'ws' : 'wss';
     const address = this.agentInfo[wsProtocol];
     this.socket = io(address, { reconnection: false, forceNew: true });
@@ -188,20 +174,11 @@ export default class SocketDaemon {
       this.socket.emit('command', 'downloadtool bossac 1.7.0 arduino keep');
 
       this.wsConnected.next(true);
-
-      // Periodically asks for the ports
-      if (!this.portsPollingSubscription) {
-        this.portsPollingSubscription = interval(1500).subscribe(() => this.socket.emit('command', 'list'));
-      }
     });
 
-    this.socket.on('error', error => this.wsError.next(error));
+    this.socket.on('error', error => this.error.next(error));
 
-    // Reconnect on disconnect
     this.socket.on('disconnect', () => {
-      if (this.portsPollingSubscription) {
-        this.portsPollingSubscription.unsubscribe();
-      }
       this.wsConnected.next(false);
     });
   }
@@ -225,18 +202,10 @@ export default class SocketDaemon {
    * @param {function} createDeviceCb used to create the device associated to the user
    */
   configureBoard(compiledSketch, board, createDeviceCb) {
-    if (!this.isConnected()) {
+    if (!this.wsConnect.getValue()) {
       return Promise.reject(new Error('We were not able to generate the CSR.'));
     }
     return this.configure(compiledSketch, board, createDeviceCb);
-  }
-
-  /**
-   * Check if socket connected.
-   * @return {boolean} The connection status flag.
-   */
-  isConnected() {
-    return this.socket && this.socket.connected;
   }
 
   /**
