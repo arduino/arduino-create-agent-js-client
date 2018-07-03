@@ -1,6 +1,5 @@
 import React from 'react';
 import Daemon from '../src';
-import { WS_STATUS_CONNECTED, AGENT_STATUS_FOUND } from '../src/socket-daemon';
 
 const scrollToBottom = (target) => {
   if (target) {
@@ -27,14 +26,14 @@ class App extends React.Component {
   }
 
   componentDidMount() {
-    Daemon.agentDiscoveryStatus.subscribe(status => {
+    Daemon.agentFound.subscribe(status => {
       this.setState({
         agentStatus: status,
         agentInfo: JSON.stringify(Daemon.agentInfo, null, 2)
       });
     });
 
-    Daemon.wsConnectionStatus.subscribe(status => {
+    Daemon.wsConnected.subscribe(status => {
       this.setState({ wsStatus: status });
     });
 
@@ -86,15 +85,16 @@ class App extends React.Component {
     return (
       <div>
         <h1>Test Arduino Create Plugin</h1>
-        <p>Agent status: <span id="agent-status" className={ this.state.agentStatus === AGENT_STATUS_FOUND ? 'found' : 'not-found' }>
-          { this.state.agentStatus }
+        <button id="connect" onClick={ this.connect }>Connect</button>
+        <p>Agent status: <span id="agent-status" className={ this.state.agentStatus ? 'found' : 'not-found' }>
+          { this.state.agentStatus ? 'Found' : 'Not found' }
+        </span></p>
+        <p>Web socket status: <span id="ws-status" className={ this.state.wsStatus ? 'found' : 'not-found' }>
+          { this.state.wsStatus ? 'Connected' : 'Not connected' }
         </span></p>
         <pre id="agent-info">
           { this.state.agentInfo }
         </pre>
-        <p>Web socket status: <span id="ws-status" className={ this.state.wsStatus === WS_STATUS_CONNECTED ? 'found' : 'not-found' }>
-          { this.state.wsStatus }
-        </span></p>
         <div>
           <h2>Devices</h2>
           <strong>serial:</strong>
@@ -107,7 +107,6 @@ class App extends React.Component {
           </ul>
           <p id="error"></p>
         </div>
-        <button id="connect" onClick={ this.connect }>Connect</button>
         <div className="serial-monitor">
           <h2>Serial Monitor</h2>
           <textarea id="serial-textarea" value={ this.state.serialMonitorContent }/>

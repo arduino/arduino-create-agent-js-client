@@ -36,6 +36,7 @@ import {
   BehaviorSubject,
   interval
 } from 'rxjs';
+import { filter } from 'rxjs/operators';
 import ReaderWriter from './reader-writer';
 
 // Required agent version
@@ -55,11 +56,6 @@ const LOOKUP_PORT_END = 9000;
 const CANT_FIND_AGENT_MESSAGE = 'Arduino Create Agent cannot be found';
 let updateAttempts = 0;
 
-export const AGENT_STATUS_FOUND = 'AGENT_FOUND';
-export const AGENT_STATUS_NOT_FOUND = 'AGENT_NOT_FOUND';
-export const WS_STATUS_CONNECTED = 'WS_CONNECTED';
-export const WS_STATUS_DISCONNECTED = 'WS_DISCONNECTED';
-
 let orderedPluginAddresses = [LOOPBACK_ADDRESS, LOOPBACK_HOSTNAME];
 
 if (browser.name !== 'chrome' && browser.name !== 'firefox') {
@@ -70,18 +66,23 @@ export default class SocketDaemon {
   constructor() {
     this.selectedProtocol = PROTOCOL.HTTP;
     this.agentInfo = {};
-    this.found = false;
 
-    this.agentDiscoveryStatus = new BehaviorSubject(AGENT_STATUS_NOT_FOUND);
-    this.wsConnectionStatus = new BehaviorSubject(WS_STATUS_DISCONNECTED);
+    this.agentFound = new BehaviorSubject(false);
+    this.wsConnected = new BehaviorSubject(false);
     this.wsError = new Subject();
 
     this.readerWriter = new ReaderWriter();
-    this.wsConnectionStatus.subscribe(status => {
-      if (status === WS_STATUS_CONNECTED) {
-        this.readerWriter.initSocket(this.socket);
-      }
-    });
+    this.wsConnected
+      .pipe(filter(status => status))
+      .subscribe(() => {
+        this.readerWriter.initSocket(this.socket)
+      });
+
+    this.agentFound
+      .pipe(filter(status => !status))
+      .subscribe(() => {
+        this.agentInfo = {};
+      });
   }
 
   /**
@@ -92,7 +93,7 @@ export default class SocketDaemon {
   findAgent() {
     const find = () => this.tryAllPorts()
       .catch(err => {
-        this.agentDiscoveryStatus.next(AGENT_STATUS_NOT_FOUND);
+        this.agentFound.next(false);
         return err;
       })
       .finally(() => {
@@ -127,10 +128,10 @@ export default class SocketDaemon {
 
     return Promise.all(pluginLookups)
       .then(responses => {
-        this.found = responses.some(r => {
+        const found = responses.some(r => {
           if (r && r.response && r.response.status === 200) {
             this.agentInfo = r.data;
-            this.agentDiscoveryStatus.next(AGENT_STATUS_FOUND);
+            this.agentFound.next(true);
             this.wsConnect();
             if (r.response.url.indexOf(PROTOCOL.HTTPS) === 0) {
               this.selectedProtocol = PROTOCOL.HTTPS;
@@ -145,7 +146,7 @@ export default class SocketDaemon {
           return false;
         });
 
-        if (this.found) {
+        if (found) {
           if (this.agentInfo.version && (semVerCompare(this.agentInfo.version, MIN_VERSION) >= 0 || this.agentInfo.version.indexOf('dev') !== -1)) {
             return this.agentInfo;
           }
@@ -180,7 +181,7 @@ export default class SocketDaemon {
       this.socket.emit('command', 'downloadtool windows-drivers latest arduino keep');
       this.socket.emit('command', 'downloadtool bossac 1.7.0 arduino keep');
 
-      this.wsConnectionStatus.next(WS_STATUS_CONNECTED);
+      this.wsConnected.next(true);
 
       // Periodically asks for the ports
       if (!this.portsPollingSubscription) {
@@ -195,7 +196,7 @@ export default class SocketDaemon {
       if (this.portsPollingSubscription) {
         this.portsPollingSubscription.unsubscribe();
       }
-      this.wsConnectionStatus.next(WS_STATUS_DISCONNECTED);
+      this.wsConnected.next(false);
       this.findAgent();
     });
   }
@@ -238,7 +239,7 @@ export default class SocketDaemon {
    * @return {Promise}
    */
   stopPlugin() {
-    if (this.found) {
+    if (this.agentFound.getValue()) {
       return fetch(`${this.agentInfo[this.selectedProtocol]}/pause`, { method: 'POST' });
     }
   }
