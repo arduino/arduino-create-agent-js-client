@@ -12,8 +12,8 @@ class App extends React.Component {
     super();
     this.state = {
       error: '',
-      agentStatus: '-',
-      wsStatus: '-',
+      agentStatus: false,
+      wsStatus: false,
       serialDevices: [],
       networkDevices: [],
       agentInfo: '',
@@ -44,8 +44,11 @@ class App extends React.Component {
     }));
 
     const serialTextarea = document.getElementById('serial-textarea');
-    this.daemon.serialMonitor.subscribe(message => {
-      this.setState({ serialMonitorContent: this.state.serialMonitorContent + message });
+
+    this.daemon.serialMonitorMessages.subscribe(message => {
+      this.setState({
+        serialMonitorContent: this.state.serialMonitorContent + message
+      });
       scrollToBottom(serialTextarea);
     });
   }

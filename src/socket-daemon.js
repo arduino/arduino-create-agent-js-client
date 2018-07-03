@@ -78,7 +78,7 @@ export default class SocketDaemon extends Daemon {
           interval(POLLING_INTERVAL)
             .pipe(startWith(0))
             .pipe(takeUntil(this.wsConnected.pipe(filter(status => !status))))
-            .subscribe(() => this._socket.emit('command', 'list'));
+            .subscribe(() => this.socket.emit('command', 'list'));
         }
         else {
           this.agentFound.next(false);
@@ -163,19 +163,19 @@ export default class SocketDaemon extends Daemon {
   _wsConnect() {
     const wsProtocol = this.selectedProtocol === PROTOCOL.HTTPS ? 'ws' : 'wss';
     const address = this.agentInfo[wsProtocol];
-    this._socket = io(address, { reconnection: false, forceNew: true });
+    this.socket = io(address, { reconnection: false, forceNew: true });
 
-    this._socket.on('connect', () => {
+    this.socket.on('connect', () => {
       // On connect download windows drivers which are indispensable for detection of boards
-      this._socket.emit('command', 'downloadtool windows-drivers latest arduino keep');
-      this._socket.emit('command', 'downloadtool bossac 1.7.0 arduino keep');
+      this.socket.emit('command', 'downloadtool windows-drivers latest arduino keep');
+      this.socket.emit('command', 'downloadtool bossac 1.7.0 arduino keep');
 
       this.wsConnected.next(true);
     });
 
-    this._socket.on('error', error => this.error.next(error));
+    this.socket.on('error', error => this.error.next(error));
 
-    this._socket.on('disconnect', () => {
+    this.socket.on('disconnect', () => {
       this.wsConnected.next(false);
     });
   }

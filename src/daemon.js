@@ -1,22 +1,32 @@
 import { Subject, BehaviorSubject } from 'rxjs';
+import { takeUntil, filter } from 'rxjs/operators';
 
 export default class Daemon {
   constructor() {
-    this._socket = null;
+    this.socket = null;
     this.pluginURL = null;
-    this.socket = new Subject();
-    this.serialMonitor = new Subject();
+    this.socketMessages = new Subject();
+    this.serialMonitorOpened = new BehaviorSubject(false);
+    this.serialMonitorMessages = new Subject();
     this.devicesList = new BehaviorSubject({
       serial: [],
       network: []
     });
-    this.socket.subscribe(this.updateDevicesList.bind(this));
+    this.socketMessages
+      .subscribe(this.handleSocketMesage.bind(this));
     this.openingSerial = null;
     this.closingSerial = null;
   }
 
   initSocket() {
-    this._socket.on('message', this.parseMessage.bind(this));
+    this.socket.on('message', message => {
+      try {
+        this.socketMessages.next(JSON.parse(message));
+      }
+      catch (SyntaxError) {
+        this.socketMessages.next(message);
+      }
+    });
   }
 
   initPluginUrl(pluginUrl) {
@@ -35,106 +45,68 @@ export default class Daemon {
     return a.every((item, index) => b[index].Name === item.Name);
   }
 
-  updateDevicesList(devicesInfo) {
+  handleSocketMesage(message) {
     // Result of a list command
-    if (devicesInfo.Ports) {
+    if (message.Ports) {
       const lastDevices = this.devicesList.getValue();
-      if (devicesInfo.Network && !Daemon.devicesListAreEquals(lastDevices.network, devicesInfo.Ports)) {
+      if (message.Network && !Daemon.devicesListAreEquals(lastDevices.network, message.Ports)) {
         this.devicesList.next({
           serial: lastDevices.serial,
-          network: devicesInfo.Ports
+          network: message.Ports
         });
       }
-      else if (!devicesInfo.Network && !Daemon.devicesListAreEquals(lastDevices.serial, devicesInfo.Ports)) {
+      else if (!message.Network && !Daemon.devicesListAreEquals(lastDevices.serial, message.Ports)) {
         this.devicesList.next({
-          serial: devicesInfo.Ports,
+          serial: message.Ports,
           network: lastDevices.network
         });
       }
     }
-  }
-
-  parseMessage(message) {
-    try {
-      this.socket.next(JSON.parse(message));
-    }
-    catch (SyntaxError) {
-      this.socket.next(message);
+    // Serial monitor message
+    if (message.D) {
+      this.serialMonitorMessages.next(message.D);
     }
   }
 
   openSerialMonitor(port) {
-    if (this.openingSerial) {
-      return this.openingSerial;
+    if (this.serialMonitorOpened.getValue()) {
+      return;
     }
-    const serialPort = this.devicesList.serial.find(p => p.Name === port);
+    const serialPort = this.devicesList.getValue().serial.find(p => p.Name === port);
     if (!serialPort) {
-      return Promise.reject(new Error('No board found'));
+      return this.serialMonitorOpened.error(new Error(`Can't find port ${port}`));
     }
-    if (serialPort.IsOpen) {
-      return Promise.resolve();
-    }
-    let checkOpen = null;
-    this.openingSerial = new Promise((resolve, reject) => {
-      checkOpen = message => {
+    this.socketMessages
+      .pipe(takeUntil(this.serialMonitorOpened.pipe(filter(open => open))))
+      .subscribe(message => {
         if (message.Cmd === 'Open') {
-          this.readSerial();
-          return resolve();
+          this.serialMonitorOpened.next(true);
         }
         if (message.Cmd === 'OpenFail') {
-          return reject(new Error('Failed to open serial'));
+          this.serialMonitorOpened.error(new Error(`Failed to open serial ${port}`));
         }
-      };
-      this.openSubscription = this.socket.subscribe(checkOpen);
-    }).finally(() => {
-      this.openSubscription.unsubscribe();
-      this.openingSerial = null;
-    });
-    this._socket.emit('command', `open ${port} 9600 timed`);
-    return this.openingSerial;
+      });
+    this.socket.emit('command', `open ${port} 9600 timed`);
   }
 
   closeSerialMonitor(port) {
-    if (this.closingSerial) {
-      return this.closingSerial;
+    if (!this.serialMonitorOpened.getValue()) {
+      return;
     }
-    const serialPort = this.devicesList.serial.find(p => p.Name === port);
+    const serialPort = this.devicesList.getValue().serial.find(p => p.Name === port);
     if (!serialPort) {
-      return Promise.reject(new Error('No board found'));
+      return this.serialMonitorOpened.error(new Error(`Can't find port ${port}`));
     }
-    if (!serialPort.IsOpen) {
-      if (!this.readSerialSubscription) {
-        this.readSerialSubscription.unsubscribe();
-      }
-      return Promise.resolve();
-    }
-    let checkClosed = null;
-    this.closingSerial = new Promise((resolve, reject) => {
-      checkClosed = message => {
+    this.socketMessages
+      .pipe(takeUntil(this.serialMonitorOpened.pipe(filter(open => !open))))
+      .subscribe(message => {
         if (message.Cmd === 'Close') {
-          return resolve();
+          this.serialMonitorOpened.next(false);
         }
         if (message.Cmd === 'CloseFail') {
-          return reject(new Error('Failed to close serial'));
+          this.serialMonitorOpened.error(new Error(`Failed to close serial ${port}`));
         }
-      };
-      this.closeSubscription = this.socket.subscribe(checkClosed);
-    }).finally(() => {
-      this.closeSubscription.unsubscribe();
-      this.closingSerial = null;
-    });
-    this._socket.emit('command', `close ${port}`);
-    return this.closingSerial;
-  }
-
-  readSerial() {
-    const onMessage = message => {
-      if (message.D) {
-        this.serialMonitor.next(message.D);
-      }
-    };
-    if (!this.readSerialSubscription) {
-      this.readSerialSubscription = this.socket.subscribe(onMessage);
-    }
+      });
+    this.socket.emit('command', `close ${port}`);
   }
 }
