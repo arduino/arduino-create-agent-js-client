@@ -36,7 +36,6 @@ import {
   BehaviorSubject,
   interval
 } from 'rxjs';
-import { filter } from 'rxjs/operators';
 import ReaderWriter from './reader-writer';
 
 // Required agent version
@@ -73,15 +72,23 @@ export default class SocketDaemon {
 
     this.readerWriter = new ReaderWriter();
     this.wsConnected
-      .pipe(filter(status => status))
-      .subscribe(() => {
-        this.readerWriter.initSocket(this.socket)
+      .subscribe(status => {
+        if (status) {
+          this.readerWriter.initSocket(this.socket);
+        }
+        else {
+          this.findAgent();
+        }
       });
 
     this.agentFound
-      .pipe(filter(status => !status))
-      .subscribe(() => {
-        this.agentInfo = {};
+      .subscribe(status => {
+        if (status) {
+          this.wsConnect();
+        }
+        else {
+          this.agentInfo = {};
+        }
       });
   }
 
@@ -131,8 +138,6 @@ export default class SocketDaemon {
         const found = responses.some(r => {
           if (r && r.response && r.response.status === 200) {
             this.agentInfo = r.data;
-            this.agentFound.next(true);
-            this.wsConnect();
             if (r.response.url.indexOf(PROTOCOL.HTTPS) === 0) {
               this.selectedProtocol = PROTOCOL.HTTPS;
             }
@@ -141,6 +146,7 @@ export default class SocketDaemon {
               this.agentInfo[this.selectedProtocol] = this.agentInfo[this.selectedProtocol].replace('localhost', '127.0.0.1');
             }
             this.readerWriter.initPluginUrl(this.agentInfo[this.selectedProtocol]);
+            this.agentFound.next(true);
             return true;
           }
           return false;
@@ -197,7 +203,6 @@ export default class SocketDaemon {
         this.portsPollingSubscription.unsubscribe();
       }
       this.wsConnected.next(false);
-      this.findAgent();
     });
   }
 

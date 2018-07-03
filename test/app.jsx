@@ -19,35 +19,34 @@ class App extends React.Component {
       agentInfo: '',
       serialMonitorContent: ''
     };
-
-    this.connect = this.connect.bind(this);
     this.handleOpen = this.handleOpen.bind(this);
     this.handleClose = this.handleClose.bind(this);
+    this.daemon = Daemon;
   }
 
   componentDidMount() {
-    Daemon.agentFound.subscribe(status => {
+    this.daemon.agentFound.subscribe(status => {
       this.setState({
         agentStatus: status,
-        agentInfo: JSON.stringify(Daemon.agentInfo, null, 2)
+        agentInfo: JSON.stringify(this.daemon.agentInfo, null, 2)
       });
     });
 
-    Daemon.wsConnected.subscribe(status => {
+    this.daemon.wsConnected.subscribe(status => {
       this.setState({ wsStatus: status });
     });
 
-    Daemon.wsError.subscribe(this.showError);
+    this.daemon.wsError.subscribe(this.showError);
 
-    Daemon.readerWriter.messageSubject.subscribe(() => {
+    this.daemon.readerWriter.messageSubject.subscribe(() => {
       this.setState({
-        serialDevices: Daemon.readerWriter.devicesList.serial,
-        networkDevices: Daemon.readerWriter.devicesList.network
+        serialDevices: this.daemon.readerWriter.devicesList.serial,
+        networkDevices: this.daemon.readerWriter.devicesList.network
       });
     });
 
     const serialTextarea = document.getElementById('serial-textarea');
-    Daemon.readerWriter.serialMonitorSubject.subscribe(message => {
+    this.daemon.readerWriter.serialMonitorSubject.subscribe(message => {
       this.setState({ serialMonitorContent: this.state.serialMonitorContent + message });
       scrollToBottom(serialTextarea);
     });
@@ -61,21 +60,15 @@ class App extends React.Component {
     this.setState({ error: '' });
   }
 
-  connect() {
-    this.clearError();
-    Daemon.findAgent()
-      .catch(this.showError);
-  }
-
   handleOpen(e, port) {
     this.setState({ serialMonitorContent: '' });
     e.preventDefault();
-    Daemon.readerWriter.openSerialMonitor(port);
+    this.daemon.readerWriter.openSerialMonitor(port);
   }
 
   handleClose(e, port) {
     e.preventDefault();
-    Daemon.readerWriter.closeSerialMonitor(port);
+    this.daemon.readerWriter.closeSerialMonitor(port);
   }
 
   render() {
@@ -85,7 +78,6 @@ class App extends React.Component {
     return (
       <div>
         <h1>Test Arduino Create Plugin</h1>
-        <button id="connect" onClick={ this.connect }>Connect</button>
         <p>Agent status: <span id="agent-status" className={ this.state.agentStatus ? 'found' : 'not-found' }>
           { this.state.agentStatus ? 'Found' : 'Not found' }
         </span></p>
