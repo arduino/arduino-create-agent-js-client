@@ -1,22 +1,21 @@
-import { Subject } from 'rxjs';
+import { Subject, BehaviorSubject } from 'rxjs';
 
-export default class ReaderWriter {
+export default class Daemon {
   constructor() {
     this.socket = null;
     this.pluginURL = null;
-    this.messageSubject = new Subject();
-    this.serialMonitorSubject = new Subject();
-    this.devicesList = {
+    this.messageBus = new Subject();
+    this.serialMonitor = new Subject();
+    this.devicesList = new BehaviorSubject({
       serial: [],
       network: []
-    };
-    this.messageSubject.subscribe(this.updateDevicesList.bind(this));
+    });
+    this.messageBus.subscribe(this.updateDevicesList.bind(this));
     this.openingSerial = null;
     this.closingSerial = null;
   }
 
-  initSocket(socket) {
-    this.socket = socket;
+  initSocket() {
     this.socket.on('message', this.parseMessage.bind(this));
   }
 
@@ -24,29 +23,43 @@ export default class ReaderWriter {
     this.pluginURL = pluginUrl;
   }
 
+  /**
+   * Compares 2 devices list checking they contains the same ports in the same order
+   * @param {Array<device>} a the first list
+   * @param {Array<device>} b the second list
+   */
+  static devicesListAreEquals(a, b) {
+    if (!a || !b || a.length !== b.length) {
+      return false;
+    }
+    return a.every((item, index) => b[index].Name === item.Name);
+  }
+
   updateDevicesList(devicesInfo) {
     // Result of a list command
     if (devicesInfo.Ports) {
-      if (devicesInfo.Network) {
-        this.devicesList.network = devicesInfo.Ports;
+      const lastDevices = this.devicesList.getValue();
+      if (devicesInfo.Network && !Daemon.devicesListAreEquals(lastDevices.network, devicesInfo.Ports)) {
+        this.devicesList.next({
+          serial: lastDevices.serial,
+          network: devicesInfo.Ports
+        });
       }
-      else {
-        this.devicesList.serial = devicesInfo.Ports;
+      else if (!devicesInfo.Network && !Daemon.devicesListAreEquals(lastDevices.serial, devicesInfo.Ports)) {
+        this.devicesList.next({
+          serial: devicesInfo.Ports,
+          network: lastDevices.network
+        });
       }
     }
   }
 
   parseMessage(message) {
-    let jsonMessage;
     try {
-      jsonMessage = JSON.parse(message);
+      this.messageBus.next(JSON.parse(message));
     }
     catch (SyntaxError) {
-      return;
-    }
-
-    if (jsonMessage) {
-      this.messageSubject.next(jsonMessage);
+      this.messageBus.next(message);
     }
   }
 
@@ -72,7 +85,7 @@ export default class ReaderWriter {
           return reject(new Error('Failed to open serial'));
         }
       };
-      this.openSubscription = this.messageSubject.subscribe(checkOpen);
+      this.openSubscription = this.messageBus.subscribe(checkOpen);
     }).finally(() => {
       this.openSubscription.unsubscribe();
       this.openingSerial = null;
@@ -105,7 +118,7 @@ export default class ReaderWriter {
           return reject(new Error('Failed to close serial'));
         }
       };
-      this.closeSubscription = this.messageSubject.subscribe(checkClosed);
+      this.closeSubscription = this.messageBus.subscribe(checkClosed);
     }).finally(() => {
       this.closeSubscription.unsubscribe();
       this.closingSerial = null;
@@ -117,11 +130,11 @@ export default class ReaderWriter {
   readSerial() {
     const onMessage = message => {
       if (message.D) {
-        this.serialMonitorSubject.next(message.D);
+        this.serialMonitor.next(message.D);
       }
     };
     if (!this.readSerialSubscription) {
-      this.readSerialSubscription = this.messageSubject.subscribe(onMessage);
+      this.readSerialSubscription = this.messageBus.subscribe(onMessage);
     }
   }
 }

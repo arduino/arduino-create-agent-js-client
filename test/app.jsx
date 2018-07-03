@@ -38,15 +38,13 @@ class App extends React.Component {
 
     this.daemon.error.subscribe(this.showError);
 
-    this.daemon.readerWriter.messageSubject.subscribe(() => {
-      this.setState({
-        serialDevices: this.daemon.readerWriter.devicesList.serial,
-        networkDevices: this.daemon.readerWriter.devicesList.network
-      });
-    });
+    this.daemon.devicesList.subscribe(devices => this.setState({
+      serialDevices: devices.serial,
+      networkDevices: devices.network
+    }));
 
     const serialTextarea = document.getElementById('serial-textarea');
-    this.daemon.readerWriter.serialMonitorSubject.subscribe(message => {
+    this.daemon.serialMonitor.subscribe(message => {
       this.setState({ serialMonitorContent: this.state.serialMonitorContent + message });
       scrollToBottom(serialTextarea);
     });
@@ -63,12 +61,12 @@ class App extends React.Component {
   handleOpen(e, port) {
     this.setState({ serialMonitorContent: '' });
     e.preventDefault();
-    this.daemon.readerWriter.openSerialMonitor(port);
+    this.daemon.openSerialMonitor(port);
   }
 
   handleClose(e, port) {
     e.preventDefault();
-    this.daemon.readerWriter.closeSerialMonitor(port);
+    this.daemon.closeSerialMonitor(port);
   }
 
   render() {

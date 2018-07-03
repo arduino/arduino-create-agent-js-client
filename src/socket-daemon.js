@@ -38,7 +38,7 @@ import {
   timer
 } from 'rxjs';
 import { filter, startWith, takeUntil } from 'rxjs/operators';
-import ReaderWriter from './reader-writer';
+import Daemon from './daemon';
 
 // Required agent version
 const MIN_VERSION = '1.1.71';
@@ -62,19 +62,19 @@ if (browser.name !== 'chrome' && browser.name !== 'firefox') {
   orderedPluginAddresses = [LOOPBACK_HOSTNAME, LOOPBACK_ADDRESS];
 }
 
-export default class SocketDaemon {
+export default class SocketDaemon extends Daemon {
   constructor() {
+    super();
     this.selectedProtocol = PROTOCOL.HTTP;
     this.agentInfo = {};
     this.agentFound = new BehaviorSubject(false);
     this.wsConnected = new BehaviorSubject(false);
     this.error = new Subject();
-    this.readerWriter = new ReaderWriter();
 
     this.wsConnected
       .subscribe(wsConnected => {
         if (wsConnected) {
-          this.readerWriter.initSocket(this.socket);
+          this.initSocket();
           interval(POLLING_INTERVAL)
             .pipe(startWith(0))
             .pipe(takeUntil(this.wsConnected.pipe(filter(status => !status))))
@@ -135,7 +135,7 @@ export default class SocketDaemon {
               // Protocol http, force 127.0.0.1 for old agent versions too
               this.agentInfo[this.selectedProtocol] = this.agentInfo[this.selectedProtocol].replace('localhost', '127.0.0.1');
             }
-            this.readerWriter.initPluginUrl(this.agentInfo[this.selectedProtocol]);
+            this.initPluginUrl(this.agentInfo[this.selectedProtocol]);
             return true;
           }
           return false;
