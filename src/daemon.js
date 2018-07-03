@@ -2,21 +2,21 @@ import { Subject, BehaviorSubject } from 'rxjs';
 
 export default class Daemon {
   constructor() {
-    this.socket = null;
+    this._socket = null;
     this.pluginURL = null;
-    this.messageBus = new Subject();
+    this.socket = new Subject();
     this.serialMonitor = new Subject();
     this.devicesList = new BehaviorSubject({
       serial: [],
       network: []
     });
-    this.messageBus.subscribe(this.updateDevicesList.bind(this));
+    this.socket.subscribe(this.updateDevicesList.bind(this));
     this.openingSerial = null;
     this.closingSerial = null;
   }
 
   initSocket() {
-    this.socket.on('message', this.parseMessage.bind(this));
+    this._socket.on('message', this.parseMessage.bind(this));
   }
 
   initPluginUrl(pluginUrl) {
@@ -56,10 +56,10 @@ export default class Daemon {
 
   parseMessage(message) {
     try {
-      this.messageBus.next(JSON.parse(message));
+      this.socket.next(JSON.parse(message));
     }
     catch (SyntaxError) {
-      this.messageBus.next(message);
+      this.socket.next(message);
     }
   }
 
@@ -85,12 +85,12 @@ export default class Daemon {
           return reject(new Error('Failed to open serial'));
         }
       };
-      this.openSubscription = this.messageBus.subscribe(checkOpen);
+      this.openSubscription = this.socket.subscribe(checkOpen);
     }).finally(() => {
       this.openSubscription.unsubscribe();
       this.openingSerial = null;
     });
-    this.socket.emit('command', `open ${port} 9600 timed`);
+    this._socket.emit('command', `open ${port} 9600 timed`);
     return this.openingSerial;
   }
 
@@ -118,12 +118,12 @@ export default class Daemon {
           return reject(new Error('Failed to close serial'));
         }
       };
-      this.closeSubscription = this.messageBus.subscribe(checkClosed);
+      this.closeSubscription = this.socket.subscribe(checkClosed);
     }).finally(() => {
       this.closeSubscription.unsubscribe();
       this.closingSerial = null;
     });
-    this.socket.emit('command', `close ${port}`);
+    this._socket.emit('command', `close ${port}`);
     return this.closingSerial;
   }
 
@@ -134,7 +134,7 @@ export default class Daemon {
       }
     };
     if (!this.readSerialSubscription) {
-      this.readSerialSubscription = this.messageBus.subscribe(onMessage);
+      this.readSerialSubscription = this.socket.subscribe(onMessage);
     }
   }
 }
