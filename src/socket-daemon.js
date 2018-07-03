@@ -53,12 +53,9 @@ const LOOPBACK_ADDRESS = '127.0.0.1';
 const LOOPBACK_HOSTNAME = 'localhost';
 const LOOKUP_PORT_START = 8991;
 const LOOKUP_PORT_END = 9000;
-
 const POLLING_INTERVAL = 1000;
-
 const CANT_FIND_AGENT_MESSAGE = 'Arduino Create Agent cannot be found';
 let updateAttempts = 0;
-
 let orderedPluginAddresses = [LOOPBACK_ADDRESS, LOOPBACK_HOSTNAME];
 
 if (browser.name !== 'chrome' && browser.name !== 'firefox') {
@@ -107,7 +104,7 @@ export default class SocketDaemon {
     this._tryPorts(orderedPluginAddresses[0])
       .catch(() => this._tryPorts(orderedPluginAddresses[1]))
       .then(() => this.agentFound.next(true))
-      .catch(() => timer(POLLING_INTERVAL).subscribe(() => this.findAgent()));
+      .catch(() => timer(POLLING_INTERVAL).subscribe(this.findAgent.bind(this)));
   }
 
   /**
@@ -153,7 +150,7 @@ export default class SocketDaemon {
             return this.update();
           }
           if (updateAttempts < 10) {
-            return setTimeout(() => this.update(), 10000);
+            return timer(10000).subscribe(this.update().bind(this));
           }
         }
         return Promise.reject(new Error(`${CANT_FIND_AGENT_MESSAGE} at ${hostname}`));
