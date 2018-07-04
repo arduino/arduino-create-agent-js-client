@@ -67,8 +67,8 @@ export default class SocketDaemon extends Daemon {
     super();
     this.selectedProtocol = PROTOCOL.HTTP;
     this.agentInfo = {};
-    this.agentFound = new BehaviorSubject(false);
-    this.wsConnected = new BehaviorSubject(false);
+    this.agentFound = new BehaviorSubject(null);
+    this.wsConnected = new BehaviorSubject(null);
     this.error = new Subject();
 
     this.wsConnected
