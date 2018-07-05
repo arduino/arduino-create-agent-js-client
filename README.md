@@ -18,7 +18,7 @@ daemon.agentFound.subscribe(status => {
   // true / false
 });
 
-daemon.wsConnected.subscribe(status => {
+daemon.channelOpen.subscribe(status => {
   // true / false
 });
 

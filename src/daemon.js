@@ -10,6 +10,10 @@ export default class Daemon {
   constructor() {
     this.socket = null;
     this.pluginURL = null;
+    this.agentInfo = {};
+    this.agentFound = new BehaviorSubject(null);
+    this.channelOpen = new BehaviorSubject(null);
+    this.error = new Subject();
     this.socketMessages = new Subject();
     this.serialMonitorOpened = new BehaviorSubject(false);
     this.serialMonitorMessages = new Subject();

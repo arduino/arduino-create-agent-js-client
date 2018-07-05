@@ -23,7 +23,7 @@ class App extends React.Component {
     this.state = {
       error: '',
       agentStatus: false,
-      wsStatus: false,
+      channelStatus: false,
       serialDevices: [],
       networkDevices: [],
       agentInfo: '',
@@ -49,8 +49,8 @@ class App extends React.Component {
       });
     });
 
-    daemon.wsConnected.subscribe(status => {
-      this.setState({ wsStatus: status });
+    daemon.channelOpen.subscribe(status => {
+      this.setState({ channelStatus: status });
     });
 
     daemon.error.subscribe(this.showError);
@@ -171,28 +171,28 @@ class App extends React.Component {
         <h1>Test Arduino Create Plugin</h1>
 
         <p>
-          Agent status: <span id="agent-status" className={ this.state.agentStatus ? 'found' : 'not-found' }>
+          Agent status: <span className={ this.state.agentStatus ? 'found' : 'not-found' }>
             { this.state.agentStatus ? 'Found' : 'Not found' }
           </span>
         </p>
         <p>
-          Web socket status: <span id="ws-status" className={ this.state.wsStatus ? 'found' : 'not-found' }>
-            { this.state.wsStatus ? 'Connected' : 'Not connected' }
+          Web socket status: <span className={ this.state.channelStatus ? 'found' : 'not-found' }>
+            { this.state.channelStatus ? 'Connected' : 'Not connected' }
           </span>
         </p>
 
-        <pre id="agent-info">
+        <pre>
           { this.state.agentInfo }
         </pre>
 
         <div className="section">
           <h2>Devices</h2>
           <strong>serial:</strong>
-          <ul id="serial-list">
+          <ul>
             { listSerialDevices }
           </ul>
           <strong>network:</strong>
-          <ul id="network-list">
+          <ul>
             { listNetworkDevices }
           </ul>
           <p id="error"></p>

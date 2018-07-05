@@ -32,8 +32,6 @@ import semVerCompare from 'semver-compare';
 import { detect } from 'detect-browser';
 
 import {
-  Subject,
-  BehaviorSubject,
   interval,
   timer
 } from 'rxjs';
@@ -66,18 +64,14 @@ export default class SocketDaemon extends Daemon {
   constructor() {
     super();
     this.selectedProtocol = PROTOCOL.HTTP;
-    this.agentInfo = {};
-    this.agentFound = new BehaviorSubject(null);
-    this.wsConnected = new BehaviorSubject(null);
-    this.error = new Subject();
 
-    this.wsConnected
-      .subscribe(wsConnected => {
-        if (wsConnected) {
+    this.channelOpen
+      .subscribe(channelOpen => {
+        if (channelOpen) {
           this.initSocket();
           interval(POLLING_INTERVAL)
             .pipe(startWith(0))
-            .pipe(takeUntil(this.wsConnected.pipe(filter(status => !status))))
+            .pipe(takeUntil(this.channelOpen.pipe(filter(status => !status))))
             .subscribe(() => this.socket.emit('command', 'list'));
         }
         else {
@@ -170,13 +164,13 @@ export default class SocketDaemon extends Daemon {
       this.socket.emit('command', 'downloadtool windows-drivers latest arduino keep');
       this.socket.emit('command', 'downloadtool bossac 1.7.0 arduino keep');
 
-      this.wsConnected.next(true);
+      this.channelOpen.next(true);
     });
 
     this.socket.on('error', error => this.error.next(error));
 
     this.socket.on('disconnect', () => {
-      this.wsConnected.next(false);
+      this.channelOpen.next(false);
     });
   }
 

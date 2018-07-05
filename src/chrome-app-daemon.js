@@ -28,7 +28,6 @@
  */
 import {
   Subject,
-  BehaviorSubject,
   interval
 } from 'rxjs';
 import { filter, startWith, takeUntil } from 'rxjs/operators';
@@ -40,21 +39,17 @@ export default class ChromeOsDaemon extends Daemon {
   constructor(chromeExtensionId) {
     super();
     this.channel = null;
-    this.agentInfo = {};
-    this.agentFound = new BehaviorSubject(null);
-    this.wsConnected = new BehaviorSubject(null);
     this.appMessages = new Subject();
-    this.error = new Subject();
 
     this.appMessages
       .subscribe(this.handleAppMessage.bind(this));
 
-    this.wsConnected
-      .subscribe(wsConnected => {
-        if (wsConnected) {
+    this.channelOpen
+      .subscribe(channelOpen => {
+        if (channelOpen) {
           interval(POLLING_INTERVAL)
             .pipe(startWith(0))
-            .pipe(takeUntil(this.wsConnected.pipe(filter(status => !status))))
+            .pipe(takeUntil(this.channelOpen.pipe(filter(status => !status))))
             .subscribe(() => this.channel.postMessage({
               command: 'listPorts'
             }));
@@ -78,14 +73,14 @@ export default class ChromeOsDaemon extends Daemon {
         if (message.version) {
           this.agentInfo = message;
           this.agentFound.next(true);
-          this.wsConnected.next(true);
+          this.channelOpen.next(true);
         }
         else {
           this.appMessages.next(message);
         }
       });
       this.channel.onDisconnect.addListener(() => {
-        this.wsConnected.next(false);
+        this.channelOpen.next(false);
         this.agentFound.next(false);
       });
     }
