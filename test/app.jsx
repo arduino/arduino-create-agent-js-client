@@ -170,14 +170,12 @@ class App extends React.Component {
         <h1>Test Arduino Create Plugin</h1>
 
         <p>
-          Agent status:
-          <span id="agent-status" className={ this.state.agentStatus ? 'found' : 'not-found' }>
+          Agent status: <span id="agent-status" className={ this.state.agentStatus ? 'found' : 'not-found' }>
             { this.state.agentStatus ? 'Found' : 'Not found' }
           </span>
         </p>
         <p>
-          Web socket status:
-          <span id="ws-status" className={ this.state.wsStatus ? 'found' : 'not-found' }>
+          Web socket status: <span id="ws-status" className={ this.state.wsStatus ? 'found' : 'not-found' }>
             { this.state.wsStatus ? 'Connected' : 'Not connected' }
           </span>
         </p>
