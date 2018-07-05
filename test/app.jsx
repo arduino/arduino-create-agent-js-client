@@ -16,6 +16,29 @@ const scrollToBottom = (target) => {
 };
 
 const daemon = new Daemon('hfejhkbipnickajaidoppbadcomekkde');
+const handleUpload = () => {
+  const target = {
+    board: 'arduino:samd:mkr1000',
+    port: '/dev/ttyACM0',
+    network: false
+  };
+
+  const data = {
+    files: [{
+      name: 'serial_mirror.bin',
+      data: HEX
+    }],
+    commandline: '\"{runtime.tools.bossac-1.7.0.path}/bossac\" {upload.verbose} --port={serial.port.file} -U true -i -e -w -v \"{build.path}/{build.project_name}.bin\" -R',
+    signature: '66695789d14908f52cb1964da58ec9fa816d6ddb321900c60ad6ec2d84a7c713abb2b71404030c043e32cf548736eb706180da8256f2533bd132430896437c72b396abe19e632446f16e43b80b73f5cf40aec946d00e7543721cc72d77482a84d2d510e46ea6ee0aaf063ec267b5046a1ace36b7eb04c64b4140302586f1e10eda8452078498ab5c9985e8f5d521786064601daa5ba2978cf91cfeb64e83057b3475ec029a1b835460f4e203c1635eaba812b076248a3589cd5d84c52398f09d255f8aae25d66a40d5ab2b1700247defbdfd044c77d44078197d1f543800e11f79d6ef1c6eb46df65fe2fffd81716b11d798ba21a3ca2cb20f6d955d8e1f8aef',
+    extrafiles: [],
+    options: {
+      wait_for_upload_port: true,
+      use_1200bps_touch: true,
+      params_verbose: '-v'
+    }
+  };
+  daemon.upload(target, data);
+};
 
 class App extends React.Component {
   constructor() {
@@ -30,7 +53,7 @@ class App extends React.Component {
       serialMonitorContent: '',
       serialPortOpen: '',
       uploadStatus: '',
-      ulploadError: '',
+      uploadError: '',
       supportedBoards: []
     };
     this.handleOpen = this.handleOpen.bind(this);
@@ -38,7 +61,6 @@ class App extends React.Component {
     this.handleSend = this.handleSend.bind(this);
     this.showError = this.showError.bind(this);
     this.clearError = this.clearError.bind(this);
-    this.handleUpload = this.handleUpload.bind(this);
   }
 
   componentDidMount() {
@@ -107,30 +129,6 @@ class App extends React.Component {
     daemon.writeSerial(this.state.serialPortOpen, sendData);
     serialInput.focus();
     serialInput.value = '';
-  }
-
-  handleUpload() {
-    const target = {
-      board: 'arduino:samd:mkr1000',
-      port: '/dev/ttyACM1',
-      network: false
-    };
-
-    const data = {
-      files: [{
-        name: 'serial_mirror.bin',
-        data: HEX
-      }],
-      commandline: '\"{runtime.tools.bossac-1.7.0.path}/bossac\" {upload.verbose} --port={serial.port.file} -U true -i -e -w -v \"{build.path}/{build.project_name}.bin\" -R',
-      signature: '66695789d14908f52cb1964da58ec9fa816d6ddb321900c60ad6ec2d84a7c713abb2b71404030c043e32cf548736eb706180da8256f2533bd132430896437c72b396abe19e632446f16e43b80b73f5cf40aec946d00e7543721cc72d77482a84d2d510e46ea6ee0aaf063ec267b5046a1ace36b7eb04c64b4140302586f1e10eda8452078498ab5c9985e8f5d521786064601daa5ba2978cf91cfeb64e83057b3475ec029a1b835460f4e203c1635eaba812b076248a3589cd5d84c52398f09d255f8aae25d66a40d5ab2b1700247defbdfd044c77d44078197d1f543800e11f79d6ef1c6eb46df65fe2fffd81716b11d798ba21a3ca2cb20f6d955d8e1f8aef',
-      extrafiles: [],
-      options: {
-        wait_for_upload_port: true,
-        use_1200bps_touch: true,
-        params_verbose: '-v'
-      }
-    };
-    daemon.upload(target, data);
   }
 
   render() {
@@ -219,9 +217,10 @@ class App extends React.Component {
         </div>
 
         <div className="section">
-          <button onClick={ this.handleUpload } disabled={ this.state.uploadStatus === UPLOAD_STATUS_IN_PROGRESS }>Upload Sketch</button>
+          <h2>Upload a sample sketch on a MKR1000 at /dev/ttyACM0</h2>
+          <button onClick={ handleUpload } disabled={ this.state.uploadStatus === UPLOAD_STATUS_IN_PROGRESS }>Upload Sketch</button><br/>
           <div>Upload status: <span className={ uploadClass }> { this.state.uploadStatus }</span></div>
-          <div>{ this.state.ulploadError }</div>
+          <div>{ this.state.uploadError }</div>
         </div>
       </div>
     );
