@@ -131,9 +131,21 @@ class App extends React.Component {
   }
 
   render() {
-    const listSerialDevices = this.state.serialDevices.map((device, i) => <li key={i}>{device.Name} - IsOpen: <span className={device.IsOpen ? 'open' : 'closed'}>{device.IsOpen ? 'true' : 'false'}</span> - <a href="#" onClick={(e) => this.handleOpen(e, device.Name)}>open</a> - <a href="#" onClick={(e) => this.handleClose(e, device.Name)}>close</a></li>);
+    const listSerialDevices = this.state.serialDevices.map((device, i) =>
+      <li key={i}>
+        {device.Name} - IsOpen: <span className={device.IsOpen ? 'open' : 'closed'}>
+          {device.IsOpen ? 'true' : 'false'}
+        </span> - <a href="#" onClick={(e) => this.handleOpen(e, device.Name)}>
+          open
+        </a> - <a href="#" onClick={(e) => this.handleClose(e, device.Name)}>
+          close
+        </a>
+      </li>);
 
-    const listNetworkDevices = this.state.networkDevices.map((device, i) => <li key={i}>{device.Name}</li>);
+    const listNetworkDevices = this.state.networkDevices.map((device, i) =>
+      <li key={i}>
+        {device.Name}
+      </li>);
 
     const supportedBoards = this.state.supportedBoards.map((board, i) =>
       <li key={i}>
@@ -154,15 +166,24 @@ class App extends React.Component {
     return (
       <div>
         <h1>Test Arduino Create Plugin</h1>
-        <p>Agent status: <span id="agent-status" className={ this.state.agentStatus ? 'found' : 'not-found' }>
-          { this.state.agentStatus ? 'Found' : 'Not found' }
-        </span></p>
-        <p>Web socket status: <span id="ws-status" className={ this.state.wsStatus ? 'found' : 'not-found' }>
-          { this.state.wsStatus ? 'Connected' : 'Not connected' }
-        </span></p>
+
+        <p>
+          Agent status:
+          <span id="agent-status" className={ this.state.agentStatus ? 'found' : 'not-found' }>
+            { this.state.agentStatus ? 'Found' : 'Not found' }
+          </span>
+        </p>
+        <p>
+          Web socket status:
+          <span id="ws-status" className={ this.state.wsStatus ? 'found' : 'not-found' }>
+            { this.state.wsStatus ? 'Connected' : 'Not connected' }
+          </span>
+        </p>
+
         <pre id="agent-info">
           { this.state.agentInfo }
         </pre>
+
         <div className="section">
           <h2>Devices</h2>
           <strong>serial:</strong>
@@ -195,6 +216,7 @@ class App extends React.Component {
           </form>
           <textarea id="serial-textarea" value={ this.state.serialMonitorContent }/>
         </div>
+
         <div className="section">
           <button onClick={ this.handleUpload } disabled={ this.state.uploadStatus === UPLOAD_STATUS_IN_PROGRESS }>Upload Sketch</button>
           <div>Upload status: <span className={ uploadClass }> { this.state.uploadStatus }</span></div>
