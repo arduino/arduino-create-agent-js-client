@@ -65,8 +65,9 @@ class App extends React.Component {
       scrollToBottom(serialTextarea);
     });
 
-    this.uploadingSubscription = this.daemon.uploading.subscribe(upload => {
+    this.daemon.uploading.subscribe(upload => {
       this.setState({ uploadStatus: upload.status });
+      console.log(upload);
     });
   }
 
