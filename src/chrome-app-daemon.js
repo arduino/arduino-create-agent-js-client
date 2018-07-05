@@ -26,39 +26,18 @@
  * invalidate any other reasons why the executable file might be covered by
  * the GNU General Public License.
  */
-import {
-  Subject,
-  interval
-} from 'rxjs';
-import { filter, startWith, takeUntil } from 'rxjs/operators';
 import Daemon from './daemon';
-
-const POLLING_INTERVAL = 1000;
 
 export default class ChromeOsDaemon extends Daemon {
   constructor(chromeExtensionId) {
     super();
     this.channel = null;
-    this.appMessages = new Subject();
 
-    this.appMessages
-      .subscribe(this.handleAppMessage.bind(this));
+    this.openChannel(() => this.channel.postMessage({
+      command: 'listPorts'
+    }));
 
-    this.channelOpen
-      .subscribe(channelOpen => {
-        if (channelOpen) {
-          interval(POLLING_INTERVAL)
-            .pipe(startWith(0))
-            .pipe(takeUntil(this.channelOpen.pipe(filter(status => !status))))
-            .subscribe(() => this.channel.postMessage({
-              command: 'listPorts'
-            }));
-        }
-        else {
-          this._wsConnect(chromeExtensionId);
-          this.agentFound.next(false);
-        }
-      });
+    this._appConnect(chromeExtensionId);
 
     // close all ports?
   }
@@ -66,7 +45,7 @@ export default class ChromeOsDaemon extends Daemon {
   /**
    * Instantiate connection and events listeners for chrome app
    */
-  _wsConnect(chromeExtensionId) {
+  _appConnect(chromeExtensionId) {
     if (chrome.runtime) {
       this.channel = chrome.runtime.connect(chromeExtensionId);
       this.channel.onMessage.addListener(message => {

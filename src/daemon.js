@@ -1,20 +1,20 @@
-import { Subject, BehaviorSubject } from 'rxjs';
-import { takeUntil, filter } from 'rxjs/operators';
+import { Subject, BehaviorSubject, interval } from 'rxjs';
+import { takeUntil, filter, startWith } from 'rxjs/operators';
 
 const UPLOAD_STATUS_NOPE = 'UPLOAD_STATUS_NOPE';
 const UPLOAD_STATUS_DONE = 'UPLOAD_STATUS_DONE';
 const UPLOAD_STATUS_ERROR = 'UPLOAD_STATUS_ERROR';
 const UPLOAD_STATUS_IN_PROGRESS = 'UPLOAD_STATUS_IN_PROGRESS';
 
+const POLLING_INTERVAL = 1500;
+
 export default class Daemon {
   constructor() {
-    this.socket = null;
-    this.pluginURL = null;
     this.agentInfo = {};
     this.agentFound = new BehaviorSubject(null);
     this.channelOpen = new BehaviorSubject(null);
     this.error = new Subject();
-    this.socketMessages = new Subject();
+    this.appMessages = new Subject();
     this.serialMonitorOpened = new BehaviorSubject(false);
     this.serialMonitorMessages = new Subject();
     this.uploading = new BehaviorSubject({ status: UPLOAD_STATUS_NOPE });
@@ -23,8 +23,8 @@ export default class Daemon {
       network: []
     });
     this.supportedBoards = new BehaviorSubject([]);
-    this.socketMessages
-      .subscribe(this.handleSocketMessage.bind(this));
+    this.appMessages
+      .subscribe(this.handleAppMessage.bind(this));
 
     const devicesListSubscription = this.devicesList.subscribe((devices) => {
       if (devices.serial && devices.serial.length > 0) {
@@ -34,19 +34,19 @@ export default class Daemon {
     });
   }
 
-  initSocket() {
-    this.socket.on('message', message => {
-      try {
-        this.socketMessages.next(JSON.parse(message));
-      }
-      catch (SyntaxError) {
-        this.socketMessages.next(message);
-      }
-    });
-  }
-
-  initPluginUrl(pluginUrl) {
-    this.pluginURL = pluginUrl;
+  openChannel(cb) {
+    this.channelOpen
+      .subscribe(channelOpen => {
+        if (channelOpen) {
+          interval(POLLING_INTERVAL)
+            .pipe(startWith(0))
+            .pipe(takeUntil(this.channelOpen.pipe(filter(status => !status))))
+            .subscribe(cb);
+        }
+        else {
+          this.agentFound.next(false);
+        }
+      });
   }
 
   /**
@@ -61,7 +61,7 @@ export default class Daemon {
     return a.every((item, index) => (b[index].Name === item.Name && b[index].IsOpen === item.IsOpen));
   }
 
-  handleSocketMessage(message) {
+  handleAppMessage(message) {
     // Result of a list command
     if (message.Ports) {
       this.handleListMessage(message);
@@ -138,7 +138,7 @@ export default class Daemon {
     if (!serialPort) {
       return this.serialMonitorOpened.error(new Error(`Can't find port ${port}`));
     }
-    this.socketMessages
+    this.appMessages
       .pipe(takeUntil(this.serialMonitorOpened.pipe(filter(open => open))))
       .subscribe(message => {
         if (message.Cmd === 'Open') {
@@ -159,7 +159,7 @@ export default class Daemon {
     if (!serialPort) {
       return this.serialMonitorOpened.error(new Error(`Can't find port ${port}`));
     }
-    this.socketMessages
+    this.appMessages
       .pipe(takeUntil(this.serialMonitorOpened.pipe(filter(open => !open))))
       .subscribe(message => {
         if (message.Cmd === 'Close') {

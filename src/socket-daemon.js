@@ -35,7 +35,7 @@ import {
   interval,
   timer
 } from 'rxjs';
-import { filter, startWith, takeUntil } from 'rxjs/operators';
+import { filter, takeUntil } from 'rxjs/operators';
 import Daemon from './daemon';
 
 // Required agent version
@@ -51,7 +51,6 @@ const LOOPBACK_ADDRESS = '127.0.0.1';
 const LOOPBACK_HOSTNAME = 'localhost';
 const LOOKUP_PORT_START = 8991;
 const LOOKUP_PORT_END = 9000;
-const POLLING_INTERVAL = 1000;
 const CANT_FIND_AGENT_MESSAGE = 'Arduino Create Agent cannot be found';
 let updateAttempts = 0;
 let orderedPluginAddresses = [LOOPBACK_ADDRESS, LOOPBACK_HOSTNAME];
@@ -64,20 +63,10 @@ export default class SocketDaemon extends Daemon {
   constructor() {
     super();
     this.selectedProtocol = PROTOCOL.HTTP;
+    this.socket = null;
+    this.pluginURL = null;
 
-    this.channelOpen
-      .subscribe(channelOpen => {
-        if (channelOpen) {
-          this.initSocket();
-          interval(POLLING_INTERVAL)
-            .pipe(startWith(0))
-            .pipe(takeUntil(this.channelOpen.pipe(filter(status => !status))))
-            .subscribe(() => this.socket.emit('command', 'list'));
-        }
-        else {
-          this.agentFound.next(false);
-        }
-      });
+    this.openChannel(() => this.socket.emit('command', 'list'));
 
     this.agentFound
       .subscribe(agentFound => {
@@ -88,6 +77,17 @@ export default class SocketDaemon extends Daemon {
           this.findAgent();
         }
       });
+  }
+
+  initSocket() {
+    this.socket.on('message', message => {
+      try {
+        this.appMessages.next(JSON.parse(message));
+      }
+      catch (SyntaxError) {
+        this.appMessages.next(message);
+      }
+    });
   }
 
   /**
@@ -129,7 +129,7 @@ export default class SocketDaemon extends Daemon {
               // Protocol http, force 127.0.0.1 for old agent versions too
               this.agentInfo[this.selectedProtocol] = this.agentInfo[this.selectedProtocol].replace('localhost', '127.0.0.1');
             }
-            this.initPluginUrl(this.agentInfo[this.selectedProtocol]);
+            this.pluginURL = this.agentInfo[this.selectedProtocol];
             return true;
           }
           return false;
@@ -164,6 +164,7 @@ export default class SocketDaemon extends Daemon {
       this.socket.emit('command', 'downloadtool windows-drivers latest arduino keep');
       this.socket.emit('command', 'downloadtool bossac 1.7.0 arduino keep');
 
+      this.initSocket();
       this.channelOpen.next(true);
     });
 

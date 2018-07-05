@@ -176,7 +176,7 @@ class App extends React.Component {
           </span>
         </p>
         <p>
-          Web socket status: <span className={ this.state.channelStatus ? 'found' : 'not-found' }>
+          Channel status: <span className={ this.state.channelStatus ? 'found' : 'not-found' }>
             { this.state.channelStatus ? 'Connected' : 'Not connected' }
           </span>
         </p>
