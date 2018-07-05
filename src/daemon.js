@@ -13,7 +13,7 @@ export default class Daemon {
     this.socketMessages = new Subject();
     this.serialMonitorOpened = new BehaviorSubject(false);
     this.serialMonitorMessages = new Subject();
-    this.uploading = new BehaviorSubject();
+    this.uploading = new BehaviorSubject({ status: UPLOAD_STATUS_NOPE });
     this.devicesList = new BehaviorSubject({
       serial: [],
       network: []
@@ -60,25 +60,66 @@ export default class Daemon {
   handleSocketMessage(message) {
     // Result of a list command
     if (message.Ports) {
-      const lastDevices = this.devicesList.getValue();
-      if (message.Network && !Daemon.devicesListAreEquals(lastDevices.network, message.Ports)) {
-        this.devicesList.next({
-          serial: lastDevices.serial,
-          network: message.Ports
-        });
-      }
-      else if (!message.Network && !Daemon.devicesListAreEquals(lastDevices.serial, message.Ports)) {
-        this.devicesList.next({
-          serial: message.Ports,
-          network: lastDevices.network
-        });
-      }
+      this.handleListMessage(message);
     }
     // Serial monitor message
     if (message.D) {
       this.serialMonitorMessages.next(message.D);
     }
-    // if (message.ProgrammerStatus  )
+
+    if (message.ProgrammerStatus) {
+      this.handleUploadMessage(message);
+    }
+
+    if (message.Err) {
+      this.uploading.next({ status: UPLOAD_STATUS_ERROR, err: message.Err });
+    }
+  }
+
+  handleListMessage(message) {
+    const lastDevices = this.devicesList.getValue();
+    if (message.Network && !Daemon.devicesListAreEquals(lastDevices.network, message.Ports)) {
+      this.devicesList.next({
+        serial: lastDevices.serial,
+        network: message.Ports
+      });
+    }
+    else if (!message.Network && !Daemon.devicesListAreEquals(lastDevices.serial, message.Ports)) {
+      this.devicesList.next({
+        serial: message.Ports,
+        network: lastDevices.network
+      });
+    }
+  }
+
+  handleUploadMessage(message) {
+    if (this.uploading.getValue().status !== UPLOAD_STATUS_IN_PROGRESS) {
+      return;
+    }
+    if (message.Flash === 'Ok' && message.ProgrammerStatus === 'Done') {
+      this.uploading.next({ status: UPLOAD_STATUS_DONE, msg: message.Flash });
+      return;
+    }
+    switch (message.ProgrammerStatus) {
+      case 'Starting':
+        this.uploading.next({ status: UPLOAD_STATUS_IN_PROGRESS, msg: `Programming with: ${message.Cmd}` });
+        break;
+      case 'Busy':
+        this.uploading.next({ status: UPLOAD_STATUS_IN_PROGRESS, msg: message.Msg });
+        break;
+      case 'Error':
+        this.uploading.next({ status: UPLOAD_STATUS_ERROR, err: message.Msg });
+        break;
+      case 'Killed':
+        this.uploading.next({ status: UPLOAD_STATUS_IN_PROGRESS, msg: `terminated by user` });
+        this.uploading.next({ status: UPLOAD_STATUS_ERROR, err: `terminated by user` });
+        break;
+      case 'Error 404 Not Found':
+        this.uploading.next({ status: UPLOAD_STATUS_ERROR, err: message.Msg });
+        break;
+      default:
+        this.uploading.next({ status: UPLOAD_STATUS_IN_PROGRESS, msg: message.Msg });
+    }
   }
 
   writeSerial(port, data) {
