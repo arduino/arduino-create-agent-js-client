@@ -18,6 +18,7 @@ export default class Daemon {
       serial: [],
       network: []
     });
+    this.supportedBoards = new BehaviorSubject([]);
     this.socketMessages
       .subscribe(this.handleSocketMessage.bind(this));
 

@@ -29,7 +29,7 @@
 
 import { Deferred } from './readMessages';
 
-let port = null;
+const port = null;
 let polling;
 
 let uploading = false;
@@ -63,7 +63,7 @@ const callback = (name, data) => {
 };
 
 const onMessage = (msg) => {
-  if (msg.version) {
+  /* if (msg.version) {
     if (!polling) {
       polling = setInterval(() => {
         if (!uploading) {
@@ -89,7 +89,7 @@ const onMessage = (msg) => {
     }));
 
     callback('ports', ports);
-  }
+  } */
   else if (msg.uploadStatus) {
     if (msg.uploadStatus === 'success') {
       uploading = false;
@@ -143,7 +143,8 @@ const onMessage = (msg) => {
   }
 };
 
-const onChromeDisconnect = () => {
+/*
+  const onChromeDisconnect = () => {
   disconnected = true;
 
   if (polling) {
@@ -153,7 +154,7 @@ const onChromeDisconnect = () => {
   disconnectCb();
 };
 
-const connect = (chromeExtensionId) => {
+ const connect = (chromeExtensionId) => {
   if ((port === null || disconnected) && chrome.runtime) {
     port = chrome.runtime.connect(chromeExtensionId);
     port.onMessage.addListener(onMessage);
@@ -162,7 +163,7 @@ const connect = (chromeExtensionId) => {
   else {
     errorCb('chromeExtensionNotFound');
   }
-};
+}; */
 
 const perform = (action, data) => {
   const deferred = new Deferred();

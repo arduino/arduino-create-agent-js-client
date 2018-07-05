@@ -13,6 +13,8 @@ const scrollToBottom = (target) => {
   }
 };
 
+const daemon = new Daemon('hfejhkbipnickajaidoppbadcomekkde');
+
 class App extends React.Component {
   constructor() {
     super();
@@ -26,7 +28,8 @@ class App extends React.Component {
       serialMonitorContent: '',
       serialPortOpen: '',
       uploadStatus: '',
-      ulploadError: ''
+      ulploadError: '',
+      supportedBoards: []
     };
     this.handleOpen = this.handleOpen.bind(this);
     this.handleClose = this.handleClose.bind(this);
@@ -34,38 +37,41 @@ class App extends React.Component {
     this.showError = this.showError.bind(this);
     this.clearError = this.clearError.bind(this);
     this.handleUpload = this.handleUpload.bind(this);
-    this.daemon = Daemon;
   }
 
   componentDidMount() {
-    this.daemon.agentFound.subscribe(status => {
+    daemon.agentFound.subscribe(status => {
       this.setState({
         agentStatus: status,
-        agentInfo: JSON.stringify(this.daemon.agentInfo, null, 2)
+        agentInfo: JSON.stringify(daemon.agentInfo, null, 2)
       });
     });
 
-    this.daemon.wsConnected.subscribe(status => {
+    daemon.wsConnected.subscribe(status => {
       this.setState({ wsStatus: status });
     });
 
-    this.daemon.error.subscribe(this.showError);
+    daemon.error.subscribe(this.showError);
 
-    this.daemon.devicesList.subscribe(devices => this.setState({
+    daemon.devicesList.subscribe(devices => this.setState({
       serialDevices: devices.serial,
       networkDevices: devices.network
     }));
 
+    daemon.supportedBoards.subscribe(boards => this.setState({
+      supportedBoards: boards
+    }));
+
     const serialTextarea = document.getElementById('serial-textarea');
 
-    this.daemon.serialMonitorMessages.subscribe(message => {
+    daemon.serialMonitorMessages.subscribe(message => {
       this.setState({
         serialMonitorContent: this.state.serialMonitorContent + message
       });
       scrollToBottom(serialTextarea);
     });
 
-    this.uploadingSubscription = this.daemon.uploading.subscribe(upload => {
+    this.uploadingSubscription = daemon.uploading.subscribe(upload => {
       this.setState({ uploadStatus: upload.status });
     });
   }
@@ -81,13 +87,13 @@ class App extends React.Component {
   handleOpen(e, port) {
     this.setState({ serialMonitorContent: '' });
     e.preventDefault();
-    this.daemon.openSerialMonitor(port);
+    daemon.openSerialMonitor(port);
     this.setState({ serialPortOpen: port });
   }
 
   handleClose(e, port) {
     e.preventDefault();
-    this.daemon.closeSerialMonitor(port);
+    daemon.closeSerialMonitor(port);
     this.setState({ serialPortOpen: null });
   }
 
@@ -95,7 +101,7 @@ class App extends React.Component {
     e.preventDefault();
     const serialInput = document.getElementById('serial-input');
     const sendData = `${serialInput.value}\n`;
-    this.daemon.writeSerial(this.state.serialPortOpen, sendData);
+    daemon.writeSerial(this.state.serialPortOpen, sendData);
     serialInput.focus();
     serialInput.value = '';
   }
@@ -121,12 +127,19 @@ class App extends React.Component {
         params_verbose: '-v'
       }
     };
-    this.daemon.upload(target, data);
+    daemon.upload(target, data);
   }
 
   render() {
-    const listSerialDevices = this.state.serialDevices.map((device, i) => (<li key={i}>{device.Name} - IsOpen: <span className={device.IsOpen ? 'open' : 'closed'}>{device.IsOpen ? 'true' : 'false'}</span> - <a href="#" onClick={(e) => this.handleOpen(e, device.Name)}>open</a> - <a href="#" onClick={(e) => this.handleClose(e, device.Name)}>close</a></li>));
+    const listSerialDevices = this.state.serialDevices.map((device, i) => <li key={i}>{device.Name} - IsOpen: <span className={device.IsOpen ? 'open' : 'closed'}>{device.IsOpen ? 'true' : 'false'}</span> - <a href="#" onClick={(e) => this.handleOpen(e, device.Name)}>open</a> - <a href="#" onClick={(e) => this.handleClose(e, device.Name)}>close</a></li>);
+
     const listNetworkDevices = this.state.networkDevices.map((device, i) => <li key={i}>{device.Name}</li>);
+
+    const supportedBoards = this.state.supportedBoards.map((board, i) =>
+      <li key={i}>
+        { board }
+      </li>);
+
     let uploadClass;
     if (this.state.uploadStatus === UPLOAD_STATUS_DONE) {
       uploadClass = 'success';
@@ -162,6 +175,18 @@ class App extends React.Component {
           </ul>
           <p id="error"></p>
         </div>
+
+        {
+          this.state.supportedBoards.length ?
+            <div className="section">
+              <h2>Supported boards</h2>
+              <ul>
+                {supportedBoards}
+              </ul>
+            </div>
+            : null
+        }
+
         <div className="serial-monitor section">
           <h2>Serial Monitor</h2>
           <form onSubmit={this.handleSend}>
