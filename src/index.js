@@ -28,8 +28,8 @@
  */
 
 import SocketDaemon from './socket-daemon';
-import chromeAppDaemon from './chromeAppDaemon';
+import ChromeOsDaemon from './chrome-app-daemon';
 
-const Daemon = window.navigator.userAgent.indexOf(' CrOS ') !== -1 ? chromeAppDaemon : new SocketDaemon();
+const Daemon = window.navigator.userAgent.indexOf(' CrOS ') !== -1 ? ChromeOsDaemon : SocketDaemon;
 
 export default Daemon;
