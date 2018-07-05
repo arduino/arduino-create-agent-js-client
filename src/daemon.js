@@ -13,9 +13,17 @@ export default class Daemon {
       network: []
     });
     this.socketMessages
-      .subscribe(this.handleSocketMesage.bind(this));
+      .subscribe(this.handleSocketMessage.bind(this));
     this.openingSerial = null;
     this.closingSerial = null;
+
+    const devicesListSubscription = this.devicesList.subscribe((devices) => {
+      if (devices.serial && devices.serial.length > 0) {
+        this.closeAllPorts();
+        devicesListSubscription.unsubscribe();
+      }
+    });
+    window.addEventListener('beforeunload', this.closeAllPorts);
   }
 
   initSocket() {
@@ -38,24 +46,24 @@ export default class Daemon {
    * @param {Array<device>} a the first list
    * @param {Array<device>} b the second list
    */
-  static devicesListAreEquals(a, b) {
+  devicesListAreEquals(a, b) {
     if (!a || !b || a.length !== b.length) {
       return false;
     }
-    return a.every((item, index) => b[index].Name === item.Name);
+    return a.every((item, index) => (b[index].Name === item.Name && b[index].IsOpen === item.IsOpen));
   }
 
-  handleSocketMesage(message) {
+  handleSocketMessage(message) {
     // Result of a list command
     if (message.Ports) {
       const lastDevices = this.devicesList.getValue();
-      if (message.Network && !Daemon.devicesListAreEquals(lastDevices.network, message.Ports)) {
+      if (message.Network && !this.devicesListAreEquals(lastDevices.network, message.Ports)) {
         this.devicesList.next({
           serial: lastDevices.serial,
           network: message.Ports
         });
       }
-      else if (!message.Network && !Daemon.devicesListAreEquals(lastDevices.serial, message.Ports)) {
+      else if (!message.Network && !this.devicesListAreEquals(lastDevices.serial, message.Ports)) {
         this.devicesList.next({
           serial: message.Ports,
           network: lastDevices.network
@@ -66,6 +74,10 @@ export default class Daemon {
     if (message.D) {
       this.serialMonitorMessages.next(message.D);
     }
+  }
+
+  writeSerial(port, data) {
+    this.socket.emit('command', `send ${port} ${data}`);
   }
 
   openSerialMonitor(port) {
@@ -108,5 +120,16 @@ export default class Daemon {
         }
       });
     this.socket.emit('command', `close ${port}`);
+  }
+
+  closeAllPorts(e) {
+    if (e) {
+      e.preventDefault();
+    }
+    const devices = this.devicesList.getValue().serial;
+    devices.forEach(device => {
+      this.socket.emit('command', `close ${device.Name}`);
+    });
+    return;
   }
 }

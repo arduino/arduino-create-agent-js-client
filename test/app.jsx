@@ -17,10 +17,14 @@ class App extends React.Component {
       serialDevices: [],
       networkDevices: [],
       agentInfo: '',
-      serialMonitorContent: ''
+      serialMonitorContent: '',
+      serialPortOpen: ''
     };
     this.handleOpen = this.handleOpen.bind(this);
     this.handleClose = this.handleClose.bind(this);
+    this.handleSend = this.handleSend.bind(this);
+    this.showError = this.showError.bind(this);
+    this.clearError = this.clearError.bind(this);
     this.daemon = Daemon;
   }
 
@@ -65,15 +69,26 @@ class App extends React.Component {
     this.setState({ serialMonitorContent: '' });
     e.preventDefault();
     this.daemon.openSerialMonitor(port);
+    this.setState({ serialPortOpen: port });
   }
 
   handleClose(e, port) {
     e.preventDefault();
     this.daemon.closeSerialMonitor(port);
+    this.setState({ serialPortOpen: null });
+  }
+
+  handleSend(e) {
+    e.preventDefault();
+    const serialInput = document.getElementById('serial-input');
+    const sendData = `${serialInput.value}\n`;
+    this.daemon.writeSerial(this.state.serialPortOpen, sendData);
+    serialInput.focus();
+    serialInput.value = '';
   }
 
   render() {
-    const listSerialDevices = this.state.serialDevices.map((device, i) => (<li key={i}>{device.Name} - IsOpen: {device.IsOpen ? 'true' : 'false'} - <a href="#" onClick={(e) => this.handleOpen(e, device.Name)}>open</a> - <a href="#" onClick={(e) => this.handleClose(e, device.Name)}>close</a></li>));
+    const listSerialDevices = this.state.serialDevices.map((device, i) => (<li key={i}>{device.Name} - IsOpen: <span className={device.IsOpen ? 'open' : 'closed'}>{device.IsOpen ? 'true' : 'false'}</span> - <a href="#" onClick={(e) => this.handleOpen(e, device.Name)}>open</a> - <a href="#" onClick={(e) => this.handleClose(e, device.Name)}>close</a></li>));
     const listNetworkDevices = this.state.networkDevices.map((device, i) => <li key={i}>{device.Name}</li>);
 
     return (
@@ -102,6 +117,10 @@ class App extends React.Component {
         </div>
         <div className="serial-monitor">
           <h2>Serial Monitor</h2>
+          <form onSubmit={this.handleSend}>
+            <input id="serial-input" />
+            <input type="submit" value="Send" />
+          </form>
           <textarea id="serial-textarea" value={ this.state.serialMonitorContent }/>
         </div>
       </div>
