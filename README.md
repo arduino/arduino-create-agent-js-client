@@ -46,8 +46,24 @@ daemon.writeSerial('port-name', 'message');
 // Close serial monitor
 daemon.closeSerialMonitor('port-name');
 
+// Upload hex
+daemon.upload(target, data);
+
+// Upload progress
+daemon.uploading.subscribe(upload => {
+  console.log(status);
+});
+
+// Download tool
+daemon.downloadTool('toolname', 'toolversion' 'packageName', 'replacement');
+
+// Download status
+daemon.downloading.subscribe(download => {
+  console.log(download);
+});
+
 ```
-## Development
+## Development and test features
 Just run `npm run dev` and open your browser on http://localhost:8000
 
 ## Agent communication
