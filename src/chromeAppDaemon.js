@@ -138,9 +138,9 @@ const onMessage = (msg) => {
       promise.reject(msg.message);
     }
   } */
-  else if (msg.serialData) {
+  /* else if (msg.serialData) {
     callback('serial', { data: msg.serialData });
-  }
+  } */
 };
 
 /*
@@ -250,11 +250,11 @@ const upload = (target, data, cb) => {
     port.postMessage({
       command: 'upload',
       data: {
-        filename: file.name,
-        data: file.data,
         board: target.board,
         port: target.port,
         commandline: data.commandline,
+        filename: file.name,
+        data: file.data,
         token: token.token
       }
     });

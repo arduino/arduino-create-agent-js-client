@@ -54,6 +54,10 @@ const CANT_FIND_AGENT_MESSAGE = 'Arduino Create Agent cannot be found';
 let updateAttempts = 0;
 let orderedPluginAddresses = [LOOPBACK_ADDRESS, LOOPBACK_HOSTNAME];
 
+const UPLOAD_DONE = 'UPLOAD_DONE';
+const UPLOAD_ERROR = 'UPLOAD_ERROR';
+const UPLOAD_IN_PROGRESS = 'UPLOAD_IN_PROGRESS';
+
 if (browser.name !== 'chrome' && browser.name !== 'firefox') {
   orderedPluginAddresses = [LOOPBACK_HOSTNAME, LOOPBACK_ADDRESS];
 }
@@ -174,6 +178,41 @@ export default class SocketDaemon extends Daemon {
     });
   }
 
+  handleAppMessage(message) {
+    // Result of a list command
+    if (message.Ports) {
+      this.handleListMessage(message);
+    }
+    // Serial monitor message
+    if (message.D) {
+      this.serialMonitorMessages.next(message.D);
+    }
+
+    if (message.ProgrammerStatus) {
+      this.handleUploadMessage(message);
+    }
+
+    if (message.Err) {
+      this.uploading.next({ status: UPLOAD_ERROR, err: message.Err });
+    }
+  }
+
+  handleListMessage(message) {
+    const lastDevices = this.devicesList.getValue();
+    if (message.Network && !Daemon.devicesListAreEquals(lastDevices.network, message.Ports)) {
+      this.devicesList.next({
+        serial: lastDevices.serial,
+        network: message.Ports
+      });
+    }
+    else if (!message.Network && !Daemon.devicesListAreEquals(lastDevices.serial, message.Ports)) {
+      this.devicesList.next({
+        serial: message.Ports,
+        network: lastDevices.network
+      });
+    }
+  }
+
   /**
    * Check the agent version and call the update if needed.
    */
@@ -278,6 +317,109 @@ export default class SocketDaemon extends Daemon {
     this.socket.emit('command', `close ${port}`);
   }
 
+  handleUploadMessage(message) {
+    if (this.uploading.getValue().status !== UPLOAD_IN_PROGRESS) {
+      return;
+    }
+    if (message.Flash === 'Ok' && message.ProgrammerStatus === 'Done') {
+      this.uploading.next({ status: UPLOAD_DONE, msg: message.Flash });
+      return;
+    }
+    switch (message.ProgrammerStatus) {
+      case 'Starting':
+        this.uploading.next({ status: UPLOAD_IN_PROGRESS, msg: `Programming with: ${message.Cmd}` });
+        break;
+      case 'Busy':
+        this.uploading.next({ status: UPLOAD_IN_PROGRESS, msg: message.Msg });
+        break;
+      case 'Error':
+        this.uploading.next({ status: UPLOAD_ERROR, err: message.Msg });
+        break;
+      case 'Killed':
+        this.uploading.next({ status: UPLOAD_IN_PROGRESS, msg: `terminated by user` });
+        this.uploading.next({ status: UPLOAD_ERROR, err: `terminated by user` });
+        break;
+      case 'Error 404 Not Found':
+        this.uploading.next({ status: UPLOAD_ERROR, err: message.Msg });
+        break;
+      default:
+        this.uploading.next({ status: UPLOAD_IN_PROGRESS, msg: message.Msg });
+    }
+  }
+
+  /**
+   * Perform an upload via http on the daemon
+   * @param {Object} target = {
+   *   board: "name of the board",
+   *   port: "port of the board",
+   *   auth_user: "Optional user to use as authentication",
+   *   auth_pass: "Optional pass to use as authentication"
+   *   auth_key: "Optional private key",
+   *   auth_port: "Optional alternative port (default 22)"
+   *   network: true or false
+   * }
+   * @param {Object} data = {
+   *  commandline: "commandline to execute",
+      signature: "signature of the commandline",
+   *  files: [
+   *   {name: "Name of a file to upload on the device", data: 'base64data'}
+   *  ],
+   *  options: {}
+   * }
+   */
+  upload(target, data) {
+    this.uploading.next({ status: UPLOAD_IN_PROGRESS });
+
+    if (data.files.length === 0) { // At least one file to upload
+      this.uploading.next({ status: UPLOAD_ERROR, err: 'You need at least one file to upload' });
+      return;
+    }
+
+    // Main file
+    const file = data.files[0];
+    file.name = file.name.split('/');
+    file.name = file.name[file.name.length - 1];
+
+    const payload = {
+      board: target.board,
+      port: target.port,
+      commandline: data.commandline,
+      signature: data.signature,
+      hex: file.data,
+      filename: file.name,
+      extra: {
+        auth: {
+          username: target.auth_user,
+          password: target.auth_pass,
+          private_key: target.auth_key,
+          port: target.auth_port
+        },
+        wait_for_upload_port: data.options.wait_for_upload_port === 'true' || data.options.wait_for_upload_port === true,
+        use_1200bps_touch: data.options.use_1200bps_touch === 'true' || data.options.use_1200bps_touch === true,
+        network: target.network,
+        ssh: target.ssh,
+        params_verbose: data.options.param_verbose,
+        params_quiet: data.options.param_quiet,
+        verbose: data.options.verbose
+      },
+      extrafiles: data.extrafiles || []
+    };
+
+    for (let i = 1; i < data.files.length; i += 1) {
+      payload.extrafiles.push({ filename: data.files[i].name, hex: data.files[i].data });
+    }
+
+    fetch(`${this.pluginURL}/upload`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'text/plain; charset=utf-8'
+      },
+      body: JSON.stringify(payload)
+    })
+      .catch(error => {
+        this.uploading.next({ status: UPLOAD_ERROR, err: error });
+      });
+  }
 
   /**
    * Interrupt upload

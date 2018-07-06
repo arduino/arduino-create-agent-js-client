@@ -3,9 +3,9 @@ import Daemon from '../src';
 
 import { HEX } from './serial_mirror';
 
-const UPLOAD__DONE = 'UPLOAD__DONE';
-const UPLOAD__ERROR = 'UPLOAD__ERROR';
-const UPLOAD__IN_PROGRESS = 'UPLOAD__IN_PROGRESS';
+const UPLOAD_DONE = 'UPLOAD_DONE';
+const UPLOAD_ERROR = 'UPLOAD_ERROR';
+const UPLOAD_IN_PROGRESS = 'UPLOAD_IN_PROGRESS';
 
 const chromeExtensionID = 'hfejhkbipnickajaidoppbadcomekkde';
 
@@ -155,13 +155,13 @@ class App extends React.Component {
       </li>);
 
     let uploadClass;
-    if (this.state.uploadStatus === UPLOAD__DONE) {
+    if (this.state.uploadStatus === UPLOAD_DONE) {
       uploadClass = 'success';
     }
-    else if (this.state.uploadStatus === UPLOAD__ERROR) {
+    else if (this.state.uploadStatus === UPLOAD_ERROR) {
       uploadClass = 'error';
     }
-    else if (this.state.uploadStatus === UPLOAD__IN_PROGRESS) {
+    else if (this.state.uploadStatus === UPLOAD_IN_PROGRESS) {
       uploadClass = 'in-progress';
     }
 
@@ -219,7 +219,7 @@ class App extends React.Component {
 
         <div className="section">
           <h2>Upload a sample sketch on a MKR1000 at /dev/ttyACM0</h2>
-          <button onClick={ handleUpload } disabled={ this.state.uploadStatus === UPLOAD__IN_PROGRESS }>Upload Sketch</button><br/>
+          <button onClick={ handleUpload } disabled={ this.state.uploadStatus === UPLOAD_IN_PROGRESS }>Upload Sketch</button><br/>
           <div>Upload status: <span className={ uploadClass }> { this.state.uploadStatus }</span></div>
           <div>{ this.state.uploadError }</div>
         </div>

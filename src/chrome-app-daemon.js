@@ -30,6 +30,10 @@ import { takeUntil, filter } from 'rxjs/operators';
 
 import Daemon from './daemon';
 
+const UPLOAD_DONE = 'UPLOAD_DONE';
+const UPLOAD_ERROR = 'UPLOAD_ERROR';
+const UPLOAD_IN_PROGRESS = 'UPLOAD_IN_PROGRESS';
+
 export default class ChromeOsDaemon extends Daemon {
   constructor(chromeExtensionId) {
     super();
@@ -67,23 +71,40 @@ export default class ChromeOsDaemon extends Daemon {
 
   handleAppMessage(message) {
     if (message.ports) {
-      const lastDevices = this.devicesList.getValue();
-      if (!Daemon.devicesListAreEquals(lastDevices.serial, message.ports)) {
-        this.devicesList.next({
-          serial: message.ports.map(port => ({
-            Name: port.name,
-            SerialNumber: port.serialNumber,
-            IsOpen: port.isOpen,
-            VendorID: port.vendorId,
-            ProductID: port.productId
-          })),
-          network: []
-        });
-      }
+      this.handleListMessage(message);
     }
 
     if (message.supportedBoards) {
       this.supportedBoards.next(message.supportedBoards);
+    }
+
+    if (message.serialData) {
+      this.serialMonitorMessages.next(message.serialData);
+    }
+
+    if (message.programmerstatus) {
+      this.handleUploadMessage(message);
+    }
+
+    if (message.err) {
+      this.uploading.next({ status: UPLOAD_ERROR, err: message.Err });
+    }
+  }
+
+
+  handleListMessage(message) {
+    const lastDevices = this.devicesList.getValue();
+    if (!Daemon.devicesListAreEquals(lastDevices.serial, message.ports)) {
+      this.devicesList.next({
+        serial: message.ports.map(port => ({
+          Name: port.name,
+          SerialNumber: port.serialNumber,
+          IsOpen: port.isOpen,
+          VendorID: port.vendorId,
+          ProductID: port.productId
+        })),
+        network: []
+      });
     }
   }
 
@@ -93,12 +114,7 @@ export default class ChromeOsDaemon extends Daemon {
   closeAllPorts() {
     const devices = this.devicesList.getValue().serial;
     devices.forEach(device => {
-      this.channel.postMessage({
-        command: 'closePort',
-        data: {
-          name: device.Name
-        }
-      });
+      this.closeSerialMonitor(device.Name);
     });
   }
 
@@ -107,7 +123,7 @@ export default class ChromeOsDaemon extends Daemon {
    * @param {string} port the port name
    * @param {string} message the text to be sent to serial
    */
-  writeSerialCommand(port, message) {
+  writeSerial(port, message) {
     this.channel.postMessage({
       command: 'writePort',
       data: {
@@ -178,12 +194,72 @@ export default class ChromeOsDaemon extends Daemon {
     });
   }
 
+  handleUploadMessage(message) {
+    if (this.uploading.getValue().status !== UPLOAD_IN_PROGRESS) {
+      return;
+    }
+    switch (message.uploadStatus) {
+      case 'message':
+        this.uploading.next({ status: UPLOAD_IN_PROGRESS, msg: message.message });
+        break;
+      case 'error':
+        this.uploading.next({ status: UPLOAD_ERROR, err: message.message });
+        break;
+      case 'success':
+        this.uploading.next({ status: UPLOAD_DONE, err: message.message });
+        break;
+      default:
+        this.uploading.next({ status: UPLOAD_IN_PROGRESS });
+    }
+  }
 
   /**
-   * Interrupt upload
+   * Perform an upload via http on the daemon
+   * @param {Object} target = {
+   *   board: "name of the board",
+   *   port: "port of the board",
+   * }
+   * @param {Object} data = {
+   *  commandline: "commandline to execute",
+   *  files: [
+   *   {name: "Name of a file to upload on the device", data: 'base64data'}
+   *  ],
+   * }
+   */
+  upload(target, data) {
+    this.uploading.next({ status: UPLOAD_IN_PROGRESS });
+
+    if (data.files.length === 0) { // At least one file to upload
+      this.uploading.next({ status: UPLOAD_ERROR, err: 'You need at least one file to upload' });
+      return;
+    }
+
+    // Main file
+    const file = data.files[0];
+    file.name = file.name.split('/');
+    file.name = file.name[file.name.length - 1];
+
+    const payload = {
+      board: target.board,
+      port: target.port,
+      commandline: data.commandline,
+      filename: file.name,
+      data: file.data,
+    };
+
+    window.oauth.token().then(token => {
+      payload.token = token.token;
+      this.channel.postMessage({
+        command: 'upload',
+        data: payload
+      });
+    });
+  }
+
+  /**
+   * Interrupt upload - not supported in Chrome app
    */
   stopUpload() {
-    this.uploading.next(false);
-    this.socket.emit('command', 'killprogrammer');
+    return new Error('Stop Upload not supported on Chrome OS');
   }
 }
