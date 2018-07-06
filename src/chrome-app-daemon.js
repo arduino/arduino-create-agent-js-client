@@ -206,7 +206,7 @@ export default class ChromeOsDaemon extends Daemon {
         this.uploading.next({ status: UPLOAD_ERROR, err: message.message });
         break;
       case 'success':
-        this.uploading.next({ status: UPLOAD_DONE, err: message.message });
+        this.uploading.next({ status: UPLOAD_DONE, msg: message.message });
         break;
       default:
         this.uploading.next({ status: UPLOAD_IN_PROGRESS });
