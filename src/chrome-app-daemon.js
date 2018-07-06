@@ -258,7 +258,6 @@ export default class ChromeOsDaemon extends Daemon {
     }
     catch (err) {
       this.uploading.next({ status: UPLOAD_ERROR, err: 'you need to be logged in on a Create site to upload by Chrome App' });
-      alert();
     }
   }
 }
