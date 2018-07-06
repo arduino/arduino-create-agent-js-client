@@ -31,7 +31,7 @@ import io from 'socket.io-client';
 import semVerCompare from 'semver-compare';
 import { detect } from 'detect-browser';
 
-import { timer } from 'rxjs';
+import { BehaviorSubject, timer } from 'rxjs';
 import { takeUntil, filter } from 'rxjs/operators';
 
 import Daemon from './daemon';
@@ -50,13 +50,20 @@ const LOOPBACK_ADDRESS = '127.0.0.1';
 const LOOPBACK_HOSTNAME = 'localhost';
 const LOOKUP_PORT_START = 8991;
 const LOOKUP_PORT_END = 9000;
-const CANT_FIND_AGENT_MESSAGE = 'Arduino Create Agent cannot be found';
-let updateAttempts = 0;
 let orderedPluginAddresses = [LOOPBACK_ADDRESS, LOOPBACK_HOSTNAME];
+
+const CANT_FIND_AGENT_MESSAGE = 'Arduino Create Agent cannot be found';
+
+let updateAttempts = 0;
 
 if (browser.name !== 'chrome' && browser.name !== 'firefox') {
   orderedPluginAddresses = [LOOPBACK_HOSTNAME, LOOPBACK_ADDRESS];
 }
+
+const DOWNLOAD_NOPE = 'DOWNLOAD_NOPE';
+const DOWNLOAD_DONE = 'DOWNLOAD_DONE';
+const DOWNLOAD_ERROR = 'DOWNLOAD_ERROR';
+const DOWNLOAD_IN_PROGRESS = 'DOWNLOAD_IN_PROGRESS';
 
 export default class SocketDaemon extends Daemon {
   constructor() {
@@ -64,6 +71,10 @@ export default class SocketDaemon extends Daemon {
     this.selectedProtocol = PROTOCOL.HTTP;
     this.socket = null;
     this.pluginURL = null;
+
+    this.downloading = new BehaviorSubject({ status: DOWNLOAD_NOPE });
+    this.downloadingDone = this.downloading.pipe(filter(download => download.status === DOWNLOAD_DONE));
+    this.downloadingError = this.downloading.pipe(filter(download => download.status === DOWNLOAD_ERROR));
 
     this.openChannel(() => this.socket.emit('command', 'list'));
 
@@ -186,6 +197,10 @@ export default class SocketDaemon extends Daemon {
 
     if (message.ProgrammerStatus) {
       this.handleUploadMessage(message);
+    }
+
+    if (message.DownloadStatus) {
+      this.handleDownloadMessage(message);
     }
 
     if (message.Err) {
@@ -343,6 +358,25 @@ export default class SocketDaemon extends Daemon {
     }
   }
 
+  handleDownloadMessage(message) {
+    if (this.downloading.getValue().status !== DOWNLOAD_IN_PROGRESS) {
+      return;
+    }
+    switch (message.DownloadStatus) {
+      case 'Pending':
+        this.downloading.next({ status: DOWNLOAD_IN_PROGRESS, msg: message.Msg });
+        break;
+      case 'Success':
+        this.downloading.next({ status: DOWNLOAD_DONE, msg: message.Msg });
+        break;
+      case 'Error':
+        this.downloading.next({ status: DOWNLOAD_ERROR, err: message.Msg });
+        break;
+      default:
+        this.downloading.next({ status: DOWNLOAD_IN_PROGRESS, msg: message.Msg });
+    }
+  }
+
   /**
    * Perform an upload via http on the daemon
    * @param {Object} target = {
@@ -425,6 +459,7 @@ export default class SocketDaemon extends Daemon {
    * @param {string} replacementStrategy
    */
   downloadToolCommand(toolName, toolVersion, packageName, replacementStrategy) {
+    this.downloading.next({ status: DOWNLOAD_IN_PROGRESS });
     this.socket.emit('command', `downloadtool ${toolName} ${toolVersion} ${packageName} ${replacementStrategy}`);
   }
 

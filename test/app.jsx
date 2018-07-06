@@ -51,6 +51,8 @@ class App extends React.Component {
       serialPortOpen: '',
       uploadStatus: '',
       uploadError: '',
+      downloadStatus: '',
+      downloadError: '',
       supportedBoards: []
     };
     this.handleOpen = this.handleOpen.bind(this);
@@ -96,6 +98,13 @@ class App extends React.Component {
       this.setState({ uploadStatus: upload.status });
       console.log(upload);
     });
+
+    if (daemon.downloading) {
+      daemon.downloading.subscribe(download => {
+        this.setState({ downloadStatus: download.status });
+        console.log(download);
+      });
+    }
   }
 
   showError(err) {
@@ -126,6 +135,19 @@ class App extends React.Component {
     daemon.writeSerial(this.state.serialPortOpen, sendData);
     serialInput.focus();
     serialInput.value = '';
+  }
+
+  handleDownloadTool(e) {
+    e.preventDefault();
+    const toolname = document.getElementById('toolname');
+    const toolversion = document.getElementById('toolversion');
+    const packageName = document.getElementById('package');
+    const replacement = document.getElementById('replacement');
+    daemon.downloadTool(toolname.value, toolversion.value, packageName.value, replacement.value);
+    toolname.value = '';
+    toolversion.value = '';
+    packageName.value = '';
+    replacement.value = '';
   }
 
   render() {
@@ -161,35 +183,53 @@ class App extends React.Component {
       uploadClass = 'in-progress';
     }
 
+    let downloadClass;
+    if (this.state.downloadStatus === daemon.DOWNLOAD_DONE) {
+      downloadClass = 'success';
+    }
+    else if (this.state.downloadStatus === daemon.DOWNLOAD_ERROR) {
+      downloadClass = 'error';
+    }
+    else if (this.state.downloadStatus === daemon.DOWNLOAD_IN_PROGRESS) {
+      downloadClass = 'in-progress';
+    }
+
     return (
       <div>
         <h1>Test Arduino Create Plugin</h1>
 
-        <p>
-          Agent status: <span className={ this.state.agentStatus ? 'found' : 'not-found' }>
-            { this.state.agentStatus ? 'Found' : 'Not found' }
-          </span>
-        </p>
-        <p>
-          Channel status: <span className={ this.state.channelStatus ? 'found' : 'not-found' }>
-            { this.state.channelStatus ? 'Connected' : 'Not connected' }
-          </span>
-        </p>
+        <div className="section">
+          <h2>Plugin info</h2>
 
-        <pre>
-          { this.state.agentInfo }
-        </pre>
+          <p>
+            Agent status: <span className={ this.state.agentStatus ? 'found' : 'not-found' }>
+              { this.state.agentStatus ? 'Found' : 'Not found' }
+            </span>
+          </p>
+          <p>
+            Channel status: <span className={ this.state.channelStatus ? 'found' : 'not-found' }>
+              { this.state.channelStatus ? 'Connected' : 'Not connected' }
+            </span>
+          </p>
+
+          <pre>
+            { this.state.agentInfo }
+          </pre>
+        </div>
 
         <div className="section">
-          <h2>Devices</h2>
+          <h2>Connected Devices</h2>
+
           <strong>serial:</strong>
           <ul>
             { listSerialDevices }
           </ul>
+
           <strong>network:</strong>
           <ul>
             { listNetworkDevices }
           </ul>
+
           <p id="error"></p>
         </div>
 
@@ -197,6 +237,7 @@ class App extends React.Component {
           this.state.supportedBoards.length ?
             <div className="section">
               <h2>Supported boards</h2>
+
               <ul>
                 {supportedBoards}
               </ul>
@@ -206,10 +247,12 @@ class App extends React.Component {
 
         <div className="serial-monitor section">
           <h2>Serial Monitor</h2>
+
           <form onSubmit={this.handleSend}>
             <input id="serial-input" />
             <input type="submit" value="Send" />
           </form>
+
           <textarea id="serial-textarea" value={ this.state.serialMonitorContent }/>
         </div>
 
@@ -219,6 +262,37 @@ class App extends React.Component {
           <div>Upload status: <span className={ uploadClass }> { this.state.uploadStatus }</span></div>
           <div>{ this.state.uploadError }</div>
         </div>
+
+        { daemon.downloading ? <div className="section">
+          <h2>Download tool (not supported on Chrome OS)</h2>
+
+          <div>
+            <p>Example:</p>
+            <dl>
+              <dt>Tool Name:</dt>
+              <dd>windows-drivers</dd>
+
+              <dt>Tool Version:</dt>
+              <dd>latest</dd>
+
+              <dt>Package:</dt>
+              <dd>arduino</dd>
+
+              <dt>Replacement Strategy:</dt>
+              <dd>keep</dd>
+            </dl>
+          </div>
+
+          <form onSubmit={this.handleDownloadTool}>
+            <div><input id="toolname" placeholder="Tool Name"/></div>
+            <div><input id="toolversion" placeholder="Tool Version" /></div>
+            <div><input id="package" placeholder="Package" /></div>
+            <div><input id="replacement" placeholder="Replacement strategy"/></div>
+
+            <input type="submit" value="Download" />
+            <div>Download status: <span className={ downloadClass }> { this.state.downloadStatus }</span></div>
+          </form>
+        </div> : null}
       </div>
     );
   }

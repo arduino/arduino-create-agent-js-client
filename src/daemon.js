@@ -14,6 +14,7 @@ export default class Daemon {
     this.agentFound = new BehaviorSubject(null);
     this.channelOpen = new BehaviorSubject(null);
     this.error = new Subject();
+
     this.appMessages = new Subject();
     this.serialMonitorOpened = new BehaviorSubject(false);
     this.serialMonitorMessages = new Subject();
