@@ -54,10 +54,6 @@ const CANT_FIND_AGENT_MESSAGE = 'Arduino Create Agent cannot be found';
 let updateAttempts = 0;
 let orderedPluginAddresses = [LOOPBACK_ADDRESS, LOOPBACK_HOSTNAME];
 
-const UPLOAD_DONE = 'UPLOAD_DONE';
-const UPLOAD_ERROR = 'UPLOAD_ERROR';
-const UPLOAD_IN_PROGRESS = 'UPLOAD_IN_PROGRESS';
-
 if (browser.name !== 'chrome' && browser.name !== 'firefox') {
   orderedPluginAddresses = [LOOPBACK_HOSTNAME, LOOPBACK_ADDRESS];
 }
@@ -193,7 +189,7 @@ export default class SocketDaemon extends Daemon {
     }
 
     if (message.Err) {
-      this.uploading.next({ status: UPLOAD_ERROR, err: message.Err });
+      this.uploading.next({ status: this.UPLOAD_ERROR, err: message.Err });
     }
   }
 
@@ -318,32 +314,32 @@ export default class SocketDaemon extends Daemon {
   }
 
   handleUploadMessage(message) {
-    if (this.uploading.getValue().status !== UPLOAD_IN_PROGRESS) {
+    if (this.uploading.getValue().status !== this.UPLOAD_IN_PROGRESS) {
       return;
     }
     if (message.Flash === 'Ok' && message.ProgrammerStatus === 'Done') {
-      this.uploading.next({ status: UPLOAD_DONE, msg: message.Flash });
+      this.uploading.next({ status: this.UPLOAD_DONE, msg: message.Flash });
       return;
     }
     switch (message.ProgrammerStatus) {
       case 'Starting':
-        this.uploading.next({ status: UPLOAD_IN_PROGRESS, msg: `Programming with: ${message.Cmd}` });
+        this.uploading.next({ status: this.UPLOAD_IN_PROGRESS, msg: `Programming with: ${message.Cmd}` });
         break;
       case 'Busy':
-        this.uploading.next({ status: UPLOAD_IN_PROGRESS, msg: message.Msg });
+        this.uploading.next({ status: this.UPLOAD_IN_PROGRESS, msg: message.Msg });
         break;
       case 'Error':
-        this.uploading.next({ status: UPLOAD_ERROR, err: message.Msg });
+        this.uploading.next({ status: this.UPLOAD_ERROR, err: message.Msg });
         break;
       case 'Killed':
-        this.uploading.next({ status: UPLOAD_IN_PROGRESS, msg: `terminated by user` });
-        this.uploading.next({ status: UPLOAD_ERROR, err: `terminated by user` });
+        this.uploading.next({ status: this.UPLOAD_IN_PROGRESS, msg: `terminated by user` });
+        this.uploading.next({ status: this.UPLOAD_ERROR, err: `terminated by user` });
         break;
       case 'Error 404 Not Found':
-        this.uploading.next({ status: UPLOAD_ERROR, err: message.Msg });
+        this.uploading.next({ status: this.UPLOAD_ERROR, err: message.Msg });
         break;
       default:
-        this.uploading.next({ status: UPLOAD_IN_PROGRESS, msg: message.Msg });
+        this.uploading.next({ status: this.UPLOAD_IN_PROGRESS, msg: message.Msg });
     }
   }
 
@@ -368,10 +364,10 @@ export default class SocketDaemon extends Daemon {
    * }
    */
   upload(target, data) {
-    this.uploading.next({ status: UPLOAD_IN_PROGRESS });
+    this.uploading.next({ status: this.UPLOAD_IN_PROGRESS });
 
     if (data.files.length === 0) { // At least one file to upload
-      this.uploading.next({ status: UPLOAD_ERROR, err: 'You need at least one file to upload' });
+      this.uploading.next({ status: this.UPLOAD_ERROR, err: 'You need at least one file to upload' });
       return;
     }
 
@@ -417,7 +413,7 @@ export default class SocketDaemon extends Daemon {
       body: JSON.stringify(payload)
     })
       .catch(error => {
-        this.uploading.next({ status: UPLOAD_ERROR, err: error });
+        this.uploading.next({ status: this.UPLOAD_ERROR, err: error });
       });
   }
 

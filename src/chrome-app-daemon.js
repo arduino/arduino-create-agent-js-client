@@ -30,10 +30,6 @@ import { takeUntil, filter } from 'rxjs/operators';
 
 import Daemon from './daemon';
 
-const UPLOAD_DONE = 'UPLOAD_DONE';
-const UPLOAD_ERROR = 'UPLOAD_ERROR';
-const UPLOAD_IN_PROGRESS = 'UPLOAD_IN_PROGRESS';
-
 export default class ChromeOsDaemon extends Daemon {
   constructor(chromeExtensionId) {
     super();
@@ -87,7 +83,7 @@ export default class ChromeOsDaemon extends Daemon {
     }
 
     if (message.err) {
-      this.uploading.next({ status: UPLOAD_ERROR, err: message.Err });
+      this.uploading.next({ status: this.UPLOAD_ERROR, err: message.Err });
     }
   }
 
@@ -200,21 +196,21 @@ export default class ChromeOsDaemon extends Daemon {
   }
 
   handleUploadMessage(message) {
-    if (this.uploading.getValue().status !== UPLOAD_IN_PROGRESS) {
+    if (this.uploading.getValue().status !== this.UPLOAD_IN_PROGRESS) {
       return;
     }
     switch (message.uploadStatus) {
       case 'message':
-        this.uploading.next({ status: UPLOAD_IN_PROGRESS, msg: message.message });
+        this.uploading.next({ status: this.UPLOAD_IN_PROGRESS, msg: message.message });
         break;
       case 'error':
-        this.uploading.next({ status: UPLOAD_ERROR, err: message.message });
+        this.uploading.next({ status: this.UPLOAD_ERROR, err: message.message });
         break;
       case 'success':
-        this.uploading.next({ status: UPLOAD_DONE, msg: message.message });
+        this.uploading.next({ status: this.UPLOAD_DONE, msg: message.message });
         break;
       default:
-        this.uploading.next({ status: UPLOAD_IN_PROGRESS });
+        this.uploading.next({ status: this.UPLOAD_IN_PROGRESS });
     }
   }
 
@@ -232,10 +228,10 @@ export default class ChromeOsDaemon extends Daemon {
    * }
    */
   upload(target, data) {
-    this.uploading.next({ status: UPLOAD_IN_PROGRESS });
+    this.uploading.next({ status: this.UPLOAD_IN_PROGRESS });
 
     if (data.files.length === 0) { // At least one file to upload
-      this.uploading.next({ status: UPLOAD_ERROR, err: 'You need at least one file to upload' });
+      this.uploading.next({ status: this.UPLOAD_ERROR, err: 'You need at least one file to upload' });
       return;
     }
 
@@ -262,7 +258,7 @@ export default class ChromeOsDaemon extends Daemon {
       });
     }
     catch (err) {
-      this.uploading.next({ status: UPLOAD_ERROR, err: 'you need to be logged in on a Create site to upload by Chrome App' });
+      this.uploading.next({ status: this.UPLOAD_ERROR, err: 'you need to be logged in on a Create site to upload by Chrome App' });
     }
   }
 }
