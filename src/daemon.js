@@ -2,10 +2,14 @@ import { Subject, BehaviorSubject, interval } from 'rxjs';
 import { takeUntil, filter, startWith } from 'rxjs/operators';
 
 const POLLING_INTERVAL = 1500;
-const UPLOAD_NOPE = 'UPLOAD_NOPE';
 
 export default class Daemon {
   constructor() {
+    this.UPLOAD_NOPE = 'UPLOAD_NOPE';
+    this.UPLOAD_DONE = 'UPLOAD_DONE';
+    this.UPLOAD_ERROR = 'UPLOAD_ERROR';
+    this.UPLOAD_IN_PROGRESS = 'UPLOAD_IN_PROGRESS';
+
     this.agentInfo = {};
     this.agentFound = new BehaviorSubject(null);
     this.channelOpen = new BehaviorSubject(null);
@@ -13,7 +17,9 @@ export default class Daemon {
     this.appMessages = new Subject();
     this.serialMonitorOpened = new BehaviorSubject(false);
     this.serialMonitorMessages = new Subject();
-    this.uploading = new BehaviorSubject({ status: UPLOAD_NOPE });
+    this.uploading = new BehaviorSubject({ status: this.UPLOAD_NOPE });
+    this.uploadingDone = this.uploading.pipe(filter(upload => upload.status === this.UPLOAD_DONE));
+    this.uploadingError = this.uploading.pipe(filter(upload => upload.status === this.UPLOAD_ERROR));
     this.devicesList = new BehaviorSubject({
       serial: [],
       network: []
