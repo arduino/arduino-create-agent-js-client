@@ -114,7 +114,12 @@ export default class ChromeOsDaemon extends Daemon {
   closeAllPorts() {
     const devices = this.devicesList.getValue().serial;
     devices.forEach(device => {
-      this.closeSerialMonitor(device.Name);
+      this.channel.postMessage({
+        command: 'closePort',
+        data: {
+          name: device.Name
+        }
+      });
     });
   }
 

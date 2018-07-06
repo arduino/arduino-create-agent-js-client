@@ -254,7 +254,7 @@ export default class SocketDaemon extends Daemon {
   closeAllPorts() {
     const devices = this.devicesList.getValue().serial;
     devices.forEach(device => {
-      this.closeSerialMonitor(device.Name);
+      this.socket.emit('command', `close ${device.Name}`);
     });
   }
 
