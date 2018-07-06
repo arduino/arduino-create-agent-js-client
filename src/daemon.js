@@ -56,4 +56,30 @@ export default class Daemon {
     }
     return a.every((item, index) => (b[index].Name === item.Name && b[index].IsOpen === item.IsOpen));
   }
+
+  /**
+   * Download tool - not supported in Chrome app
+   * @param {string} toolName
+   * @param {string} toolVersion
+   * @param {string} packageName
+   * @param {string} replacementStrategy
+   */
+  downloadTool(toolName, toolVersion, packageName, replacementStrategy = 'keep') {
+    if (typeof this.downloadToolCommand === 'function') {
+      this.downloadToolCommand(toolName, toolVersion, packageName, replacementStrategy);
+    }
+    else {
+      throw new Error('Download Tool not supported on Chrome OS');
+    }
+  }
+
+  /**
+   * Interrupt upload - not supported in Chrome app
+   */
+  stopUpload() {
+    if (typeof this.stopUploadCommand === 'function') {
+      this.stopUploadCommand();
+    }
+    throw new Error('Stop Upload not supported on Chrome OS');
+  }
 }

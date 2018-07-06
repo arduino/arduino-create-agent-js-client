@@ -247,26 +247,18 @@ export default class ChromeOsDaemon extends Daemon {
       data: file.data,
     };
 
-    window.oauth.token().then(token => {
-      payload.token = token.token;
-      this.channel.postMessage({
-        command: 'upload',
-        data: payload
+    try {
+      window.oauth.token().then(token => {
+        payload.token = token.token;
+        this.channel.postMessage({
+          command: 'upload',
+          data: payload
+        });
       });
-    });
-  }
-
-  /**
-   * Download tool - not supported in Chrome app
-   */
-  downloadTool() {
-    return new Error('Download Tool not supported on Chrome OS');
-  }
-
-  /**
-   * Interrupt upload - not supported in Chrome app
-   */
-  stopUpload() {
-    return new Error('Stop Upload not supported on Chrome OS');
+    }
+    catch (err) {
+      this.uploading.next({ status: UPLOAD_ERROR, err: 'you need to be logged in on a Create site to upload by Chrome App' });
+      alert();
+    }
   }
 }
