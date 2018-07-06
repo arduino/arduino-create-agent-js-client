@@ -206,6 +206,13 @@ export default class SocketDaemon extends Daemon {
     if (message.Err) {
       this.uploading.next({ status: this.UPLOAD_ERROR, err: message.Err });
     }
+
+    if (message.Error) {
+      if (message.Error.indexOf('trying to close') !== -1) {
+        // https://github.com/arduino/arduino-create-agent#openclose-ports
+        this.serialMonitorOpened.next(false);
+      }
+    }
   }
 
   handleListMessage(message) {

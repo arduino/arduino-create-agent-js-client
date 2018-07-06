@@ -1,5 +1,5 @@
 import { Subject, BehaviorSubject, interval } from 'rxjs';
-import { takeUntil, filter, startWith } from 'rxjs/operators';
+import { takeUntil, filter, startWith, first } from 'rxjs/operators';
 
 const POLLING_INTERVAL = 1500;
 
@@ -29,12 +29,11 @@ export default class Daemon {
     this.appMessages
       .subscribe(this.handleAppMessage.bind(this));
 
-    const devicesListSubscription = this.devicesList.subscribe((devices) => {
-      if (devices.serial && devices.serial.length > 0) {
-        this.closeAllPorts();
-        devicesListSubscription.unsubscribe();
-      }
-    });
+    // Close all serial ports on startup
+    this.devicesList
+      .pipe(filter(devices => devices.serial && devices.serial.length > 0))
+      .pipe(first())
+      .subscribe(this.closeAllPorts.bind(this));
   }
 
   openChannel(cb) {
@@ -47,6 +46,10 @@ export default class Daemon {
             .subscribe(cb);
         }
         else {
+          this.devicesList.next({
+            serial: [],
+            network: []
+          });
           this.agentFound.next(false);
         }
       });
