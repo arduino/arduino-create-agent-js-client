@@ -1,10 +1,10 @@
 import { Subject, BehaviorSubject, interval } from 'rxjs';
 import { takeUntil, filter, startWith } from 'rxjs/operators';
 
-const UPLOAD_STATUS_NOPE = 'UPLOAD_STATUS_NOPE';
-const UPLOAD_STATUS_DONE = 'UPLOAD_STATUS_DONE';
-const UPLOAD_STATUS_ERROR = 'UPLOAD_STATUS_ERROR';
-const UPLOAD_STATUS_IN_PROGRESS = 'UPLOAD_STATUS_IN_PROGRESS';
+const UPLOAD__NOPE = 'UPLOAD__NOPE';
+const UPLOAD__DONE = 'UPLOAD__DONE';
+const UPLOAD__ERROR = 'UPLOAD__ERROR';
+const UPLOAD__IN_PROGRESS = 'UPLOAD__IN_PROGRESS';
 
 const POLLING_INTERVAL = 1500;
 
@@ -17,7 +17,7 @@ export default class Daemon {
     this.appMessages = new Subject();
     this.serialMonitorOpened = new BehaviorSubject(false);
     this.serialMonitorMessages = new Subject();
-    this.uploading = new BehaviorSubject({ status: UPLOAD_STATUS_NOPE });
+    this.uploading = new BehaviorSubject({ status: UPLOAD__NOPE });
     this.devicesList = new BehaviorSubject({
       serial: [],
       network: []
@@ -36,8 +36,8 @@ export default class Daemon {
 
   openChannel(cb) {
     this.channelOpen
-      .subscribe(channelOpen => {
-        if (channelOpen) {
+      .subscribe(open => {
+        if (open) {
           interval(POLLING_INTERVAL)
             .pipe(startWith(0))
             .pipe(takeUntil(this.channelOpen.pipe(filter(status => !status))))
@@ -76,7 +76,7 @@ export default class Daemon {
     }
 
     if (message.Err) {
-      this.uploading.next({ status: UPLOAD_STATUS_ERROR, err: message.Err });
+      this.uploading.next({ status: UPLOAD__ERROR, err: message.Err });
     }
   }
 
@@ -97,86 +97,33 @@ export default class Daemon {
   }
 
   handleUploadMessage(message) {
-    if (this.uploading.getValue().status !== UPLOAD_STATUS_IN_PROGRESS) {
+    if (this.uploading.getValue().status !== UPLOAD__IN_PROGRESS) {
       return;
     }
     if (message.Flash === 'Ok' && message.ProgrammerStatus === 'Done') {
-      this.uploading.next({ status: UPLOAD_STATUS_DONE, msg: message.Flash });
+      this.uploading.next({ status: UPLOAD__DONE, msg: message.Flash });
       return;
     }
     switch (message.ProgrammerStatus) {
       case 'Starting':
-        this.uploading.next({ status: UPLOAD_STATUS_IN_PROGRESS, msg: `Programming with: ${message.Cmd}` });
+        this.uploading.next({ status: UPLOAD__IN_PROGRESS, msg: `Programming with: ${message.Cmd}` });
         break;
       case 'Busy':
-        this.uploading.next({ status: UPLOAD_STATUS_IN_PROGRESS, msg: message.Msg });
+        this.uploading.next({ status: UPLOAD__IN_PROGRESS, msg: message.Msg });
         break;
       case 'Error':
-        this.uploading.next({ status: UPLOAD_STATUS_ERROR, err: message.Msg });
+        this.uploading.next({ status: UPLOAD__ERROR, err: message.Msg });
         break;
       case 'Killed':
-        this.uploading.next({ status: UPLOAD_STATUS_IN_PROGRESS, msg: `terminated by user` });
-        this.uploading.next({ status: UPLOAD_STATUS_ERROR, err: `terminated by user` });
+        this.uploading.next({ status: UPLOAD__IN_PROGRESS, msg: `terminated by user` });
+        this.uploading.next({ status: UPLOAD__ERROR, err: `terminated by user` });
         break;
       case 'Error 404 Not Found':
-        this.uploading.next({ status: UPLOAD_STATUS_ERROR, err: message.Msg });
+        this.uploading.next({ status: UPLOAD__ERROR, err: message.Msg });
         break;
       default:
-        this.uploading.next({ status: UPLOAD_STATUS_IN_PROGRESS, msg: message.Msg });
+        this.uploading.next({ status: UPLOAD__IN_PROGRESS, msg: message.Msg });
     }
-  }
-
-  writeSerial(port, data) {
-    this.socket.emit('command', `send ${port} ${data}`);
-  }
-
-  openSerialMonitor(port) {
-    if (this.serialMonitorOpened.getValue()) {
-      return;
-    }
-    const serialPort = this.devicesList.getValue().serial.find(p => p.Name === port);
-    if (!serialPort) {
-      return this.serialMonitorOpened.error(new Error(`Can't find port ${port}`));
-    }
-    this.appMessages
-      .pipe(takeUntil(this.serialMonitorOpened.pipe(filter(open => open))))
-      .subscribe(message => {
-        if (message.Cmd === 'Open') {
-          this.serialMonitorOpened.next(true);
-        }
-        if (message.Cmd === 'OpenFail') {
-          this.serialMonitorOpened.error(new Error(`Failed to open serial ${port}`));
-        }
-      });
-    this.socket.emit('command', `open ${port} 9600 timed`);
-  }
-
-  closeSerialMonitor(port) {
-    if (!this.serialMonitorOpened.getValue()) {
-      return;
-    }
-    const serialPort = this.devicesList.getValue().serial.find(p => p.Name === port);
-    if (!serialPort) {
-      return this.serialMonitorOpened.error(new Error(`Can't find port ${port}`));
-    }
-    this.appMessages
-      .pipe(takeUntil(this.serialMonitorOpened.pipe(filter(open => !open))))
-      .subscribe(message => {
-        if (message.Cmd === 'Close') {
-          this.serialMonitorOpened.next(false);
-        }
-        if (message.Cmd === 'CloseFail') {
-          this.serialMonitorOpened.error(new Error(`Failed to close serial ${port}`));
-        }
-      });
-    this.socket.emit('command', `close ${port}`);
-  }
-
-  closeAllPorts() {
-    const devices = this.devicesList.getValue().serial;
-    devices.forEach(device => {
-      this.socket.emit('command', `close ${device.Name}`);
-    });
   }
 
   /**
@@ -201,10 +148,10 @@ export default class Daemon {
    *    cb = callback function executing everytime a packet of data arrives through the websocket
    */
   upload(target, data) {
-    this.uploading.next({ status: UPLOAD_STATUS_IN_PROGRESS });
+    this.uploading.next({ status: UPLOAD__IN_PROGRESS });
 
     if (data.files.length === 0) { // At least one file to upload
-      this.uploading.next({ status: UPLOAD_STATUS_ERROR, err: 'You need at least one file to upload' });
+      this.uploading.next({ status: UPLOAD__ERROR, err: 'You need at least one file to upload' });
       return;
     }
 
@@ -250,13 +197,7 @@ export default class Daemon {
       body: JSON.stringify(payload)
     })
       .catch(error => {
-        this.uploading.next({ status: UPLOAD_STATUS_ERROR, err: error });
+        this.uploading.next({ status: UPLOAD__ERROR, err: error });
       });
-  }
-
-
-  stopUpload() {
-    this.uploading.next(false);
-    this.socket.emit('command', 'killprogrammer');
   }
 }

@@ -26,6 +26,8 @@
  * invalidate any other reasons why the executable file might be covered by
  * the GNU General Public License.
  */
+import { takeUntil, filter } from 'rxjs/operators';
+
 import Daemon from './daemon';
 
 export default class ChromeOsDaemon extends Daemon {
@@ -38,8 +40,6 @@ export default class ChromeOsDaemon extends Daemon {
     }));
 
     this._appConnect(chromeExtensionId);
-
-    // close all ports?
   }
 
   /**
@@ -85,5 +85,105 @@ export default class ChromeOsDaemon extends Daemon {
     if (message.supportedBoards) {
       this.supportedBoards.next(message.supportedBoards);
     }
+  }
+
+  /**
+   * Send 'close' command to all the available serial ports
+   */
+  closeAllPorts() {
+    const devices = this.devicesList.getValue().serial;
+    devices.forEach(device => {
+      this.channel.postMessage({
+        command: 'closePort',
+        data: {
+          name: device.Name
+        }
+      });
+    });
+  }
+
+  /**
+   * Send 'message' to serial port
+   * @param {string} port the port name
+   * @param {string} message the text to be sent to serial
+   */
+  writeSerialCommand(port, message) {
+    this.channel.postMessage({
+      command: 'writePort',
+      data: {
+        name: port,
+        data: message
+      }
+    });
+  }
+
+  /**
+   * Request serial port open
+   * @param {string} port the port name
+   */
+  openSerialMonitor(port, baudrate) {
+    if (this.serialMonitorOpened.getValue()) {
+      return;
+    }
+    const serialPort = this.devicesList.getValue().serial.find(p => p.Name === port);
+    if (!serialPort) {
+      return this.serialMonitorOpened.error(new Error(`Can't find port ${port}`));
+    }
+    this.appMessages
+      .pipe(takeUntil(this.serialMonitorOpened.pipe(filter(open => open))))
+      .subscribe(message => {
+        if (message.portOpenStatus === 'success') {
+          this.serialMonitorOpened.next(true);
+        }
+        if (message.portOpenStatus === 'error') {
+          this.serialMonitorOpened.error(new Error(`Failed to open serial ${port}`));
+        }
+      });
+    this.channel.postMessage({
+      command: 'openPort',
+      data: {
+        name: port,
+        baudrate
+      }
+    });
+  }
+
+  /**
+   * Request serial port close
+   * @param {string} port the port name
+   */
+  closeSerialMonitor(port) {
+    if (!this.serialMonitorOpened.getValue()) {
+      return;
+    }
+    const serialPort = this.devicesList.getValue().serial.find(p => p.Name === port);
+    if (!serialPort) {
+      return this.serialMonitorOpened.error(new Error(`Can't find port ${port}`));
+    }
+    this.appMessages
+      .pipe(takeUntil(this.serialMonitorOpened.pipe(filter(open => !open))))
+      .subscribe(message => {
+        if (message.portCloseStatus === 'success') {
+          this.serialMonitorOpened.next(false);
+        }
+        if (message.portCloseStatus === 'error') {
+          this.serialMonitorOpened.error(new Error(`Failed to close serial ${port}`));
+        }
+      });
+    this.channel.postMessage({
+      command: 'closePort',
+      data: {
+        name: port
+      }
+    });
+  }
+
+
+  /**
+   * Interrupt upload
+   */
+  stopUpload() {
+    this.uploading.next(false);
+    this.socket.emit('command', 'killprogrammer');
   }
 }

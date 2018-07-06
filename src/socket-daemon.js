@@ -31,16 +31,15 @@ import io from 'socket.io-client';
 import semVerCompare from 'semver-compare';
 import { detect } from 'detect-browser';
 
-import {
-  interval,
-  timer
-} from 'rxjs';
-import { filter, takeUntil } from 'rxjs/operators';
+import { timer } from 'rxjs';
+import { takeUntil, filter } from 'rxjs/operators';
+
 import Daemon from './daemon';
 
 // Required agent version
 const MIN_VERSION = '1.1.71';
 const browser = detect();
+const POLLING_INTERVAL = 2500;
 
 const PROTOCOL = {
   HTTP: 'http',
@@ -189,7 +188,7 @@ export default class SocketDaemon extends Daemon {
 
   /**
    * Uploads the sketch and performs action in order to configure the board for Arduino Cloud
-   * @param {Object} compiledSketch the Object containing the provisioning sketch, ready to be compiled
+   * @param {Object} compiledSketch the Object containing the provisioning sketch, already compiled
    * @param {Object} board contains the board data
    * @param {function} createDeviceCb used to create the device associated to the user
    */
@@ -208,5 +207,83 @@ export default class SocketDaemon extends Daemon {
     if (this.agentFound.getValue()) {
       return fetch(`${this.agentInfo[this.selectedProtocol]}/pause`, { method: 'POST' });
     }
+  }
+
+  /**
+   * Send 'close' command to all the available serial ports
+   */
+  closeAllPorts() {
+    const devices = this.devicesList.getValue().serial;
+    devices.forEach(device => {
+      this.closeSerialMonitor(device.Name);
+    });
+  }
+
+  /**
+   * Send 'message' to serial port
+   * @param {string} port the port name
+   * @param {string} message the text to be sent to serial
+   */
+  writeSerial(port, message) {
+    this.socket.emit('command', `send ${port} ${message}`);
+  }
+
+  /**
+   * Request serial port open
+   * @param {string} port the port name
+   */
+  openSerialMonitor(port, baudrate) {
+    if (this.serialMonitorOpened.getValue()) {
+      return;
+    }
+    const serialPort = this.devicesList.getValue().serial.find(p => p.Name === port);
+    if (!serialPort) {
+      return this.serialMonitorOpened.error(new Error(`Can't find port ${port}`));
+    }
+    this.appMessages
+      .pipe(takeUntil(this.serialMonitorOpened.pipe(filter(open => open))))
+      .subscribe(message => {
+        if (message.Cmd === 'Open') {
+          this.serialMonitorOpened.next(true);
+        }
+        if (message.Cmd === 'OpenFail') {
+          this.serialMonitorOpened.error(new Error(`Failed to open serial ${port}`));
+        }
+      });
+    this.socket.emit('command', `open ${port} ${baudrate} timed`);
+  }
+
+  /**
+   * Request serial port close
+   * @param {string} port the port name
+   */
+  closeSerialMonitor(port) {
+    if (!this.serialMonitorOpened.getValue()) {
+      return;
+    }
+    const serialPort = this.devicesList.getValue().serial.find(p => p.Name === port);
+    if (!serialPort) {
+      return this.serialMonitorOpened.error(new Error(`Can't find port ${port}`));
+    }
+    this.appMessages
+      .pipe(takeUntil(this.serialMonitorOpened.pipe(filter(open => !open))))
+      .subscribe(message => {
+        if (message.Cmd === 'Close') {
+          this.serialMonitorOpened.next(false);
+        }
+        if (message.Cmd === 'CloseFail') {
+          this.serialMonitorOpened.error(new Error(`Failed to close serial ${port}`));
+        }
+      });
+    this.socket.emit('command', `close ${port}`);
+  }
+
+
+  /**
+   * Interrupt upload
+   */
+  stopUpload() {
+    this.uploading.next(false);
+    this.socket.emit('command', 'killprogrammer');
   }
 }

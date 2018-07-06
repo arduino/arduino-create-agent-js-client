@@ -113,7 +113,7 @@ const onMessage = (msg) => {
       callback('program', { done: false, msg: `${msg.message}\n` });
     }
   }
-  else if (msg.portOpenStatus) {
+  /* else if (msg.portOpenStatus) {
     if (msg.portOpenStatus === 'success') {
       if (promises.open.length) {
         const promise = promises.open.shift();
@@ -137,7 +137,7 @@ const onMessage = (msg) => {
 
       promise.reject(msg.message);
     }
-  }
+  } */
   else if (msg.serialData) {
     callback('serial', { data: msg.serialData });
   }
@@ -178,7 +178,7 @@ const perform = (action, data) => {
     // Chrome app doesn't support downloading tools, just fail
     deferred.resolve();
   }
-  else if (action === 'req_serial_monitor_open') {
+  /* else if (action === 'req_serial_monitor_open') {
     port.postMessage({
       command: 'openPort',
       data: {
@@ -188,8 +188,8 @@ const perform = (action, data) => {
     });
 
     promises.open = deferred;
-  }
-  else if (action === 'req_serial_monitor_close') {
+  } */
+  /* else if (action === 'req_serial_monitor_close') {
     port.postMessage({
       command: 'closePort',
       data: {
@@ -198,8 +198,8 @@ const perform = (action, data) => {
     });
 
     promises.close = deferred;
-  }
-  else if (action === 'req_serial_monitor_write') {
+  } */
+  /* else if (action === 'req_serial_monitor_write') {
     port.postMessage({
       command: 'writePort',
       data: {
@@ -207,7 +207,7 @@ const perform = (action, data) => {
         data: data.data
       }
     });
-  }
+  } */
 
   return deferred.promise;
 };

@@ -3,11 +3,11 @@ import Daemon from '../src';
 
 import { HEX } from './serial_mirror';
 
-const UPLOAD_STATUS_NOPE = 'UPLOAD_STATUS_NOPE';
-const UPLOAD_STATUS_DONE = 'UPLOAD_STATUS_DONE';
-const UPLOAD_STATUS_ERROR = 'UPLOAD_STATUS_ERROR';
-const UPLOAD_STATUS_IN_PROGRESS = 'UPLOAD_STATUS_IN_PROGRESS';
+const UPLOAD__DONE = 'UPLOAD__DONE';
+const UPLOAD__ERROR = 'UPLOAD__ERROR';
+const UPLOAD__IN_PROGRESS = 'UPLOAD__IN_PROGRESS';
 
+const chromeExtensionID = 'hfejhkbipnickajaidoppbadcomekkde';
 
 const scrollToBottom = (target) => {
   if (target) {
@@ -15,7 +15,8 @@ const scrollToBottom = (target) => {
   }
 };
 
-const daemon = new Daemon('hfejhkbipnickajaidoppbadcomekkde');
+const daemon = new Daemon(chromeExtensionID);
+
 const handleUpload = () => {
   const target = {
     board: 'arduino:samd:mkr1000',
@@ -112,7 +113,7 @@ class App extends React.Component {
   handleOpen(e, port) {
     this.setState({ serialMonitorContent: '' });
     e.preventDefault();
-    daemon.openSerialMonitor(port);
+    daemon.openSerialMonitor(port, 9600);
     this.setState({ serialPortOpen: port });
   }
 
@@ -154,13 +155,13 @@ class App extends React.Component {
       </li>);
 
     let uploadClass;
-    if (this.state.uploadStatus === UPLOAD_STATUS_DONE) {
+    if (this.state.uploadStatus === UPLOAD__DONE) {
       uploadClass = 'success';
     }
-    else if (this.state.uploadStatus === UPLOAD_STATUS_ERROR) {
+    else if (this.state.uploadStatus === UPLOAD__ERROR) {
       uploadClass = 'error';
     }
-    else if (this.state.uploadStatus === UPLOAD_STATUS_IN_PROGRESS) {
+    else if (this.state.uploadStatus === UPLOAD__IN_PROGRESS) {
       uploadClass = 'in-progress';
     }
 
@@ -218,7 +219,7 @@ class App extends React.Component {
 
         <div className="section">
           <h2>Upload a sample sketch on a MKR1000 at /dev/ttyACM0</h2>
-          <button onClick={ handleUpload } disabled={ this.state.uploadStatus === UPLOAD_STATUS_IN_PROGRESS }>Upload Sketch</button><br/>
+          <button onClick={ handleUpload } disabled={ this.state.uploadStatus === UPLOAD__IN_PROGRESS }>Upload Sketch</button><br/>
           <div>Upload status: <span className={ uploadClass }> { this.state.uploadStatus }</span></div>
           <div>{ this.state.uploadError }</div>
         </div>
