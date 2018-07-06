@@ -422,6 +422,17 @@ export default class SocketDaemon extends Daemon {
   }
 
   /**
+   * Download tool
+   * @param {string} toolName
+   * @param {string} toolVersion
+   * @param {string} packageName
+   * @param {string} replacementStrategy
+   */
+  downloadTool(toolName, toolVersion, packageName, replacementStrategy = 'keep') {
+    this.socket.emit('command', `downloadtool ${toolName} ${toolVersion} ${packageName} ${replacementStrategy}`);
+  }
+
+  /**
    * Interrupt upload
    */
   stopUpload() {

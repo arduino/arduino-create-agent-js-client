@@ -257,6 +257,13 @@ export default class ChromeOsDaemon extends Daemon {
   }
 
   /**
+   * Download tool - not supported in Chrome app
+   */
+  downloadTool() {
+    return new Error('Download Tool not supported on Chrome OS');
+  }
+
+  /**
    * Interrupt upload - not supported in Chrome app
    */
   stopUpload() {
