@@ -37,6 +37,19 @@ const handleUpload = () => {
   daemon.upload(target, data);
 };
 
+const handleDownloadTool = e => {
+  e.preventDefault();
+  const toolname = document.getElementById('toolname');
+  const toolversion = document.getElementById('toolversion');
+  const packageName = document.getElementById('package');
+  const replacement = document.getElementById('replacement');
+  daemon.downloadTool(toolname.value, toolversion.value, packageName.value, replacement.value);
+  toolname.value = '';
+  toolversion.value = '';
+  packageName.value = '';
+  replacement.value = '';
+};
+
 class App extends React.Component {
   constructor() {
     super();
@@ -135,19 +148,6 @@ class App extends React.Component {
     daemon.writeSerial(this.state.serialPortOpen, sendData);
     serialInput.focus();
     serialInput.value = '';
-  }
-
-  handleDownloadTool(e) {
-    e.preventDefault();
-    const toolname = document.getElementById('toolname');
-    const toolversion = document.getElementById('toolversion');
-    const packageName = document.getElementById('package');
-    const replacement = document.getElementById('replacement');
-    daemon.downloadTool(toolname.value, toolversion.value, packageName.value, replacement.value);
-    toolname.value = '';
-    toolversion.value = '';
-    packageName.value = '';
-    replacement.value = '';
   }
 
   render() {
@@ -283,7 +283,7 @@ class App extends React.Component {
             </dl>
           </div>
 
-          <form onSubmit={this.handleDownloadTool}>
+          <form onSubmit={handleDownloadTool}>
             <div><input id="toolname" placeholder="Tool Name"/></div>
             <div><input id="toolversion" placeholder="Tool Version" /></div>
             <div><input id="package" placeholder="Package" /></div>
