@@ -20,6 +20,7 @@ export default class Daemon {
     this.serialMonitorMessages = new Subject();
     this.uploading = new BehaviorSubject({ status: this.UPLOAD_NOPE });
     this.uploadingDone = this.uploading.pipe(filter(upload => upload.status === this.UPLOAD_DONE));
+    this.uploadInProgress = this.uploading.pipe(filter(upload => upload.status === this.UPLOAD_IN_PROGRESS));
     this.uploadingError = this.uploading.pipe(filter(upload => upload.status === this.UPLOAD_ERROR));
     this.devicesList = new BehaviorSubject({
       serial: [],

@@ -32,7 +32,7 @@ import semVerCompare from 'semver-compare';
 import { detect } from 'detect-browser';
 
 import { BehaviorSubject, timer } from 'rxjs';
-import { takeUntil, filter } from 'rxjs/operators';
+import { delayWhen, filter, takeUntil, first } from 'rxjs/operators';
 
 import Daemon from './daemon';
 
@@ -278,9 +278,10 @@ export default class SocketDaemon extends Daemon {
    * @param {string} port the port name
    */
   openSerialMonitor(port, baudrate) {
-    if (this.serialMonitorOpened.getValue()) {
+    if (this.serialMonitorOpened.getValue() || this.uploading.getValue().status === this.UPLOAD_IN_PROGRESS) {
       return;
     }
+
     const serialPort = this.devicesList.getValue().serial.find(p => p.Name === port);
     if (!serialPort) {
       return this.serialMonitorOpened.error(new Error(`Can't find port ${port}`));
@@ -295,6 +296,7 @@ export default class SocketDaemon extends Daemon {
           this.serialMonitorOpened.error(new Error(`Failed to open serial ${port}`));
         }
       });
+
     this.socket.emit('command', `open ${port} ${baudrate} timed`);
   }
 
