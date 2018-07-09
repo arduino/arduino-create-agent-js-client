@@ -34,7 +34,5 @@ import BoardConfiguration from './boardConfiguration';
 
 const Daemon = window.navigator.userAgent.indexOf(' CrOS ') !== -1 ? ChromeOsDaemon : SocketDaemon;
 
-export {
-  Daemon,
-  BoardConfiguration
-};
+export { BoardConfiguration };
+export default Daemon;
