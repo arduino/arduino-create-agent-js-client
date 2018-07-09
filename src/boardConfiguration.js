@@ -30,6 +30,7 @@
 import { BehaviorSubject } from 'rxjs';
 import { takeUntil, filter, first } from 'rxjs/operators';
 import { provisioningSketch } from './sketches/provisioning.ino';
+import { read } from 'fs';
 
 const BAUDRATE = 9600;
 
@@ -155,7 +156,11 @@ export default class BoardConfiguration {
     this.configuring.next({ status: this.CONFIGURE_IN_PROGRESS, msg: 'Starting board configuration' });
     if (!this.daemon.channelOpen.getValue()) {
       const errorMessage = `Couldn't configure board at port ${board.port} because we there is no open channel to the Arduino Create Plugin.`;
-      this.configuring.next({ status: this.CONFIGURE_ERROR, err: errorMessage });
+      this.configuring.next({
+        status: this.CONFIGURE_ERROR,
+        msg: errorMessage,
+        err: 'cannot find plugin'
+      });
       return;
     }
     this.serialMonitorContent = '';
@@ -186,7 +191,11 @@ export default class BoardConfiguration {
     // check the uploading status:
     if (this.daemon.uploading.getValue().status === this.daemon.UPLOAD_IN_PROGRESS) {
       // if there is an upload in course, notify observers;
-      this.configuring.next({ status: this.CONFIGURE_ERROR, err: `Couldn't configure board at port ${board.port}. There is already an upload in progress.` });
+      this.configuring.next({
+        status: this.CONFIGURE_ERROR,
+        msg: `Couldn't configure board at port ${board.port}. There is already an upload in progress.`,
+        err: `upload in progress`
+      });
       return;
     }
 
@@ -199,9 +208,16 @@ export default class BoardConfiguration {
             .then(() => this.configuring.next({ status: this.CONFIGURE_DONE }))
             .catch(reason => this.configuring.next({
               status: this.CONFIGURE_ERROR,
-              err: `Couldn't configure board at port ${board.port}. Configuration failed with error: ${reason}`
+              msg: `Couldn't configure board at port ${board.port}. Configuration failed with error: ${reason}`,
+              err: reason.toString()
             }))
             .finally(() => this.daemon.closeSerialMonitor(board.port, BAUDRATE));
+        }, error => {
+          this.configuring.next({
+            status: this.CONFIGURE_ERROR,
+            msg: `Couldn't configure board at port ${board.port}. Configuration failed with error: ${error}`,
+            err: error.toString()
+          });
         });
       this.daemon.openSerialMonitor(board.port, BAUDRATE);
     });
