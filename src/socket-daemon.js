@@ -244,19 +244,6 @@ export default class SocketDaemon extends Daemon {
   }
 
   /**
-   * Uploads the sketch and performs action in order to configure the board for Arduino Cloud
-   * @param {Object} compiledSketch the Object containing the provisioning sketch, already compiled
-   * @param {Object} board contains the board data
-   * @param {function} createDeviceCb used to create the device associated to the user
-   */
-  configureBoard(compiledSketch, board, createDeviceCb) {
-    if (!this.wsConnect.getValue()) {
-      return Promise.reject(new Error('We were not able to generate the CSR.'));
-    }
-    return this.configure(compiledSketch, board, createDeviceCb);
-  }
-
-  /**
    * Pauses the plugin
    * @return {Promise}
    */

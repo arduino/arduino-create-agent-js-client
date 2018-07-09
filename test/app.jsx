@@ -108,7 +108,7 @@ class App extends React.Component {
     });
 
     daemon.uploading.subscribe(upload => {
-      this.setState({ uploadStatus: upload.status });
+      this.setState({ uploadStatus: upload.status, uploadError: upload.err });
       console.log(upload);
     });
 
@@ -259,8 +259,7 @@ class App extends React.Component {
         <div className="section">
           <h2>Upload a sample sketch on a MKR1000 at /dev/ttyACM0</h2>
           <button onClick={ handleUpload } disabled={ this.state.uploadStatus === daemon.UPLOAD_IN_PROGRESS }>Upload Sketch</button><br/>
-          <div>Upload status: <span className={ uploadClass }> { this.state.uploadStatus }</span></div>
-          <div>{ this.state.uploadError }</div>
+          <div>Upload status: <span className={ uploadClass }> { this.state.uploadStatus }</span> <span>{ this.state.uploadError }</span></div>
         </div>
 
         { daemon.downloading ? <div className="section">
