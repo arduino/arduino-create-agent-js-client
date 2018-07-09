@@ -27,13 +27,13 @@ export default class Daemon {
     });
     this.supportedBoards = new BehaviorSubject([]);
     this.appMessages
-      .subscribe(this.handleAppMessage.bind(this));
+      .subscribe(message => this.handleAppMessage(message));
 
     // Close all serial ports on startup
     this.devicesList
       .pipe(filter(devices => devices.serial && devices.serial.length > 0))
       .pipe(first())
-      .subscribe(this.closeAllPorts.bind(this));
+      .subscribe(() => this.closeAllPorts());
   }
 
   openChannel(cb) {

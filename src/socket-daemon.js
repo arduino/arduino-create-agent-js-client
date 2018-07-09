@@ -108,7 +108,7 @@ export default class SocketDaemon extends Daemon {
     this._tryPorts(orderedPluginAddresses[0])
       .catch(() => this._tryPorts(orderedPluginAddresses[1]))
       .then(() => this.agentFound.next(true))
-      .catch(() => timer(POLLING_INTERVAL).subscribe(this.findAgent.bind(this)));
+      .catch(() => timer(POLLING_INTERVAL).subscribe(() => this.findAgent()));
   }
 
   /**
@@ -149,12 +149,13 @@ export default class SocketDaemon extends Daemon {
           if (this.agentInfo.version && (semVerCompare(this.agentInfo.version, MIN_VERSION) >= 0 || this.agentInfo.version.indexOf('dev') !== -1)) {
             return this.agentInfo;
           }
+
+          updateAttempts += 1;
           if (updateAttempts === 0) {
-            updateAttempts += 1;
             return this.update();
           }
-          if (updateAttempts < 10) {
-            return timer(10000).subscribe(this.update().bind(this));
+          if (updateAttempts < 6) {
+            return timer(10000).subscribe(() => this.update());
           }
         }
         return Promise.reject(new Error(`${CANT_FIND_AGENT_MESSAGE} at ${hostname}`));
