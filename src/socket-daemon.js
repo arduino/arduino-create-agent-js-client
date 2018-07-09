@@ -393,6 +393,7 @@ export default class SocketDaemon extends Daemon {
    * }
    */
   upload(target, data) {
+    this.closeSerialMonitor(target.port);
     this.uploading.next({ status: this.UPLOAD_IN_PROGRESS });
 
     if (data.files.length === 0) { // At least one file to upload
