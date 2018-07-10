@@ -1,8 +1,4 @@
-This file is part of Arduino.
-Copyright (c) 2018
-Authors: Alberto Iannaccone, Stefania Mellai, Gabriele Destefanis
-
-first, the GNU General Public License, which covers the main body
+This code is released under the GNU General Public License, which covers the main body
 of the create-plugin-communication code. The terms of this license can be found at:
 https://www.gnu.org/licenses/gpl-3.0.en.html
 
