@@ -27,9 +27,12 @@
  * the GNU General Public License.
  */
 
-import socketDaemon from './socketDaemon';
-import chromeAppDaemon from './chromeAppDaemon';
+import SocketDaemon from './socket-daemon';
+import ChromeOsDaemon from './chrome-app-daemon';
+import BoardConfiguration from './boardConfiguration';
 
-const Daemon = window.navigator.userAgent.indexOf(' CrOS ') !== -1 ? chromeAppDaemon : socketDaemon;
 
+const Daemon = window.navigator.userAgent.indexOf(' CrOS ') !== -1 ? ChromeOsDaemon : SocketDaemon;
+
+export { BoardConfiguration };
 export default Daemon;
