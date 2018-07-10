@@ -32,7 +32,7 @@ import semVerCompare from 'semver-compare';
 import { detect } from 'detect-browser';
 
 import { BehaviorSubject, timer } from 'rxjs';
-import { delayWhen, filter, takeUntil, first } from 'rxjs/operators';
+import { filter, takeUntil } from 'rxjs/operators';
 
 import Daemon from './daemon';
 
@@ -157,6 +157,7 @@ export default class SocketDaemon extends Daemon {
           if (updateAttempts < 6) {
             return timer(10000).subscribe(() => this.update());
           }
+          this.error.next('plugin version incompatible');
         }
         return Promise.reject(new Error(`${CANT_FIND_AGENT_MESSAGE} at ${hostname}`));
       });
