@@ -18,12 +18,12 @@
 *
 */
 
-import { BehaviorSubject } from 'rxjs';
+import { BehaviorSubject, timer } from 'rxjs';
 import { takeUntil, filter, first } from 'rxjs/operators';
 import { provisioningSketch } from './sketches/provisioning.ino';
 
 const BAUDRATE = 9600;
-
+const UPLOAD_DONE_TIMER = 5000;
 export default class BoardConfiguration {
   constructor(daemon) {
     this.CONFIGURE_IN_PROGRESS = 'CONFIGURE_IN_PROGRESS';
@@ -38,6 +38,14 @@ export default class BoardConfiguration {
     this.daemon.serialMonitorMessages.subscribe(message => {
       this.serialMonitorContent += message;
     });
+  }
+
+  initConfig() {
+    this.configuring.next({ status: this.CONFIGURE_IN_PROGRESS, msg: 'Starting board configuration...' });
+  }
+
+  notifyError(msg) {
+    this.configuring.next({ status: this.CONFIGURE_ERROR, msg: msg, err: msg});
   }
 
   /**
@@ -72,19 +80,11 @@ export default class BoardConfiguration {
         }
         if (partialMessage.indexOf('Would you like to generate a new private key and CSR (y/N):') !== -1) {
           partialMessage = '';
-          const serialData = {
-            com_name: board.port,
-            data: 'y\n'
-          };
-          this.daemon.writeSerial(board.port, serialData);
+          this.daemon.writeSerial(board.port, 'y\n');
         }
         if (partialMessage.indexOf('Your ECCX08 is unlocked, would you like to lock it (y/N):') !== -1) {
           partialMessage = '';
-          const serialData = {
-            com_name: board.port,
-            data: 'y\n'
-          };
-          this.daemon.writeSerial(board.port, serialData);
+          this.daemon.writeSerial(board.port, 'y\n');
         }
 
         const begin = partialMessage.indexOf('-----BEGIN CERTIFICATE REQUEST-----');
@@ -125,12 +125,7 @@ export default class BoardConfiguration {
                   (notAfter.getUTCFullYear() - notBefore.getUTCFullYear()) + '\n' +
                   compressedCert.serial + '\n' +
                   compressedCert.signature + '\n';
-
-      const serialData = {
-        com_name: board.port,
-        data: answers
-      };
-      this.daemon.writeSerial(board.port, serialData);
+      this.daemon.writeSerial(board.port, answers);
     });
 
     return storing.finally(() => this.serialMessagesSubscription.unsubscribe());
@@ -143,7 +138,7 @@ export default class BoardConfiguration {
    * @param {function} createDeviceCb used to create the device associated to the user
    */
   configure(compiledSketch, board, createDeviceCb) {
-    this.configuring.next({ status: this.CONFIGURE_IN_PROGRESS, msg: 'Starting board configuration' });
+    this.configuring.next({ status: this.CONFIGURE_IN_PROGRESS, msg: 'Uploading provisioning sketch...' });
     if (!this.daemon.channelOpen.getValue()) {
       const errorMessage = `Couldn't configure board at port ${board.port} because we there is no open channel to the Arduino Create Plugin.`;
       this.configuring.next({
@@ -190,26 +185,46 @@ export default class BoardConfiguration {
     }
 
     this.daemon.uploadingDone.pipe(first()).subscribe(() => {
+      this.configuring.next({
+        status: this.CONFIGURE_IN_PROGRESS,
+        msg: 'Provisioning sketch uploaded successfully. Opening serial monitor...'
+      });
       this.daemon.serialMonitorOpened.pipe(takeUntil(this.daemon.serialMonitorOpened.pipe(filter(open => open))))
         .subscribe(() => {
+          this.configuring.next({
+            status: this.CONFIGURE_IN_PROGRESS,
+            msg: 'Serial monitor opened. Generating CSR...'
+          });
           this.getCsr(board)
-            .then(csr => createDeviceCb(csr))
-            .then(data => this.storeCertificate(data.compressed))
+            .then(csr => {
+              this.configuring.next({
+                status: this.CONFIGURE_IN_PROGRESS,
+                msg: 'CSR generated. Creating device...'
+              });
+              return createDeviceCb(csr)
+            })
+            .then(data => {
+              this.configuring.next({
+                status: this.CONFIGURE_IN_PROGRESS,
+                msg: 'Device created. Storing certificate...'
+              });
+              return this.storeCertificate(data.compressed, board);
+            })
             .then(() => this.configuring.next({ status: this.CONFIGURE_DONE }))
             .catch(reason => this.configuring.next({
               status: this.CONFIGURE_ERROR,
-              msg: `Couldn't configure board at port ${board.port}. Configuration failed with error: ${reason}`,
+              msg: `Couldn't configure board at port ${board.port}. Configuration failed with error: ${reason.message}`,
               err: reason.toString()
             }))
             .finally(() => this.daemon.closeSerialMonitor(board.port, BAUDRATE));
         }, error => {
           this.configuring.next({
             status: this.CONFIGURE_ERROR,
-            msg: `Couldn't configure board at port ${board.port}. Configuration failed with error: ${error}`,
+            msg: `Couldn't configure board at port ${board.port}. Configuration failed with error: ${error.message}`,
             err: error.toString()
           });
         });
-      this.daemon.openSerialMonitor(board.port, BAUDRATE);
+        timer(UPLOAD_DONE_TIMER).subscribe(() => this.daemon.openSerialMonitor(board.port, BAUDRATE));
     });
 
     this.daemon.uploadingError.pipe(first()).subscribe(upload => {
