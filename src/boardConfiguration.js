@@ -30,7 +30,6 @@
 import { BehaviorSubject } from 'rxjs';
 import { takeUntil, filter, first } from 'rxjs/operators';
 import { provisioningSketch } from './sketches/provisioning.ino';
-import { read } from 'fs';
 
 const BAUDRATE = 9600;
 
