@@ -81,7 +81,7 @@
     "Alberto Iannaccone <a.iannaccone@arduino.cc>",
     "Gabriele Destefanis <g.destefanis@topsolution.it>"
   ],
-  "license": "GPLv2",
+  "license": "GPLv3",
   "bugs": {
     "url": "https://github.com/arduino/arduino-create-agent-js-client/issues"
   },
