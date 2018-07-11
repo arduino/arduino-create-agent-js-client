@@ -1,18 +1,18 @@
 [![License: GPL v3](https://img.shields.io/badge/License-GPL%20v3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
 
-# create-plugin-communication
+# arduino-create-agent-js-client
 JS module providing discovery of the Arduino Create Plugin and communication with it
 
 ## Installation
 
 ```bash
-npm install create-plugin-communication --save
+npm install arduino-create-agent-js-client --save
 ```
 
 ## How to use
 
 ```js
-import Daemon from 'create-plugin-communication';
+import Daemon from 'arduino-create-agent-js-client';
 
 const daemon = new Daemon();
 
