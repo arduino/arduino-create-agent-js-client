@@ -31,6 +31,7 @@ import Daemon from './daemon';
 const MIN_VERSION = '1.1.71';
 const browser = detect();
 const POLLING_INTERVAL = 2500;
+const UPLOAD_DONE_TIMER = 5000;
 
 const PROTOCOL = {
   HTTP: 'http',
@@ -333,7 +334,7 @@ export default class SocketDaemon extends Daemon {
     }
     if (message.Flash === 'Ok' && message.ProgrammerStatus === 'Done') {
       // After the upload is completed the port goes down for a while, so we have to wait a few seconds
-      return timer(10000).subscribe(() => this.uploading.next({ status: this.UPLOAD_DONE, msg: message.Flash }));
+      return timer(UPLOAD_DONE_TIMER).subscribe(() => this.uploading.next({ status: this.UPLOAD_DONE, msg: message.Flash }));
     }
     switch (message.ProgrammerStatus) {
       case 'Starting':

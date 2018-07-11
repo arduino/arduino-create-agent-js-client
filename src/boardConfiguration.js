@@ -23,7 +23,6 @@ import { takeUntil, filter, first } from 'rxjs/operators';
 import { provisioningSketch } from './sketches/provisioning.ino';
 
 const BAUDRATE = 9600;
-const UPLOAD_DONE_TIMER = 5000;
 export default class BoardConfiguration {
   constructor(daemon) {
     this.CONFIGURE_IN_PROGRESS = 'CONFIGURE_IN_PROGRESS';
@@ -63,7 +62,6 @@ export default class BoardConfiguration {
     let partialMessage = '';
     const gettingCsr = new Promise((resolve, reject) => {
       const parseCsrQuestions = message => {
-        // TODO: store partial messages
         partialMessage += message;
 
         if (partialMessage.indexOf('No ECCX08 present') !== -1) {
@@ -201,7 +199,7 @@ export default class BoardConfiguration {
             err: error.toString()
           });
         });
-        timer(UPLOAD_DONE_TIMER).subscribe(() => this.daemon.openSerialMonitor(board.port, BAUDRATE));
+        this.daemon.openSerialMonitor(board.port, BAUDRATE);
     });
 
     this.daemon.uploadingError.pipe(first()).subscribe(upload => {
