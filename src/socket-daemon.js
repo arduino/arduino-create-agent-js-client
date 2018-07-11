@@ -233,7 +233,12 @@ export default class SocketDaemon extends Daemon {
       headers: {
         'Content-Type': 'text/plain; charset=utf-8'
       }
-    }).then(() => Promise.reject()); // We reject the promise because the daemon will be restarted, we need to continue looking for the port
+    }).then(() => Promise.reject()) // We reject the promise because the daemon will be restarted, we need to continue looking for the port
+    .catch(err => {
+      if (err.data && err.data.error && (err.data.error.indexOf('proxy') !== -1 || err.data.error.indexOf('dial tcp') !== -1)) {
+        this.error.next('proxy error');
+      }
+    })
   }
 
   /**
