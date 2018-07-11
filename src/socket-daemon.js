@@ -23,7 +23,7 @@ import semVerCompare from 'semver-compare';
 import { detect } from 'detect-browser';
 
 import { BehaviorSubject, timer } from 'rxjs';
-import { filter, takeUntil } from 'rxjs/operators';
+import { filter, takeUntil, first } from 'rxjs/operators';
 
 import Daemon from './daemon';
 
@@ -332,8 +332,8 @@ export default class SocketDaemon extends Daemon {
       return;
     }
     if (message.Flash === 'Ok' && message.ProgrammerStatus === 'Done') {
-      this.uploading.next({ status: this.UPLOAD_DONE, msg: message.Flash });
-      return;
+      // After the upload is completed the port goes down for a while, so we have to wait a few seconds
+      return timer(10000).subscribe(() => this.uploading.next({ status: this.UPLOAD_DONE, msg: message.Flash }));
     }
     switch (message.ProgrammerStatus) {
       case 'Starting':
@@ -439,17 +439,22 @@ export default class SocketDaemon extends Daemon {
       payload.extrafiles.push({ filename: data.files[i].name, hex: data.files[i].data });
     }
 
-    fetch(`${this.pluginURL}/upload`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'text/plain; charset=utf-8'
-      },
-      body: JSON.stringify(payload)
-    })
-      .catch(error => {
-        this.uploading.next({ status: this.UPLOAD_ERROR, err: error });
-      });
-  }
+    this.serialMonitorOpened.pipe(filter(open => !open))
+      .pipe(first())
+      .subscribe(() => {
+
+        fetch(`${this.pluginURL}/upload`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'text/plain; charset=utf-8'
+          },
+          body: JSON.stringify(payload)
+        })
+        .catch(error => {
+          this.uploading.next({ status: this.UPLOAD_ERROR, err: error });
+        });
+      })
+    }
 
   /**
    * Download tool

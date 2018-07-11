@@ -150,29 +150,6 @@ export default class BoardConfiguration {
     }
     this.serialMonitorContent = '';
 
-    const uploadTarget = {
-      board: board.fqbn,
-      port: board.port,
-      network: false
-    };
-
-    const file = {
-      name: compiledSketch.name + board.upload[0].ext,
-      data: compiledSketch.hex
-    };
-
-    const uploadData = {
-      files: [file],
-      commandline: board.upload[0].commandline,
-      signature: board.upload[0].options.signature,
-      extrafiles: [],
-      options: {
-        wait_for_upload_port: (board.upload[0].options.wait_for_upload_port === true || board.upload[0].options.wait_for_upload_port === 'true'), // eslint-disable-line camelcase
-        use_1200bps_touch: (board.upload[0].options.use_1200bps_touch === true || board.upload[0].options.use_1200bps_touch === 'true'), // eslint-disable-line camelcase
-        params_verbose: '-v' // eslint-disable-line camelcase
-      }
-    };
-
     // check the uploading status:
     if (this.daemon.uploading.getValue().status === this.daemon.UPLOAD_IN_PROGRESS) {
       // if there is an upload in course, notify observers;
@@ -231,6 +208,7 @@ export default class BoardConfiguration {
       this.configuring.next({ status: this.CONFIGURE_ERROR, err: `Couldn't configure board at port ${board.port}. Upload failed with error: ${upload.err}` });
     });
 
-    this.daemon.upload(uploadTarget, uploadData);
+    this.daemon.initUpload();
+    this.daemon.uploadSketch(compiledSketch, board);
   }
 }
