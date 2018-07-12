@@ -117,7 +117,7 @@ export default class BoardConfiguration {
       const notBefore = new Date(compressedCert.not_before);
       const notAfter = new Date(compressedCert.not_after);
       // eslint-disable-next-line prefer-template
-      const answers = board.id + '\n' +
+      const answers = board.deviceId + '\n' +
                   notBefore.getUTCFullYear() + '\n' +
                   (notBefore.getUTCMonth() + 1) + '\n' +
                   notBefore.getUTCDate() + '\n' +
@@ -220,7 +220,8 @@ export default class BoardConfiguration {
               msg: `Couldn't configure board at port ${board.port}. Configuration failed with error: ${reason.message}`,
               err: reason.toString()
             }))
-            .finally(() => this.daemon.closeSerialMonitor(board.port, BAUDRATE));
+            // We are using a timer because we can't close the serial monitor immediately and we have to wait the sketch to finish.
+            .finally(() => timer(3000).subscribe(() => this.daemon.closeSerialMonitor(board.port, BAUDRATE)));
         }, error => {
           this.configuring.next({
             status: this.CONFIGURE_ERROR,
