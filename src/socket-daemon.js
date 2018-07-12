@@ -23,7 +23,7 @@ import semVerCompare from 'semver-compare';
 import { detect } from 'detect-browser';
 
 import { BehaviorSubject, timer } from 'rxjs';
-import { filter, takeUntil } from 'rxjs/operators';
+import { filter, takeUntil, first } from 'rxjs/operators';
 
 import Daemon from './daemon';
 
@@ -31,6 +31,7 @@ import Daemon from './daemon';
 const MIN_VERSION = '1.1.71';
 const browser = detect();
 const POLLING_INTERVAL = 2500;
+const UPLOAD_DONE_TIMER = 5000;
 
 const PROTOCOL = {
   HTTP: 'http',
@@ -312,7 +313,7 @@ export default class SocketDaemon extends Daemon {
     }
     const serialPort = this.devicesList.getValue().serial.find(p => p.Name === port);
     if (!serialPort) {
-      return this.serialMonitorOpened.error(new Error(`Can't find port ${port}`));
+      return this.serialMonitorOpened.error(new Error(`Can't find board at ${port}`));
     }
     this.appMessages
       .pipe(takeUntil(this.serialMonitorOpened.pipe(filter(open => !open))))
@@ -321,7 +322,7 @@ export default class SocketDaemon extends Daemon {
           this.serialMonitorOpened.next(false);
         }
         if (message.Cmd === 'CloseFail') {
-          this.serialMonitorOpened.error(new Error(`Failed to close serial ${port}`));
+          this.serialMonitorOpened.error(new Error(`Failed to close serial monitor at ${port}`));
         }
       });
     this.socket.emit('command', `close ${port}`);
@@ -332,8 +333,8 @@ export default class SocketDaemon extends Daemon {
       return;
     }
     if (message.Flash === 'Ok' && message.ProgrammerStatus === 'Done') {
-      this.uploading.next({ status: this.UPLOAD_DONE, msg: message.Flash });
-      return;
+      // After the upload is completed the port goes down for a while, so we have to wait a few seconds
+      return timer(UPLOAD_DONE_TIMER).subscribe(() => this.uploading.next({ status: this.UPLOAD_DONE, msg: message.Flash }));
     }
     switch (message.ProgrammerStatus) {
       case 'Starting':
@@ -439,17 +440,22 @@ export default class SocketDaemon extends Daemon {
       payload.extrafiles.push({ filename: data.files[i].name, hex: data.files[i].data });
     }
 
-    fetch(`${this.pluginURL}/upload`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'text/plain; charset=utf-8'
-      },
-      body: JSON.stringify(payload)
-    })
-      .catch(error => {
-        this.uploading.next({ status: this.UPLOAD_ERROR, err: error });
-      });
-  }
+    this.serialMonitorOpened.pipe(filter(open => !open))
+      .pipe(first())
+      .subscribe(() => {
+
+        fetch(`${this.pluginURL}/upload`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'text/plain; charset=utf-8'
+          },
+          body: JSON.stringify(payload)
+        })
+        .catch(error => {
+          this.uploading.next({ status: this.UPLOAD_ERROR, err: error });
+        });
+      })
+    }
 
   /**
    * Download tool
