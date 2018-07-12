@@ -150,6 +150,11 @@ export default class SocketDaemon extends Daemon {
           }
           this.error.next('plugin version incompatible');
         }
+
+        // Set channelOpen false for the first time
+        if (this.channelOpen.getValue() === null) {
+          this.channelOpen.next(false);
+        }
         return Promise.reject(new Error(`${CANT_FIND_AGENT_MESSAGE} at ${hostname}`));
       });
   }
@@ -234,11 +239,11 @@ export default class SocketDaemon extends Daemon {
         'Content-Type': 'text/plain; charset=utf-8'
       }
     }).then(() => Promise.reject()) // We reject the promise because the daemon will be restarted, we need to continue looking for the port
-    .catch(err => {
-      if (err.data && err.data.error && (err.data.error.indexOf('proxy') !== -1 || err.data.error.indexOf('dial tcp') !== -1)) {
-        this.error.next('proxy error');
-      }
-    })
+      .catch(err => {
+        if (err.data && err.data.error && (err.data.error.indexOf('proxy') !== -1 || err.data.error.indexOf('dial tcp') !== -1)) {
+          this.error.next('proxy error');
+        }
+      });
   }
 
   /**
