@@ -131,6 +131,33 @@ export default class BoardConfiguration {
     return storing.finally(() => this.serialMessagesSubscription.unsubscribe());
   }
 
+  uploadSketch(compiledSketch, board) {
+    const uploadTarget = {
+      board: board.fqbn,
+      port: board.port,
+      network: false
+    };
+
+    const file = {
+      name: compiledSketch.name + board.upload[0].ext,
+      data: compiledSketch.hex
+    };
+
+    const uploadData = {
+      files: [file],
+      commandline: board.upload[0].commandline,
+      signature: board.upload[0].options.signature,
+      extrafiles: [],
+      options: {
+        wait_for_upload_port: (board.upload[0].options.wait_for_upload_port === true || board.upload[0].options.wait_for_upload_port === 'true'),
+        use_1200bps_touch: (board.upload[0].options.use_1200bps_touch === true || board.upload[0].options.use_1200bps_touch === 'true'),
+        params_verbose: '-v'
+      }
+    };
+
+    this.daemon.upload(uploadTarget, uploadData);
+  }
+
   /**
    * Uploads the sketch and performs action in order to configure the board for Arduino Cloud
    * @param {Object} compiledSketch the Object containing the provisioning sketch, ready to be compiled
@@ -209,6 +236,6 @@ export default class BoardConfiguration {
     });
 
     this.daemon.initUpload();
-    this.daemon.uploadSketch(compiledSketch, board);
+    this.uploadSketch(compiledSketch, board);
   }
 }
