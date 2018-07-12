@@ -1,5 +1,5 @@
 /*
-* Copyright 2018 ARDUINO AG (http://www.arduino.cc/)
+* Copyright 2018 ARDUINO SA (http://www.arduino.cc/)
 * This file is part of arduino-create-agent-js-client.
 * Copyright (c) 2018
 * Authors: Alberto Iannaccone, Stefania Mellai, Gabriele Destefanis

@@ -1,5 +1,5 @@
 /*
-* Copyright 2018 ARDUINO AG (http://www.arduino.cc/)
+* Copyright 2018 ARDUINO SA (http://www.arduino.cc/)
 * This file is part of arduino-create-agent-js-client.
 * Copyright (c) 2018
 * Authors: Alberto Iannaccone, Stefania Mellai, Gabriele Destefanis
@@ -312,6 +312,11 @@ class App extends React.Component {
             <div>Download status: <span className={ downloadClass }> { this.state.downloadStatus }</span></div>
           </form>
         </div> : null}
+
+        <div className="section">
+          <h2>Errors</h2>
+          <div>{ this.state.error }</div>
+        </div>
       </div>
     );
   }
