@@ -33,7 +33,9 @@ export default class BoardConfiguration {
     this.daemon = daemon;
     this.serialMonitorContent = '';
     this.configuring = new BehaviorSubject({ status: this.CONFIGURE_NOPE });
-
+    this.configureDone = this.configuring.pipe(filter(configure => configure.status === this.CONFIGURE_DONE));
+    this.configureInProgress = this.configuring.pipe(filter(configure => configure.status === this.CONFIGURE_IN_PROGRESS));
+    this.configureError = this.configuring.pipe(filter(configure => configure.status === this.CONFIGURE_ERROR));
     this.daemon.serialMonitorMessages.subscribe(message => {
       this.serialMonitorContent += message;
     });
