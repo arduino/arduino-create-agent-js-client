@@ -61,8 +61,8 @@ export default class Daemon {
       .subscribe(() => this.closeAllPorts());
   }
 
-  notifyUploadError(err, msg) {
-    this.uploading.next({ status: this.UPLOAD_ERROR, err, msg });
+  notifyUploadError(err) {
+    this.uploading.next({ status: this.UPLOAD_ERROR, err });
   }
 
   openChannel(cb) {
@@ -119,7 +119,9 @@ export default class Daemon {
     if (typeof this.stopUploadCommand === 'function') {
       this.stopUploadCommand();
     }
-    throw new Error('Stop Upload not supported on Chrome OS');
+    else {
+      throw new Error('Stop Upload not supported on Chrome OS');
+    }
   }
 
   initUpload() {

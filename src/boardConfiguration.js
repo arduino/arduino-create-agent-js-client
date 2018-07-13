@@ -36,10 +36,10 @@ export default class BoardConfiguration {
     this.configureDone = this.configuring.pipe(filter(configure => configure.status === this.CONFIGURE_DONE))
       .pipe(first())
       .pipe(takeUntil(this.configuring.pipe(filter(configure => configure.status === this.CONFIGURE_ERROR))));
-    this.configureInProgress = this.configuring.pipe(filter(configure => configure.status === this.CONFIGURE_IN_PROGRESS))
+    this.configureError = this.configuring.pipe(filter(configure => configure.status === this.CONFIGURE_ERROR))
       .pipe(first())
       .pipe(takeUntil(this.configureDone));
-    this.configureError = this.configuring.pipe(filter(configure => configure.status === this.CONFIGURE_ERROR));
+    this.configureInProgress = this.configuring.pipe(filter(configure => configure.status === this.CONFIGURE_IN_PROGRESS));
     this.daemon.serialMonitorMessages.subscribe(message => {
       this.serialMonitorContent += message;
     });

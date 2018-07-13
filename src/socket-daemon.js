@@ -96,8 +96,8 @@ export default class SocketDaemon extends Daemon {
     });
   }
 
-  notifyDownloadError(err, msg) {
-    this.downloading.next({ status: this.DOWNLOAD_ERROR, err, msg });
+  notifyDownloadError(err) {
+    this.downloading.next({ status: this.DOWNLOAD_ERROR, err });
   }
 
   /**
@@ -482,8 +482,7 @@ export default class SocketDaemon extends Daemon {
   stopUploadCommand() {
     this.uploading.next({
       status: this.UPLOAD_ERROR,
-      err: 'upload stopped',
-      msg: 'Upload stopped'
+      err: 'upload stopped'
     });
     this.socket.emit('command', 'killprogrammer');
   }
