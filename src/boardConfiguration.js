@@ -33,9 +33,13 @@ export default class BoardConfiguration {
     this.daemon = daemon;
     this.serialMonitorContent = '';
     this.configuring = new BehaviorSubject({ status: this.CONFIGURE_NOPE });
-    this.configureDone = this.configuring.pipe(filter(configure => configure.status === this.CONFIGURE_DONE));
+    this.configureDone = this.configuring.pipe(filter(configure => configure.status === this.CONFIGURE_DONE))
+      .pipe(first())
+      .pipe(takeUntil(this.configuring.pipe(filter(configure => configure.status === this.CONFIGURE_ERROR))));
+    this.configureError = this.configuring.pipe(filter(configure => configure.status === this.CONFIGURE_ERROR))
+      .pipe(first())
+      .pipe(takeUntil(this.configureDone));
     this.configureInProgress = this.configuring.pipe(filter(configure => configure.status === this.CONFIGURE_IN_PROGRESS));
-    this.configureError = this.configuring.pipe(filter(configure => configure.status === this.CONFIGURE_ERROR));
     this.daemon.serialMonitorMessages.subscribe(message => {
       this.serialMonitorContent += message;
     });
@@ -45,8 +49,8 @@ export default class BoardConfiguration {
     this.configuring.next({ status: this.CONFIGURE_IN_PROGRESS, msg: 'Starting board configuration...' });
   }
 
-  notifyError(msg) {
-    this.configuring.next({ status: this.CONFIGURE_ERROR, msg: msg, err: msg});
+  notifyError(err, msg) {
+    this.configuring.next({ status: this.CONFIGURE_ERROR, err, msg });
   }
 
   /**
@@ -189,7 +193,7 @@ export default class BoardConfiguration {
       return;
     }
 
-    this.daemon.uploadingDone.pipe(first()).subscribe(() => {
+    this.daemon.uploadingDone.subscribe(() => {
       this.configuring.next({
         status: this.CONFIGURE_IN_PROGRESS,
         msg: 'Provisioning sketch uploaded successfully. Opening serial monitor...'
@@ -206,7 +210,7 @@ export default class BoardConfiguration {
                 status: this.CONFIGURE_IN_PROGRESS,
                 msg: 'CSR generated. Creating device...'
               });
-              return createDeviceCb(csr)
+              return createDeviceCb(csr);
             })
             .then(data => {
               this.configuring.next({
@@ -230,10 +234,10 @@ export default class BoardConfiguration {
             err: error.toString()
           });
         });
-        this.daemon.openSerialMonitor(board.port, BAUDRATE);
+      this.daemon.openSerialMonitor(board.port, BAUDRATE);
     });
 
-    this.daemon.uploadingError.pipe(first()).subscribe(upload => {
+    this.daemon.uploadingError.subscribe(upload => {
       this.configuring.next({ status: this.CONFIGURE_ERROR, err: `Couldn't configure board at port ${board.port}. Upload failed with error: ${upload.err}` });
     });
 

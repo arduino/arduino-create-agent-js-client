@@ -39,9 +39,13 @@ export default class Daemon {
     this.serialMonitorOpened = new BehaviorSubject(false);
     this.serialMonitorMessages = new Subject();
     this.uploading = new BehaviorSubject({ status: this.UPLOAD_NOPE });
-    this.uploadingDone = this.uploading.pipe(filter(upload => upload.status === this.UPLOAD_DONE));
+    this.uploadingDone = this.uploading.pipe(filter(upload => upload.status === this.UPLOAD_DONE))
+      .pipe(first())
+      .pipe(takeUntil(this.uploading.pipe(filter(upload => upload.status === this.UPLOAD_ERROR))));
+    this.uploadingError = this.uploading.pipe(filter(upload => upload.status === this.UPLOAD_ERROR))
+      .pipe(first())
+      .pipe(takeUntil(this.uploadingDone));
     this.uploadInProgress = this.uploading.pipe(filter(upload => upload.status === this.UPLOAD_IN_PROGRESS));
-    this.uploadingError = this.uploading.pipe(filter(upload => upload.status === this.UPLOAD_ERROR));
     this.devicesList = new BehaviorSubject({
       serial: [],
       network: []
@@ -55,6 +59,10 @@ export default class Daemon {
       .pipe(filter(devices => devices.serial && devices.serial.length > 0))
       .pipe(first())
       .subscribe(() => this.closeAllPorts());
+  }
+
+  notifyUploadError(err) {
+    this.uploading.next({ status: this.UPLOAD_ERROR, err });
   }
 
   openChannel(cb) {
