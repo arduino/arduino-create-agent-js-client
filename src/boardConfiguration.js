@@ -165,6 +165,7 @@ export default class BoardConfiguration {
    * @param {function} createDeviceCb used to create the device associated to the user
    */
   configure(compiledSketch, board, createDeviceCb) {
+    this.daemon.initUpload();
     this.configuring.next({ status: this.CONFIGURE_IN_PROGRESS, msg: 'Uploading provisioning sketch...' });
     if (!this.daemon.channelOpen.getValue()) {
       const errorMessage = `Couldn't configure board at port ${board.port} because we there is no open channel to the Arduino Create Plugin.`;
@@ -236,7 +237,6 @@ export default class BoardConfiguration {
       this.configuring.next({ status: this.CONFIGURE_ERROR, err: `Couldn't configure board at port ${board.port}. Upload failed with error: ${upload.err}` });
     });
 
-    this.daemon.initUpload();
     this.uploadSketch(compiledSketch, board);
   }
 }
