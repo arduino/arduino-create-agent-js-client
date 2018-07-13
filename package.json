@@ -142,5 +142,5 @@
     "prepare": "npm run clean && npm test && npm run build",
     "test": ""
   },
-  "version": "1.0.4"
+  "version": "1.0.5"
 }
