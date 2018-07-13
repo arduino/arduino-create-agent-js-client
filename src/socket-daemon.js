@@ -65,8 +65,12 @@ export default class SocketDaemon extends Daemon {
     this.pluginURL = null;
 
     this.downloading = new BehaviorSubject({ status: DOWNLOAD_NOPE });
-    this.downloadingDone = this.downloading.pipe(filter(download => download.status === DOWNLOAD_DONE));
-    this.downloadingError = this.downloading.pipe(filter(download => download.status === DOWNLOAD_ERROR));
+    this.downloadingDone = this.downloading.pipe(filter(download => download.status === DOWNLOAD_DONE))
+      .pipe(first())
+      .pipe(takeUntil(this.downloading.pipe(filter(download => download.status === this.DOWNLOAD_ERROR))));
+    this.downloadingError = this.downloading.pipe(filter(download => download.status === DOWNLOAD_ERROR))
+      .pipe(first())
+      .pipe(takeUntil(this.downloadingDone));
 
     this.openChannel(() => this.socket.emit('command', 'list'));
 
@@ -90,6 +94,10 @@ export default class SocketDaemon extends Daemon {
         this.appMessages.next(message);
       }
     });
+  }
+
+  notifyDownloadError(err, msg) {
+    this.downloading.next({ status: this.DOWNLOAD_ERROR, err, msg });
   }
 
   /**
@@ -443,7 +451,6 @@ export default class SocketDaemon extends Daemon {
     this.serialMonitorOpened.pipe(filter(open => !open))
       .pipe(first())
       .subscribe(() => {
-
         fetch(`${this.pluginURL}/upload`, {
           method: 'POST',
           headers: {
@@ -473,7 +480,11 @@ export default class SocketDaemon extends Daemon {
    * Interrupt upload
    */
   stopUploadCommand() {
-    this.uploading.next(false);
+    this.uploading.next({
+      status: this.UPLOAD_ERROR,
+      err: 'upload stopped',
+      msg: 'Upload stopped'
+    });
     this.socket.emit('command', 'killprogrammer');
   }
 }
