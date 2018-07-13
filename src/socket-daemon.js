@@ -451,11 +451,11 @@ export default class SocketDaemon extends Daemon {
           },
           body: JSON.stringify(payload)
         })
-        .catch(error => {
-          this.uploading.next({ status: this.UPLOAD_ERROR, err: error });
-        });
-      })
-    }
+          .catch(error => {
+            this.uploading.next({ status: this.UPLOAD_ERROR, err: error });
+          });
+      });
+  }
 
   /**
    * Download tool
