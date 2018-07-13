@@ -111,7 +111,9 @@ export default class Daemon {
     if (typeof this.stopUploadCommand === 'function') {
       this.stopUploadCommand();
     }
-    throw new Error('Stop Upload not supported on Chrome OS');
+    else {
+      throw new Error('Stop Upload not supported on Chrome OS');
+    }
   }
 
   initUpload() {
