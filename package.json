@@ -1,77 +1,25 @@
 {
-  "_from": "arduino-create-agent-js-client@^1.0.3",
-  "_id": "arduino-create-agent-js-client@1.0.3",
-  "_inBundle": false,
-  "_integrity": "sha512-EOFDmI6Qe0YpEFzkZUwntS/kW9+tb5D7El8YroXQOA2Tw5q/ntSxT4awybqAjOerWCf9BfHuBYwOP7XMFveLOw==",
-  "_location": "/arduino-create-agent-js-client",
-  "_phantomChildren": {
-    "after": "0.8.2",
-    "backo2": "1.0.2",
-    "base64-arraybuffer": "0.1.5",
-    "blob": "0.0.4",
-    "component-bind": "1.0.0",
-    "component-emitter": "1.2.1",
-    "component-inherit": "0.0.3",
-    "has-binary": "0.1.7",
-    "has-cors": "1.1.0",
-    "indexof": "0.0.1",
-    "json3": "3.3.2",
-    "object-component": "0.0.3",
-    "options": "0.0.6",
-    "parsejson": "0.0.3",
-    "parseqs": "0.0.5",
-    "parseuri": "0.0.5",
-    "to-array": "0.1.4",
-    "wtf-8": "1.0.0",
-    "yeast": "0.1.2"
-  },
-  "_requested": {
-    "type": "range",
-    "registry": true,
-    "raw": "arduino-create-agent-js-client@^1.0.3",
-    "name": "arduino-create-agent-js-client",
-    "escapedName": "arduino-create-agent-js-client",
-    "rawSpec": "^1.0.3",
-    "saveSpec": null,
-    "fetchSpec": "^1.0.3"
-  },
-  "_requiredBy": [
-    "/"
+  "name": "arduino-create-agent-js-client",
+  "version": "1.0.5",
+  "description": "JS module providing discovery of the Arduino Create Plugin and communication with it",
+  "main": "./src/index.js",
+  "module": "es/index.js",
+  "jsnext:main": "es/index.js",
+  "files": [
+    "dist",
+    "lib",
+    "es",
+    "src"
   ],
-  "_resolved": "https://registry.npmjs.org/arduino-create-agent-js-client/-/arduino-create-agent-js-client-1.0.3.tgz",
-  "_shasum": "c33caef538f1001ffa43a0cb6a11f40a990a9518",
-  "_spec": "arduino-create-agent-js-client@^1.0.3",
-  "_where": "/home/alberto/work/create-gettingstarted-site",
-  "bugs": {
-    "url": "https://github.com/arduino/arduino-create-agent-js-client/issues"
+  "directories": {
+    "lib": "lib"
   },
-  "bundleDependencies": false,
-  "contributors": [
-    {
-      "name": "Stefania Mellai",
-      "email": "s.mellai@arduino.cc"
-    },
-    {
-      "name": "Fabrizio Mirabito",
-      "email": "f.mirabito@arduino.cc"
-    },
-    {
-      "name": "Alberto Iannaccone",
-      "email": "a.iannaccone@arduino.cc"
-    },
-    {
-      "name": "Gabriele Destefanis",
-      "email": "g.destefanis@topsolution.it"
-    }
-  ],
   "dependencies": {
     "detect-browser": "^2.5.1",
     "rxjs": "^6.2.1",
     "semver-compare": "^1.0.0",
     "socket.io-client": "1.7.4"
   },
-  "deprecated": false,
-  "description": "JS module providing discovery of the Arduino Create Plugin and communication with it",
   "devDependencies": {
     "babel-cli": "^6.26.0",
     "babel-core": "^6.26.3",
@@ -100,47 +48,42 @@
     "webpack-cli": "^3.0.8",
     "webpack-dev-server": "^2.11.1"
   },
-  "directories": {
-    "lib": "lib"
+  "scripts": {
+    "test": "",
+    "dev": "webpack-dev-server",
+    "lint": "./node_modules/.bin/eslint src",
+    "lint-fix": "./node_modules/.bin/eslint --fix src --ext .js",
+    "clean": "rimraf lib dist es",
+    "build": "npm run build:commonjs && npm run build:umd && npm run build:umd:min && npm run build:es",
+    "build:watch": "echo 'build && watch the COMMONJS version of the package - for other version, run specific tasks' && npm run build:commonjs:watch",
+    "build:commonjs": "cross-env BABEL_ENV=commonjs babel src --out-dir lib",
+    "build:commonjs:watch": "npm run build:commonjs -- --watch",
+    "build:es": "cross-env BABEL_ENV=es babel src --out-dir es",
+    "build:es:watch": "npm run build:es -- --watch",
+    "build:umd": "cross-env BABEL_ENV=es NODE_ENV=development node_modules/.bin/rollup src/index.js --config --sourcemap --output dist/create-plugin.js",
+    "build:umd:watch": "npm run build:umd -- --watch",
+    "build:umd:min": "cross-env BABEL_ENV=es NODE_ENV=production rollup src/index.js --config --output dist/create-plugin.min.js",
+    "prepare": "npm run clean && npm test && npm run build"
   },
-  "files": [
-    "dist",
-    "lib",
-    "es",
-    "src"
-  ],
-  "homepage": "https://github.com/arduino/arduino-create-agent-js-client#readme",
-  "jsnext:main": "es/index.js",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/arduino/arduino-create-agent-js-client.git"
+  },
   "keywords": [
     "arduino",
     "create",
     "agent",
     "plugin"
   ],
+  "contributors": [
+    "Stefania Mellai <s.mellai@arduino.cc>",
+    "Fabrizio Mirabito <f.mirabito@arduino.cc>",
+    "Alberto Iannaccone <a.iannaccone@arduino.cc>",
+    "Gabriele Destefanis <g.destefanis@topsolution.it>"
+  ],
   "license": "GPLv3",
-  "main": "./src/index.js",
-  "module": "es/index.js",
-  "name": "arduino-create-agent-js-client",
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/arduino/arduino-create-agent-js-client.git"
+  "bugs": {
+    "url": "https://github.com/arduino/arduino-create-agent-js-client/issues"
   },
-  "scripts": {
-    "build": "npm run build:commonjs && npm run build:umd && npm run build:umd:min && npm run build:es",
-    "build:commonjs": "cross-env BABEL_ENV=commonjs babel src --out-dir lib",
-    "build:commonjs:watch": "npm run build:commonjs -- --watch",
-    "build:es": "cross-env BABEL_ENV=es babel src --out-dir es",
-    "build:es:watch": "npm run build:es -- --watch",
-    "build:umd": "cross-env BABEL_ENV=es NODE_ENV=development node_modules/.bin/rollup src/index.js --config --sourcemap --output dist/create-plugin.js",
-    "build:umd:min": "cross-env BABEL_ENV=es NODE_ENV=production rollup src/index.js --config --output dist/create-plugin.min.js",
-    "build:umd:watch": "npm run build:umd -- --watch",
-    "build:watch": "echo 'build && watch the COMMONJS version of the package - for other version, run specific tasks' && npm run build:commonjs:watch",
-    "clean": "rimraf lib dist es",
-    "dev": "webpack-dev-server",
-    "lint": "eslint src",
-    "lint-fix": "eslint --fix src --ext .js",
-    "prepare": "npm run clean && npm test && npm run build",
-    "test": ""
-  },
-  "version": "1.0.5"
+  "homepage": "https://github.com/arduino/arduino-create-agent-js-client#readme"
 }
