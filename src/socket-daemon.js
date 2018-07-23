@@ -154,7 +154,7 @@ export default class SocketDaemon extends Daemon {
           if (updateAttempts === 0) {
             return this.update();
           }
-          if (updateAttempts < 4) {
+          if (updateAttempts < 3) {
             return timer(10000).subscribe(() => this.update());
           }
           this.error.next('plugin version incompatible');
@@ -260,7 +260,9 @@ export default class SocketDaemon extends Daemon {
         // We reject the promise because the daemon will be restarted, we need to continue looking for the port
         return Promise.reject();
       })
-      .catch(err => Promise.reject(err));
+      .catch(() => {
+        console.log('update plugin failed');
+      });
   }
 
   /**

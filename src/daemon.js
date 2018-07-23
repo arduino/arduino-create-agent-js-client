@@ -19,7 +19,7 @@
 */
 
 import { Subject, BehaviorSubject, interval } from 'rxjs';
-import { takeUntil, filter, startWith, first } from 'rxjs/operators';
+import { takeUntil, filter, startWith, first, distinctUntilChanged } from 'rxjs/operators';
 
 const POLLING_INTERVAL = 1500;
 
@@ -33,7 +33,7 @@ export default class Daemon {
     this.agentInfo = {};
     this.agentFound = new BehaviorSubject(null);
     this.channelOpen = new BehaviorSubject(null);
-    this.error = new BehaviorSubject(null);
+    this.error = new BehaviorSubject(null).pipe(distinctUntilChanged());
 
     this.appMessages = new Subject();
     this.serialMonitorOpened = new BehaviorSubject(false);
