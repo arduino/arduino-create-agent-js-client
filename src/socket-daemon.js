@@ -28,7 +28,7 @@ import { filter, takeUntil, first } from 'rxjs/operators';
 import Daemon from './daemon';
 
 // Required agent version
-const MIN_VERSION = '1.1.71';
+const MIN_VERSION = '1.1.72';
 const browser = detect();
 const POLLING_INTERVAL = 2500;
 const UPLOAD_DONE_TIMER = 5000;
@@ -157,10 +157,7 @@ export default class SocketDaemon extends Daemon {
           if (updateAttempts < 4) {
             return timer(10000).subscribe(() => this.update());
           }
-          const currentError = this.error.getValue();
-          if (currentError !== 'plugin version incompatible') {
-            this.error.next('plugin version incompatible');
-          }
+          this.error.next('plugin version incompatible');
           return Promise.reject(new Error('plugin version incompatible'));
         }
 
@@ -251,15 +248,19 @@ export default class SocketDaemon extends Daemon {
       headers: {
         'Content-Type': 'text/plain; charset=utf-8'
       }
-    }).then(() => Promise.reject()) // We reject the promise because the daemon will be restarted, we need to continue looking for the port
-      .catch(err => {
-        if (err && err.data && err.data.error && (err.data.error.indexOf('proxy') !== -1 || err.data.error.indexOf('dial tcp') !== -1)) {
-          const currentError = this.error.getValue();
-          if (currentError !== 'proxy error') {
+    })
+      .then(result => result.json())
+      .then(response => {
+        if (!response.ok) {
+          if (response && response.error && (response.error.indexOf('proxy') !== -1 || response.error.indexOf('dial tcp') !== -1)) {
             this.error.next('proxy error');
+            return new Error('proxy error');
           }
         }
-      });
+        // We reject the promise because the daemon will be restarted, we need to continue looking for the port
+        return Promise.reject();
+      })
+      .catch(err => Promise.reject(err));
   }
 
   /**

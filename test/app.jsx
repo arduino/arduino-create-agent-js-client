@@ -315,7 +315,7 @@ class App extends React.Component {
 
         <div className="section">
           <h2>Errors</h2>
-          <div>{ this.state.error }</div>
+          <div className="error">{ this.state.error }</div>
         </div>
       </div>
     );
