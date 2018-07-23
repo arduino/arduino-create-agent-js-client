@@ -157,7 +157,7 @@ export default class SocketDaemon extends Daemon {
           if (updateAttempts < 6) {
             return timer(10000).subscribe(() => this.update());
           }
-          this.error.next('plugin version incompatible');
+          return this.error.next('plugin version incompatible');
         }
 
         // Set channelOpen false for the first time
@@ -249,7 +249,7 @@ export default class SocketDaemon extends Daemon {
       }
     }).then(() => Promise.reject()) // We reject the promise because the daemon will be restarted, we need to continue looking for the port
       .catch(err => {
-        if (err.data && err.data.error && (err.data.error.indexOf('proxy') !== -1 || err.data.error.indexOf('dial tcp') !== -1)) {
+        if (err && err.data && err.data.error && (err.data.error.indexOf('proxy') !== -1 || err.data.error.indexOf('dial tcp') !== -1)) {
           this.error.next('proxy error');
         }
       });
