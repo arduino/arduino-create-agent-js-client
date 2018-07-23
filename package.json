@@ -1,6 +1,6 @@
 {
   "name": "arduino-create-agent-js-client",
-  "version": "1.0.8",
+  "version": "1.0.9",
   "description": "JS module providing discovery of the Arduino Create Plugin and communication with it",
   "main": "./src/index.js",
   "module": "es/index.js",
