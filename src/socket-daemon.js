@@ -76,7 +76,10 @@ export default class SocketDaemon extends Daemon {
 
     this.agentFound
       .subscribe(agentFound => {
-        if (!agentFound) {
+        if (agentFound) {
+          this._wsConnect();
+        }
+        else {
           this.findAgent();
         }
       });
@@ -144,20 +147,21 @@ export default class SocketDaemon extends Daemon {
 
         if (found) {
           if (this.agentInfo.version && (semVerCompare(this.agentInfo.version, MIN_VERSION) >= 0 || this.agentInfo.version.indexOf('dev') !== -1)) {
-            this._wsConnect();
             return this.agentInfo;
           }
-
-          this.channelOpen.next(false);
 
           updateAttempts += 1;
           if (updateAttempts === 0) {
             return this.update();
           }
-          if (updateAttempts < 5) {
+          if (updateAttempts < 4) {
             return timer(10000).subscribe(() => this.update());
           }
-          return this.error.next('plugin version incompatible');
+          const currentError = this.error.getValue();
+          if (currentError !== 'plugin version incompatible') {
+            this.error.next('plugin version incompatible');
+          }
+          return Promise.reject(new Error('plugin version incompatible'));
         }
 
         // Set channelOpen false for the first time
@@ -250,7 +254,10 @@ export default class SocketDaemon extends Daemon {
     }).then(() => Promise.reject()) // We reject the promise because the daemon will be restarted, we need to continue looking for the port
       .catch(err => {
         if (err && err.data && err.data.error && (err.data.error.indexOf('proxy') !== -1 || err.data.error.indexOf('dial tcp') !== -1)) {
-          this.error.next('proxy error');
+          const currentError = this.error.getValue();
+          if (currentError !== 'proxy error') {
+            this.error.next('proxy error');
+          }
         }
       });
   }
