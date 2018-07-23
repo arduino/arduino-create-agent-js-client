@@ -76,10 +76,7 @@ export default class SocketDaemon extends Daemon {
 
     this.agentFound
       .subscribe(agentFound => {
-        if (agentFound) {
-          this._wsConnect();
-        }
-        else {
+        if (!agentFound) {
           this.findAgent();
         }
       });
@@ -147,14 +144,17 @@ export default class SocketDaemon extends Daemon {
 
         if (found) {
           if (this.agentInfo.version && (semVerCompare(this.agentInfo.version, MIN_VERSION) >= 0 || this.agentInfo.version.indexOf('dev') !== -1)) {
+            this._wsConnect();
             return this.agentInfo;
           }
+
+          this.channelOpen.next(false);
 
           updateAttempts += 1;
           if (updateAttempts === 0) {
             return this.update();
           }
-          if (updateAttempts < 6) {
+          if (updateAttempts < 5) {
             return timer(10000).subscribe(() => this.update());
           }
           return this.error.next('plugin version incompatible');
