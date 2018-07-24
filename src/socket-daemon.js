@@ -22,7 +22,7 @@ import io from 'socket.io-client';
 import semVerCompare from 'semver-compare';
 import { detect } from 'detect-browser';
 
-import { BehaviorSubject, timer } from 'rxjs';
+import { timer } from 'rxjs';
 import { filter, takeUntil, first } from 'rxjs/operators';
 
 import Daemon from './daemon';
@@ -52,25 +52,12 @@ if (browser.name !== 'chrome' && browser.name !== 'firefox') {
   orderedPluginAddresses = [LOOPBACK_HOSTNAME, LOOPBACK_ADDRESS];
 }
 
-const DOWNLOAD_NOPE = 'DOWNLOAD_NOPE';
-const DOWNLOAD_DONE = 'DOWNLOAD_DONE';
-const DOWNLOAD_ERROR = 'DOWNLOAD_ERROR';
-const DOWNLOAD_IN_PROGRESS = 'DOWNLOAD_IN_PROGRESS';
-
 export default class SocketDaemon extends Daemon {
   constructor() {
     super();
     this.selectedProtocol = PROTOCOL.HTTP;
     this.socket = null;
     this.pluginURL = null;
-
-    this.downloading = new BehaviorSubject({ status: DOWNLOAD_NOPE });
-    this.downloadingDone = this.downloading.pipe(filter(download => download.status === DOWNLOAD_DONE))
-      .pipe(first())
-      .pipe(takeUntil(this.downloading.pipe(filter(download => download.status === this.DOWNLOAD_ERROR))));
-    this.downloadingError = this.downloading.pipe(filter(download => download.status === DOWNLOAD_ERROR))
-      .pipe(first())
-      .pipe(takeUntil(this.downloadingDone));
 
     this.openChannel(() => this.socket.emit('command', 'list'));
 
@@ -382,21 +369,21 @@ export default class SocketDaemon extends Daemon {
   }
 
   handleDownloadMessage(message) {
-    if (this.downloading.getValue().status !== DOWNLOAD_IN_PROGRESS) {
+    if (this.downloading.getValue().status !== this.DOWNLOAD_IN_PROGRESS) {
       return;
     }
     switch (message.DownloadStatus) {
       case 'Pending':
-        this.downloading.next({ status: DOWNLOAD_IN_PROGRESS, msg: message.Msg });
+        this.downloading.next({ status: this.DOWNLOAD_IN_PROGRESS, msg: message.Msg });
         break;
       case 'Success':
-        this.downloading.next({ status: DOWNLOAD_DONE, msg: message.Msg });
+        this.downloading.next({ status: this.DOWNLOAD_DONE, msg: message.Msg });
         break;
       case 'Error':
-        this.downloading.next({ status: DOWNLOAD_ERROR, err: message.Msg });
+        this.downloading.next({ status: this.DOWNLOAD_ERROR, err: message.Msg });
         break;
       default:
-        this.downloading.next({ status: DOWNLOAD_IN_PROGRESS, msg: message.Msg });
+        this.downloading.next({ status: this.DOWNLOAD_IN_PROGRESS, msg: message.Msg });
     }
   }
 
@@ -486,8 +473,8 @@ export default class SocketDaemon extends Daemon {
    * @param {string} packageName
    * @param {string} replacementStrategy
    */
-  downloadToolCommand(toolName, toolVersion, packageName, replacementStrategy) {
-    this.downloading.next({ status: DOWNLOAD_IN_PROGRESS });
+  downloadTool(toolName, toolVersion, packageName, replacementStrategy) {
+    this.downloading.next({ status: this.DOWNLOAD_IN_PROGRESS });
     this.socket.emit('command', `downloadtool ${toolName} ${toolVersion} ${packageName} ${replacementStrategy}`);
   }
 

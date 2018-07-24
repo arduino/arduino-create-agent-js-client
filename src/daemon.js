@@ -30,6 +30,11 @@ export default class Daemon {
     this.UPLOAD_ERROR = 'UPLOAD_ERROR';
     this.UPLOAD_IN_PROGRESS = 'UPLOAD_IN_PROGRESS';
 
+    this.DOWNLOAD_DONE = 'DOWNLOAD_DONE';
+    this.DOWNLOAD_NOPE = 'DOWNLOAD_NOPE';
+    this.DOWNLOAD_ERROR = 'DOWNLOAD_ERROR';
+    this.DOWNLOAD_IN_PROGRESS = 'DOWNLOAD_IN_PROGRESS';
+
     this.agentInfo = {};
     this.agentFound = new BehaviorSubject(null);
     this.channelOpen = new BehaviorSubject(null);
@@ -59,6 +64,14 @@ export default class Daemon {
       .pipe(filter(devices => devices.serial && devices.serial.length > 0))
       .pipe(first())
       .subscribe(() => this.closeAllPorts());
+
+    this.downloading = new BehaviorSubject({ status: this.DOWNLOAD_NOPE });
+    this.downloadingDone = this.downloading.pipe(filter(download => download.status === this.DOWNLOAD_DONE))
+      .pipe(first())
+      .pipe(takeUntil(this.downloading.pipe(filter(download => download.status === this.DOWNLOAD_ERROR))));
+    this.downloadingError = this.downloading.pipe(filter(download => download.status === this.DOWNLOAD_ERROR))
+      .pipe(first())
+      .pipe(takeUntil(this.downloadingDone));
   }
 
   notifyUploadError(err) {
@@ -94,22 +107,6 @@ export default class Daemon {
       return false;
     }
     return a.every((item, index) => (b[index].Name === item.Name && b[index].IsOpen === item.IsOpen));
-  }
-
-  /**
-   * Download tool - not supported in Chrome app
-   * @param {string} toolName
-   * @param {string} toolVersion
-   * @param {string} packageName
-   * @param {string} replacementStrategy
-   */
-  downloadTool(toolName, toolVersion, packageName, replacementStrategy = 'keep') {
-    if (typeof this.downloadToolCommand === 'function') {
-      this.downloadToolCommand(toolName, toolVersion, packageName, replacementStrategy);
-    }
-    else {
-      throw new Error('Download Tool not supported on Chrome OS');
-    }
   }
 
   /**

@@ -70,7 +70,7 @@ export default class ChromeOsDaemon extends Daemon {
       this.serialMonitorMessages.next(message.serialData);
     }
 
-    if (message.programmerstatus) {
+    if (message.uploadStatus) {
       this.handleUploadMessage(message);
     }
 
@@ -253,5 +253,10 @@ export default class ChromeOsDaemon extends Daemon {
     catch (err) {
       this.uploading.next({ status: this.UPLOAD_ERROR, err: 'you need to be logged in on a Create site to upload by Chrome App' });
     }
+  }
+
+  downloadTool() {
+    // no need to download tool on chromeOS
+    this.downloading.next({ status: this.DOWNLOAD_DONE });
   }
 }
