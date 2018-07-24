@@ -173,7 +173,7 @@ export default class SocketDaemon extends Daemon {
    * Uses the websocket protocol to connect to the agent
    */
   _wsConnect() {
-    const wsProtocol = this.selectedProtocol === PROTOCOL.HTTPS ? 'ws' : 'wss';
+    const wsProtocol = this.selectedProtocol === PROTOCOL.HTTPS ? 'wss' : 'ws';
     const address = this.agentInfo[wsProtocol];
     this.socket = io(address, { reconnection: false, forceNew: true });
 
