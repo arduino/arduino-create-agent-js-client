@@ -132,6 +132,11 @@ export default class SocketDaemon extends Daemon {
         const found = responses.some(r => {
           if (r && r.response && r.response.status === 200) {
             this.agentInfo = r.data;
+
+            if (this.agentInfo.update_url.indexOf('downloads.arduino.cc') === -1) {
+              this.error.next('unofficial plugin');
+            }
+
             if (r.response.url.indexOf(PROTOCOL.HTTPS) === 0) {
               this.selectedProtocol = PROTOCOL.HTTPS;
             }
