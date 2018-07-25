@@ -473,7 +473,7 @@ export default class SocketDaemon extends Daemon {
    * @param {string} packageName
    * @param {string} replacementStrategy
    */
-  downloadTool(toolName, toolVersion, packageName, replacementStrategy) {
+  downloadTool(toolName, toolVersion, packageName, replacementStrategy = 'keep') {
     this.downloading.next({ status: this.DOWNLOAD_IN_PROGRESS });
     this.socket.emit('command', `downloadtool ${toolName} ${toolVersion} ${packageName} ${replacementStrategy}`);
   }
