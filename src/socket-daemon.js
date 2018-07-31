@@ -38,18 +38,18 @@ const PROTOCOL = {
   HTTPS: 'https'
 };
 
-const LOOPBACK_ADDRESS = '127.0.0.1';
-const LOOPBACK_HOSTNAME = 'localhost';
+const LOOPBACK_ADDRESS = `${PROTOCOL.HTTP}://127.0.0.1`;
+const LOOPBACK_HOST = `${PROTOCOL.HTTPS}://localhost`;
 const LOOKUP_PORT_START = 8991;
 const LOOKUP_PORT_END = 9000;
-let orderedPluginAddresses = [LOOPBACK_ADDRESS, LOOPBACK_HOSTNAME];
+let orderedPluginAddresses = [LOOPBACK_ADDRESS, LOOPBACK_HOST];
 
 const CANT_FIND_AGENT_MESSAGE = 'Arduino Create Agent cannot be found';
 
 let updateAttempts = 0;
 
 if (browser.name !== 'chrome' && browser.name !== 'firefox') {
-  orderedPluginAddresses = [LOOPBACK_HOSTNAME, LOOPBACK_ADDRESS];
+  orderedPluginAddresses = [LOOPBACK_HOST, LOOPBACK_ADDRESS];
 }
 
 export default class SocketDaemon extends Daemon {
@@ -89,7 +89,7 @@ export default class SocketDaemon extends Daemon {
 
   /**
    * Look for the agent endpoint.
-   * First search in http://LOOPBACK_ADDRESS, after in https://LOOPBACK_HOSTNAME if in Chrome or Firefox, otherwise vice versa.
+   * First search in LOOPBACK_ADDRESS, after in LOOPBACK_HOST if in Chrome or Firefox, otherwise vice versa.
    */
   findAgent() {
     this._tryPorts(orderedPluginAddresses[0])
@@ -99,15 +99,15 @@ export default class SocketDaemon extends Daemon {
   }
 
   /**
-   * Try ports for the selected hostname. From LOOKUP_PORT_START to LOOKUP_PORT_END
-   * @param {string} hostname - The hostname value (LOOPBACK_ADDRESS or LOOPBACK_HOSTNAME).
+   * Try ports for the selected host. From LOOKUP_PORT_START to LOOKUP_PORT_END
+   * @param {string} host - The host value (LOOPBACK_ADDRESS or LOOPBACK_HOST).
    * @return {Promise} info - A promise resolving with the agent info values.
    */
-  _tryPorts(hostname) {
+  _tryPorts(host) {
     const pluginLookups = [];
 
     for (let port = LOOKUP_PORT_START; port < LOOKUP_PORT_END; port += 1) {
-      pluginLookups.push(fetch(`${this.selectedProtocol}://${hostname}:${port}/info`)
+      pluginLookups.push(fetch(`${host}:${port}/info`)
         .then(response => response.json().then(data => ({ response, data })))
         .catch(() => Promise.resolve(false)));
       // We expect most of those call to fail, because there's only one agent
@@ -157,7 +157,7 @@ export default class SocketDaemon extends Daemon {
         if (this.channelOpen.getValue() === null) {
           this.channelOpen.next(false);
         }
-        return Promise.reject(new Error(`${CANT_FIND_AGENT_MESSAGE} at ${hostname}`));
+        return Promise.reject(new Error(`${CANT_FIND_AGENT_MESSAGE} at ${host}`));
       });
   }
 
