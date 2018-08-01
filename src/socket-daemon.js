@@ -171,8 +171,8 @@ export default class SocketDaemon extends Daemon {
 
     this.socket.on('connect', () => {
       // On connect download windows drivers which are indispensable for detection of boards
-      this.socket.emit('command', 'downloadtool windows-drivers latest arduino keep');
-      this.socket.emit('command', 'downloadtool bossac 1.7.0 arduino keep');
+      this.downloadTool('windows-drivers', 'latest', 'arduino');
+      this.downloadTool('bossac', '1.7.0', 'arduino');
 
       this.initSocket();
       this.channelOpen.next(true);
@@ -339,9 +339,6 @@ export default class SocketDaemon extends Daemon {
   }
 
   handleUploadMessage(message) {
-    if (this.uploading.getValue().status !== this.UPLOAD_IN_PROGRESS) {
-      return;
-    }
     if (message.Flash === 'Ok' && message.ProgrammerStatus === 'Done') {
       // After the upload is completed the port goes down for a while, so we have to wait a few seconds
       return timer(UPLOAD_DONE_TIMER).subscribe(() => this.uploading.next({ status: this.UPLOAD_DONE, msg: message.Flash }));
@@ -369,9 +366,6 @@ export default class SocketDaemon extends Daemon {
   }
 
   handleDownloadMessage(message) {
-    if (this.downloading.getValue().status !== this.DOWNLOAD_IN_PROGRESS) {
-      return;
-    }
     switch (message.DownloadStatus) {
       case 'Pending':
         this.downloading.next({ status: this.DOWNLOAD_IN_PROGRESS, msg: message.Msg });
