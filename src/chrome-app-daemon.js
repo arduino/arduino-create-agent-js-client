@@ -18,9 +18,12 @@
 *
 */
 
-import { takeUntil, filter } from 'rxjs/operators';
+import { interval } from 'rxjs';
+import { filter, startWith, takeUntil } from 'rxjs/operators';
 
 import Daemon from './daemon';
+
+const POLLING_INTERVAL = 2000;
 
 export default class ChromeOsDaemon extends Daemon {
   constructor(chromeExtensionId) {
@@ -31,15 +34,31 @@ export default class ChromeOsDaemon extends Daemon {
       command: 'listPorts'
     }));
 
-    this._appConnect(chromeExtensionId);
+    this.chromeExtensionId = chromeExtensionId;
+
+    this.agentFound
+      .subscribe(agentFound => {
+        if (!agentFound) {
+          this.findApp();
+        }
+      });
+  }
+
+  findApp() {
+    interval(POLLING_INTERVAL)
+      .pipe(startWith(0))
+      .pipe(takeUntil(this.channelOpen.pipe(filter(status => status))))
+      .subscribe(() => {
+        this._appConnect();
+      });
   }
 
   /**
    * Instantiate connection and events listeners for chrome app
    */
-  _appConnect(chromeExtensionId) {
+  _appConnect() {
     if (chrome.runtime) {
-      this.channel = chrome.runtime.connect(chromeExtensionId);
+      this.channel = chrome.runtime.connect(this.chromeExtensionId);
       this.channel.onMessage.addListener(message => {
         if (message.version) {
           this.agentInfo = message;
