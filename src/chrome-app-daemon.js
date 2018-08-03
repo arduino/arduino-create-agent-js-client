@@ -19,7 +19,7 @@
 */
 
 import { interval } from 'rxjs';
-import { filter, startWith, takeUntil } from 'rxjs/operators';
+import { distinctUntilChanged, filter, startWith, takeUntil } from 'rxjs/operators';
 
 import Daemon from './daemon';
 
@@ -37,6 +37,7 @@ export default class ChromeOsDaemon extends Daemon {
     this.chromeExtensionId = chromeExtensionId;
 
     this.agentFound
+      .pipe(distinctUntilChanged())
       .subscribe(agentFound => {
         if (!agentFound) {
           this.findApp();
