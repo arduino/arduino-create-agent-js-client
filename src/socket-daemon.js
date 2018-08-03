@@ -188,7 +188,6 @@ export default class SocketDaemon extends Daemon {
   handleAppMessage(message) {
     // Result of a list command
     if (message.Ports) {
-      this.socket.emit('error', 'foo');
       this.handleListMessage(message);
     }
     // Serial monitor message
