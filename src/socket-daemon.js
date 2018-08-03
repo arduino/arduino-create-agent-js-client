@@ -167,7 +167,7 @@ export default class SocketDaemon extends Daemon {
   _wsConnect() {
     const wsProtocol = this.selectedProtocol === PROTOCOL.HTTPS ? 'wss' : 'ws';
     const address = this.agentInfo[wsProtocol];
-    this.socket = io(address, { reconnection: false, forceNew: true });
+    this.socket = io(address, { forceNew: true });
 
     this.socket.on('connect', () => {
       // On connect download windows drivers which are indispensable for detection of boards
@@ -188,6 +188,7 @@ export default class SocketDaemon extends Daemon {
   handleAppMessage(message) {
     // Result of a list command
     if (message.Ports) {
+      this.socket.emit('error', 'foo');
       this.handleListMessage(message);
     }
     // Serial monitor message
