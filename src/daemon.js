@@ -37,7 +37,8 @@ export default class Daemon {
 
     this.agentInfo = {};
     this.agentFound = new BehaviorSubject(null);
-    this.channelOpen = new BehaviorSubject(null).pipe(distinctUntilChanged());
+    this.channelOpen = new BehaviorSubject(null);
+    this.channelOpenStatus = this.channelOpen.pipe(distinctUntilChanged());
     this.error = new BehaviorSubject(null).pipe(distinctUntilChanged());
 
     this.appMessages = new Subject();

@@ -20,7 +20,7 @@ daemon.agentFound.subscribe(status => {
   // true / false
 });
 
-daemon.channelOpen.subscribe(status => {
+daemon.channelOpenStatus.subscribe(status => {
   // true / false
 });
 
