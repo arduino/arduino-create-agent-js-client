@@ -47,6 +47,7 @@ let orderedPluginAddresses = [LOOPBACK_ADDRESS, LOOPBACK_HOST];
 const CANT_FIND_AGENT_MESSAGE = 'Arduino Create Agent cannot be found';
 
 let updateAttempts = 0;
+let webSocketActionsDefined = false;
 
 if (browser.name !== 'chrome' && browser.name !== 'firefox') {
   orderedPluginAddresses = [LOOPBACK_HOST, LOOPBACK_ADDRESS];
@@ -170,11 +171,16 @@ export default class SocketDaemon extends Daemon {
     this.socket = io(address, { forceNew: true });
 
     this.socket.on('connect', () => {
-      // On connect download windows drivers which are indispensable for detection of boards
-      this.downloadTool('windows-drivers', 'latest', 'arduino');
-      this.downloadTool('bossac', '1.7.0', 'arduino');
 
-      this.initSocket();
+      if (!webSocketActionsDefined) {
+        webSocketActionsDefined = true; // ensure calling it once
+
+        // On connect download windows drivers which are indispensable for detection of boards
+        this.downloadTool('windows-drivers', 'latest', 'arduino');
+        this.downloadTool('bossac', '1.7.0', 'arduino');
+
+        this.initSocket();
+      }
       this.channelOpen.next(true);
     });
 
@@ -291,14 +297,14 @@ export default class SocketDaemon extends Daemon {
    * @param {string} port the port name
    */
   openSerialMonitor(port, baudrate) {
-    if (this.serialMonitorOpened.getValue() || this.uploading.getValue().status === this.UPLOAD_IN_PROGRESS) {
-      return;
-    }
-
     const serialPort = this.devicesList.getValue().serial.find(p => p.Name === port);
     if (!serialPort) {
       return this.serialMonitorOpened.error(new Error(`Can't find board at ${port}`));
     }
+    if (this.uploading.getValue().status === this.UPLOAD_IN_PROGRESS || serialPort.IsOpen) {
+      return;
+    }
+
     this.appMessages
       .pipe(takeUntil(this.serialMonitorOpened.pipe(filter(open => open))))
       .subscribe(message => {
@@ -318,13 +324,14 @@ export default class SocketDaemon extends Daemon {
    * @param {string} port the port name
    */
   closeSerialMonitor(port) {
-    if (!this.serialMonitorOpened.getValue()) {
-      return;
-    }
     const serialPort = this.devicesList.getValue().serial.find(p => p.Name === port);
     if (!serialPort) {
       return this.serialMonitorOpened.error(new Error(`Can't find board at ${port}`));
     }
+    if (!serialPort.IsOpen) {
+      return;
+    }
+
     this.appMessages
       .pipe(takeUntil(this.serialMonitorOpened.pipe(filter(open => !open))))
       .subscribe(message => {
