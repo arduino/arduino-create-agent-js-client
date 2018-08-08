@@ -129,13 +129,13 @@ class App extends React.Component {
 
     daemon.uploading.subscribe(upload => {
       this.setState({ uploadStatus: upload.status, uploadError: upload.err });
-      console.log(upload);
+      // console.log(upload);
     });
 
     if (daemon.downloading) {
       daemon.downloading.subscribe(download => {
         this.setState({ downloadStatus: download.status });
-        console.log(download);
+        // console.log(download);
       });
     }
   }

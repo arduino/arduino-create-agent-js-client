@@ -47,7 +47,6 @@ let orderedPluginAddresses = [LOOPBACK_ADDRESS, LOOPBACK_HOST];
 const CANT_FIND_AGENT_MESSAGE = 'Arduino Create Agent cannot be found';
 
 let updateAttempts = 0;
-let webSocketActionsDefined = false;
 
 if (browser.name !== 'chrome' && browser.name !== 'firefox') {
   orderedPluginAddresses = [LOOPBACK_HOST, LOOPBACK_ADDRESS];
@@ -168,19 +167,23 @@ export default class SocketDaemon extends Daemon {
   _wsConnect() {
     const wsProtocol = this.selectedProtocol === PROTOCOL.HTTPS ? 'wss' : 'ws';
     const address = this.agentInfo[wsProtocol];
-    this.socket = io(address, { forceNew: true });
+
+    // Reset
+    if (this.socket) {
+      this.socket.destroy();
+      delete this.socket;
+      this.socket = null;
+    }
+
+    this.socket = io(address);
 
     this.socket.on('connect', () => {
+      // On connect download windows drivers which are indispensable for detection of boards
+      this.downloadTool('windows-drivers', 'latest', 'arduino');
+      this.downloadTool('bossac', '1.7.0', 'arduino');
 
-      if (!webSocketActionsDefined) {
-        webSocketActionsDefined = true; // ensure calling it once
+      this.initSocket();
 
-        // On connect download windows drivers which are indispensable for detection of boards
-        this.downloadTool('windows-drivers', 'latest', 'arduino');
-        this.downloadTool('bossac', '1.7.0', 'arduino');
-
-        this.initSocket();
-      }
       this.channelOpen.next(true);
     });
 
