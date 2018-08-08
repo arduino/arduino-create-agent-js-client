@@ -11,7 +11,7 @@ export const provisioningSketch = {
 #include <utility/ECCX08TLSConfig.h>
 
 #include <ArduinoBearSSL.h>
-#include <utility/ECCX08.h>
+#include <ArduinoECCX08.h>
 
 const int keySlot            = 0;
 const int compressedCertSlot = 10;
