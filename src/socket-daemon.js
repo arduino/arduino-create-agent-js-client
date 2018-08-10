@@ -492,6 +492,6 @@ export default class SocketDaemon extends Daemon {
       status: this.UPLOAD_ERROR,
       err: 'upload stopped'
     });
-    this.socket.emit('command', 'killprogrammer');
+    this.socket.emit('command', 'killupload');
   }
 }
