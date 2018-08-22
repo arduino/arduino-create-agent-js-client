@@ -90,6 +90,10 @@ export default class BoardConfiguration {
           partialMessage = '';
           this.daemon.writeSerial(board.port, 'y\n');
         }
+        if (partialMessage.indexOf('Please enter the thing id:') !== -1) {
+          partialMessage = '';
+          this.daemon.writeSerial(board.port, `${board.deviceId}\n`);
+        }
 
         const begin = partialMessage.indexOf('-----BEGIN CERTIFICATE REQUEST-----');
         const end = partialMessage.indexOf('-----END CERTIFICATE REQUEST-----');
@@ -121,13 +125,13 @@ export default class BoardConfiguration {
       const notBefore = new Date(compressedCert.not_before);
       const notAfter = new Date(compressedCert.not_after);
       // eslint-disable-next-line prefer-template
-      const answers = board.deviceId + '\n' +
-                  notBefore.getUTCFullYear() + '\n' +
+      const answers = notBefore.getUTCFullYear() + '\n' +
                   (notBefore.getUTCMonth() + 1) + '\n' +
                   notBefore.getUTCDate() + '\n' +
                   notBefore.getUTCHours() + '\n' +
                   (notAfter.getUTCFullYear() - notBefore.getUTCFullYear()) + '\n' +
                   compressedCert.serial + '\n' +
+                  compressedCert.authority_key_identifier + '\n' +
                   compressedCert.signature + '\n';
       this.daemon.writeSerial(board.port, answers);
     });
@@ -168,7 +172,7 @@ export default class BoardConfiguration {
    * @param {Object} board contains the board data
    * @param {function} createDeviceCb used to create the device associated to the user
    */
-  configure(compiledSketch, board, createDeviceCb) {
+  configure(compiledSketch, board, createDeviceCb, generateCertificateCb) {
     this.daemon.initUpload();
     this.configuring.next({ status: this.CONFIGURE_IN_PROGRESS, msg: 'Uploading provisioning sketch...' });
     if (!this.daemon.channelOpen.getValue()) {
@@ -196,7 +200,7 @@ export default class BoardConfiguration {
     this.daemon.uploadingDone.subscribe(() => {
       this.configuring.next({
         status: this.CONFIGURE_IN_PROGRESS,
-        msg: 'Provisioning sketch uploaded successfully. Opening serial monitor...'
+        msg: 'Provisioning sketch uploaded successfully. Creating device...'
       });
       this.daemon.serialMonitorOpened.pipe(takeUntil(this.daemon.serialMonitorOpened.pipe(filter(open => open))))
         .subscribe(() => {
@@ -208,14 +212,14 @@ export default class BoardConfiguration {
             .then(csr => {
               this.configuring.next({
                 status: this.CONFIGURE_IN_PROGRESS,
-                msg: 'CSR generated. Creating device...'
+                msg: 'CSR generated. Generating certificate...'
               });
-              return createDeviceCb(csr);
+              return generateCertificateCb(csr);
             })
             .then(data => {
               this.configuring.next({
                 status: this.CONFIGURE_IN_PROGRESS,
-                msg: 'Device created. Storing certificate...'
+                msg: 'Certificate generated. Storing certificate...'
               });
               return this.storeCertificate(data.compressed, board);
             })
@@ -234,7 +238,15 @@ export default class BoardConfiguration {
             err: error.toString()
           });
         });
-      this.daemon.openSerialMonitor(board.port, BAUDRATE);
+      createDeviceCb()
+        .then(data => {
+          this.configuring.next({
+            status: this.CONFIGURE_IN_PROGRESS,
+            msg: 'Device created. Opening serial monitor...'
+          });
+          board.deviceId = data.id; // eslint-disable-line no-param-reassign
+          this.daemon.openSerialMonitor(board.port, BAUDRATE);
+        });
     });
 
     this.daemon.uploadingError.subscribe(upload => {
