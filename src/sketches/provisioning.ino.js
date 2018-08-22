@@ -169,9 +169,9 @@ String readLine() {
     if (Serial.available()) {
       char c = Serial.read();
 
-      if (c == '\r') {
+      if (c == '\\r') {
         // ignore
-      } else if (c == '\n') {
+      } else if (c == '\\n') {
         break;
       }
 
