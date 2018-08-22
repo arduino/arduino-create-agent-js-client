@@ -13,10 +13,10 @@ export const provisioningSketch = {
 #include <ArduinoBearSSL.h>
 #include <ArduinoECCX08.h>
 
-const int keySlot            = 0;
-const int compressedCertSlot = 10;
-const int serialNumberSlot   = 11;
-const int thingIdSlot        = 12;
+const int keySlot                                   = 0;
+const int compressedCertSlot                        = 10;
+const int serialNumberAndAuthorityKeyIdentifierSlot = 11;
+const int thingIdSlot                               = 12;
 
 void setup() {
   Serial.begin(9600);
@@ -63,7 +63,8 @@ void setup() {
     while (1);
   }
 
-  ECCX08Cert.setSubjectCommonName(ECCX08.serialNumber());
+  String thingId = promptAndReadLine("Please enter the thing id: ");
+  ECCX08Cert.setSubjectCommonName(thingId);
 
   String csr = ECCX08Cert.endCSR();
 
@@ -76,37 +77,37 @@ void setup() {
   Serial.println();
   Serial.println(csr);
 
-  String thingId      = promptAndReadLine("Please enter the thing id: ");
-  String issueYear    = promptAndReadLine("Please enter the issue year of the certificate (2000 - 2031): ");
-  String issueMonth   = promptAndReadLine("Please enter the issue month of the certificate (1 - 12): ");
-  String issueDay     = promptAndReadLine("Please enter the issue day of the certificate (1 - 31): ");
-  String issueHour    = promptAndReadLine("Please enter the issue hour of the certificate (0 - 23): ");
-  String expireYears  = promptAndReadLine("Please enter how many years the certificate is valid for (0 - 31): ");
-  String serialNumber = promptAndReadLine("Please enter the certificates serial number: ");
-  String signature    = promptAndReadLine("Please enter the certificates signature: ");
-
-  serialNumber.toUpperCase();
-  signature.toUpperCase();
+  String issueYear              = promptAndReadLine("Please enter the issue year of the certificate (2000 - 2031): ");
+  String issueMonth             = promptAndReadLine("Please enter the issue month of the certificate (1 - 12): ");
+  String issueDay               = promptAndReadLine("Please enter the issue day of the certificate (1 - 31): ");
+  String issueHour              = promptAndReadLine("Please enter the issue hour of the certificate (0 - 23): ");
+  String expireYears            = promptAndReadLine("Please enter how many years the certificate is valid for (0 - 31): ");
+  String serialNumber           = promptAndReadLine("Please enter the certificates serial number: ");
+  String authorityKeyIdentifier = promptAndReadLine("Please enter the certificates authority key identifier: ");
+  String signature              = promptAndReadLine("Please enter the certificates signature: ");
 
   byte thingIdBytes[72];
   byte serialNumberBytes[16];
+  byte authorityKeyIdentifierBytes[20];
   byte signatureBytes[64];
 
   thingId.getBytes(thingIdBytes, sizeof(thingIdBytes));
   hexStringToBytes(serialNumber, serialNumberBytes, sizeof(serialNumberBytes));
-  hexStringToBytes(signature, signatureBytes, 64);
+  hexStringToBytes(authorityKeyIdentifier, authorityKeyIdentifierBytes, sizeof(authorityKeyIdentifierBytes));
+  hexStringToBytes(signature, signatureBytes, sizeof(signatureBytes));
 
   if (!ECCX08.writeSlot(thingIdSlot, thingIdBytes, sizeof(thingIdBytes))) {
     Serial.println("Error storing thing id!");
     while (1);
   }
 
-  if (!ECCX08Cert.beginStorage(compressedCertSlot, serialNumberSlot)) {
+  if (!ECCX08Cert.beginStorage(compressedCertSlot, serialNumberAndAuthorityKeyIdentifierSlot)) {
     Serial.println("Error starting ECCX08 storage!");
     while (1);
   }
 
   ECCX08Cert.setSignature(signatureBytes);
+  ECCX08Cert.setAuthorityKeyIdentifier(authorityKeyIdentifierBytes);
   ECCX08Cert.setSerialNumber(serialNumberBytes);
   ECCX08Cert.setIssueYear(issueYear.toInt());
   ECCX08Cert.setIssueMonth(issueMonth.toInt());
@@ -119,7 +120,7 @@ void setup() {
     while (1);
   }
 
-  if (!ECCX08Cert.beginReconstruction(keySlot, compressedCertSlot, serialNumberSlot)) {
+  if (!ECCX08Cert.beginReconstruction(keySlot, compressedCertSlot, serialNumberAndAuthorityKeyIdentifierSlot)) {
     Serial.println("Error starting ECCX08 cert reconstruction!");
     while (1);
   }
@@ -168,9 +169,9 @@ String readLine() {
     if (Serial.available()) {
       char c = Serial.read();
 
-      if (c == '\\r') {
+      if (c == '\r') {
         // ignore
-      } else if (c == '\\n') {
+      } else if (c == '\n') {
         break;
       }
 
@@ -183,8 +184,9 @@ String readLine() {
   return line;
 }
 
-void hexStringToBytes(const String& in, byte out[], int length) {
+void hexStringToBytes(String& in, byte out[], int length) {
   int inLength = in.length();
+  in.toUpperCase();
   int outLength = 0;
 
   for (int i = 0; i < inLength && outLength < length; i += 2) {
@@ -194,7 +196,7 @@ void hexStringToBytes(const String& in, byte out[], int length) {
     byte highByte = (highChar <= '9') ? (highChar - '0') : (highChar + 10 - 'A');
     byte lowByte = (lowChar <= '9') ? (lowChar - '0') : (lowChar + 10 - 'A');
 
-    out[outLength++] = (highByte << 4) | lowByte;
+    out[outLength++] = (highByte << 4) | (lowByte & 0xF);
   }
 }
 `
