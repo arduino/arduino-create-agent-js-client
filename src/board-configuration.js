@@ -132,7 +132,7 @@ export default class BoardConfiguration {
                   (notAfter.getUTCFullYear() - notBefore.getUTCFullYear()) + '\n' +
                   compressedCert.serial + '\n' +
                   compressedCert.authority_key_identifier + '\n' +
-                  compressedCert.signature + '\n';
+                  compressedCert.signature_asn1_x + compressedCert.signature_asn1_y + '\n';
       this.daemon.writeSerial(board.port, answers);
     });
 
