@@ -10,9 +10,10 @@ export const provisioningSketch = {
 #include <utility/ECCX08Cert.h>
 #include <utility/ECCX08TLSConfig.h>
 
-#include <ArduinoBearSSL.h>
+#include <ArduinoIoTCloudBearSSL.h>
 #include <ArduinoECCX08.h>
 
+const bool DEBUG = true;
 const int keySlot                                   = 0;
 const int compressedCertSlot                        = 10;
 const int serialNumberAndAuthorityKeyIdentifierSlot = 11;
@@ -133,6 +134,10 @@ void setup() {
   if (!ECCX08Cert.endReconstruction()) {
     Serial.println("Error reconstructing ECCX08 compressed cert!");
     while (1);
+  }
+
+  if (!DEBUG) {
+    return;
   }
 
   Serial.println("Compressed cert = ");
