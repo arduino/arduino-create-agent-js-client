@@ -6,7 +6,7 @@ export const provisioningSketch = {
     ino: {
       name: 'Provisioning.ino',
       content:
-`#include <ArduinoCloudV2.h>
+`#include <ArduinoIoTCloud.h>
 #include <utility/ECCX08Cert.h>
 #include <utility/ECCX08TLSConfig.h>
 
