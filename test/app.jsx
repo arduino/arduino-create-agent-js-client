@@ -109,9 +109,9 @@ class App extends React.Component {
 
     daemon.error.subscribe(this.showError);
 
-    daemon.devicesList.subscribe(devices => this.setState({
-      serialDevices: devices.serial,
-      networkDevices: devices.network
+    daemon.devicesList.subscribe(({ serial, network }) => this.setState({
+      serialDevices: serial,
+      networkDevices: network
     }));
 
     daemon.supportedBoards.subscribe(boards => this.setState({

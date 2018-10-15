@@ -29,9 +29,9 @@ daemon.error.subscribe(err => {
 });
 
 // List available devices (serial/network)
-daemon.devicesList.subscribe(devices => {
-  const  serialDevices = devices.serial;
-  const  networkDevices = devices.network;
+daemon.devicesList.subscribe(({serial, network}) => {
+  const  serialDevices = serial;
+  const  networkDevices = network;
 });
 
 // Open serial monitor
@@ -65,6 +65,9 @@ daemon.downloading.subscribe(download => {
 });
 
 ```
+## Configure device for Arduino IoT
+Call functions in [board-configuration.js](https://github.com/arduino/arduino-create-agent-js-client/blob/master/src/board-configuration.js)
+
 ## Development and test features
 Just run `npm run dev` and open your browser on http://localhost:8000
 
