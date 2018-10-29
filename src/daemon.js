@@ -98,6 +98,40 @@ export default class Daemon {
       });
   }
 
+  upload(target, sketch, compilation) {
+    if (!target.network) {
+      this.closeSerialMonitor(target.port);
+    }
+    this.uploading.next({ status: this.UPLOAD_IN_PROGRESS });
+
+
+    // Fetch command line for the board
+    fetch(`https://builder.arduino.cc/v3/boards/${target.board}/compute`, {
+      method: 'POST',
+      body: JSON.stringify({ action: 'upload' })
+    })
+      .then(result => result.json())
+      .then(uploadCommandInfo => {
+        const projectNameIndex = uploadCommandInfo.commandline.indexOf('{build.project_name}');
+        let ext = uploadCommandInfo.commandline.substring(projectNameIndex + 21, projectNameIndex + 24);
+        if (!ext || !compilation[ext]) {
+          console.log('we received a faulty ext property, defaulting to .bin');
+          ext = 'bin';
+        }
+
+        const uploadPayload = {
+          board: target.board,
+          port: target.port,
+          commandline: uploadCommandInfo.commandline,
+          filename: `${sketch.name}.${ext}`,
+          hex: compilation[ext], // For desktop agent
+          data: compilation[ext], // For chromeOS plugin, consider to align this
+        };
+
+        this._upload(uploadPayload, target, uploadCommandInfo);
+      });
+  }
+
   /**
    * Compares 2 devices list checking they contains the same ports in the same order
    * @param {Array<device>} a the first list

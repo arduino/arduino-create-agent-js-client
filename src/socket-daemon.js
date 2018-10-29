@@ -411,29 +411,13 @@ export default class SocketDaemon extends Daemon {
    *  options: {}
    * }
    */
-  upload(target, data) {
-    if (!target.network) {
-      this.closeSerialMonitor(target.port);
-    }
-    this.uploading.next({ status: this.UPLOAD_IN_PROGRESS });
+  _upload(uploadPayload, target, uploadCommandInfo) {
+    uploadCommandInfo.tools.forEach(tool => {
+      this.downloadTool(tool.name, tool.version, tool.packager);
+    });
 
-    if (data.files.length === 0) { // At least one file to upload
-      this.uploading.next({ status: this.UPLOAD_ERROR, err: 'You need at least one file to upload' });
-      return;
-    }
-
-    // Main file
-    const file = data.files[0];
-    file.name = file.name.split('/');
-    file.name = file.name[file.name.length - 1];
-
-    const payload = {
-      board: target.board,
-      port: target.port,
-      commandline: data.commandline,
-      signature: data.signature,
-      hex: file.data,
-      filename: file.name,
+    const socketParameters = {
+      signature: uploadCommandInfo.signature,
       extra: {
         auth: {
           username: target.auth_user,
@@ -441,35 +425,38 @@ export default class SocketDaemon extends Daemon {
           private_key: target.auth_key,
           port: target.auth_port
         },
-        wait_for_upload_port: data.options.wait_for_upload_port === 'true' || data.options.wait_for_upload_port === true,
-        use_1200bps_touch: data.options.use_1200bps_touch === 'true' || data.options.use_1200bps_touch === true,
+        wait_for_upload_port: uploadCommandInfo.options.wait_for_upload_port === 'true' || uploadCommandInfo.options.wait_for_upload_port === true,
+        use_1200bps_touch: uploadCommandInfo.options.use_1200bps_touch === 'true' || uploadCommandInfo.options.use_1200bps_touch === true,
         network: target.network,
         ssh: target.ssh,
-        params_verbose: data.options.param_verbose,
-        params_quiet: data.options.param_quiet,
-        verbose: data.options.verbose
+        params_verbose: uploadCommandInfo.options.param_verbose,
+        params_quiet: uploadCommandInfo.options.param_quiet,
+        verbose: uploadCommandInfo.options.verbose
       },
-      extrafiles: data.extrafiles || []
+      extrafiles: uploadCommandInfo.extrafiles || []
+      // Consider to push extra resource files from sketch in future if feature requested (from data folder)
     };
 
-    for (let i = 1; i < data.files.length; i += 1) {
-      payload.extrafiles.push({ filename: data.files[i].name, hex: data.files[i].data });
-    }
+    const completePayload = Object.assign({}, uploadPayload, socketParameters);
 
-    this.serialMonitorOpened.pipe(filter(open => !open))
-      .pipe(first())
-      .subscribe(() => {
-        fetch(`${this.pluginURL}/upload`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'text/plain; charset=utf-8'
-          },
-          body: JSON.stringify(payload)
-        })
-          .catch(error => {
-            this.uploading.next({ status: this.UPLOAD_ERROR, err: error });
-          });
-      });
+    this.downloadingDone.subscribe(() => {
+      this.serialMonitorOpened.pipe(filter(open => !open))
+        .pipe(first())
+        .subscribe(() => {
+          fetch(`${this.pluginURL}/upload`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'text/plain; charset=utf-8'
+            },
+            body: JSON.stringify(completePayload)
+          })
+            .catch(error => {
+              this.uploading.next({ status: this.UPLOAD_ERROR, err: error });
+            });
+        });
+    });
+
+    this.downloadingError.subscribe(error => this.uploading.next({ status: this.UPLOAD_ERROR, err: error }));
   }
 
   /**

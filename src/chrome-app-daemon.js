@@ -239,34 +239,14 @@ export default class ChromeOsDaemon extends Daemon {
    *  ],
    * }
    */
-  upload(target, data) {
-    this.closeSerialMonitor(target.port);
-    this.uploading.next({ status: this.UPLOAD_IN_PROGRESS });
-
-    if (data.files.length === 0) { // At least one file to upload
-      this.uploading.next({ status: this.UPLOAD_ERROR, err: 'You need at least one file to upload' });
-      return;
-    }
-
-    // Main file
-    const file = data.files[0];
-    file.name = file.name.split('/');
-    file.name = file.name[file.name.length - 1];
-
-    const payload = {
-      board: target.board,
-      port: target.port,
-      commandline: data.commandline,
-      filename: file.name,
-      data: file.data,
-    };
-
+  _upload(payload) {
+    const currPayload = payload;
     try {
       window.oauth.token().then(token => {
-        payload.token = token.token;
+        currPayload.token = token.token;
         this.channel.postMessage({
           command: 'upload',
-          data: payload
+          data: currPayload
         });
       });
     }
