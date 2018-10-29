@@ -49,7 +49,7 @@ daemon.writeSerial('port-name', 'message');
 daemon.closeSerialMonitor('port-name');
 
 // Upload hex
-daemon.upload(target, data);
+daemon.upload(target, sketchName, compilationResult);
 
 // Upload progress
 daemon.uploading.subscribe(upload => {

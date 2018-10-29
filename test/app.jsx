@@ -40,10 +40,8 @@ const handleUpload = () => {
     network: false
   };
 
-  const sketch = {
-    name: 'serial_mirror.bin',
-  };
-  daemon.upload(target, sketch, { data: HEX });
+  // Upload a compiled sketch.
+  daemon.upload(target, 'serial_mirror', { bin: HEX });
 };
 
 const handleDownloadTool = e => {

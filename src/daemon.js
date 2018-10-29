@@ -98,8 +98,16 @@ export default class Daemon {
       });
   }
 
-  upload(target, sketch, compilation) {
-    if (!target.network) {
+  /**
+   * Upload a sketch to serial, network or cloud target
+   * Do not send commandline and signature for network upload
+   * @param {Object} target
+   * @param {string} sketchName
+   * @param {Object} compilationResult
+   */
+  upload(target, sketchName, compilationResult, verbose = true) {
+    const isNetworkDevice = target.extra && target.extra.network;
+    if (!isNetworkDevice) {
       this.closeSerialMonitor(target.port);
     }
     this.uploading.next({ status: this.UPLOAD_IN_PROGRESS });
@@ -108,27 +116,29 @@ export default class Daemon {
     // Fetch command line for the board
     fetch(`https://builder.arduino.cc/v3/boards/${target.board}/compute`, {
       method: 'POST',
-      body: JSON.stringify({ action: 'upload' })
+      body: JSON.stringify({ action: 'upload', verbose })
     })
       .then(result => result.json())
       .then(uploadCommandInfo => {
         const projectNameIndex = uploadCommandInfo.commandline.indexOf('{build.project_name}');
         let ext = uploadCommandInfo.commandline.substring(projectNameIndex + 21, projectNameIndex + 24);
-        if (!ext || !compilation[ext]) {
+        if (!ext || !compilationResult[ext]) {
           console.log('we received a faulty ext property, defaulting to .bin');
           ext = 'bin';
         }
 
         const uploadPayload = {
-          board: target.board,
-          port: target.port,
-          commandline: uploadCommandInfo.commandline,
-          filename: `${sketch.name}.${ext}`,
-          hex: compilation[ext], // For desktop agent
-          data: compilation[ext], // For chromeOS plugin, consider to align this
+          ...target,
+          filename: `${sketchName}.${ext}`,
+          hex: compilationResult[ext], // For desktop agent
+          data: compilationResult[ext], // For chromeOS plugin, consider to align this
         };
 
-        this._upload(uploadPayload, target, uploadCommandInfo);
+        if (!isNetworkDevice) {
+          uploadPayload.commandline = uploadCommandInfo.commandline;
+        }
+
+        this._upload(uploadPayload, uploadCommandInfo);
       });
   }
 

@@ -393,51 +393,45 @@ export default class SocketDaemon extends Daemon {
 
   /**
    * Perform an upload via http on the daemon
-   * @param {Object} target = {
-   *   board: "name of the board",
-   *   port: "port of the board",
-   *   auth_user: "Optional user to use as authentication",
-   *   auth_pass: "Optional pass to use as authentication"
-   *   auth_key: "Optional private key",
-   *   auth_port: "Optional alternative port (default 22)"
-   *   network: true or false
-   * }
-   * @param {Object} data = {
-   *  commandline: "commandline to execute",
+   * @param {Object} uploadPayload common payload properties defined in parent
+   * @param {Object} uploadCommandInfo = {
+   *  commandline: "commandline to execute, for serial upload",
       signature: "signature of the commandline",
    *  files: [
    *   {name: "Name of a file to upload on the device", data: 'base64data'}
    *  ],
-   *  options: {}
+   *  options: {
+   *    wait_for_upload_port: true or false,
+   *    use_1200bps_touch: true or false,
+   *  },
+   *  tools: [{
+   *      name: 'avrdude',
+   *      packager: 'arduino',
+   *      version '6.3.0-arduino9'
+   *    },
+   *    {...}
+   *  ]
    * }
    */
-  _upload(uploadPayload, target, uploadCommandInfo) {
+  _upload(uploadPayload, uploadCommandInfo) {
     uploadCommandInfo.tools.forEach(tool => {
       this.downloadTool(tool.name, tool.version, tool.packager);
     });
 
     const socketParameters = {
-      signature: uploadCommandInfo.signature,
+      ...uploadPayload,
       extra: {
-        auth: {
-          username: target.auth_user,
-          password: target.auth_pass,
-          private_key: target.auth_key,
-          port: target.auth_port
-        },
+        ...uploadPayload.extra,
         wait_for_upload_port: uploadCommandInfo.options.wait_for_upload_port === 'true' || uploadCommandInfo.options.wait_for_upload_port === true,
         use_1200bps_touch: uploadCommandInfo.options.use_1200bps_touch === 'true' || uploadCommandInfo.options.use_1200bps_touch === true,
-        network: target.network,
-        ssh: target.ssh,
-        params_verbose: uploadCommandInfo.options.param_verbose,
-        params_quiet: uploadCommandInfo.options.param_quiet,
-        verbose: uploadCommandInfo.options.verbose
       },
       extrafiles: uploadCommandInfo.extrafiles || []
       // Consider to push extra resource files from sketch in future if feature requested (from data folder)
     };
 
-    const completePayload = Object.assign({}, uploadPayload, socketParameters);
+    if (!socketParameters.extra.network) {
+      socketParameters.signature = uploadCommandInfo.signature;
+    }
 
     this.downloadingDone.subscribe(() => {
       this.serialMonitorOpened.pipe(filter(open => !open))
@@ -448,7 +442,7 @@ export default class SocketDaemon extends Daemon {
             headers: {
               'Content-Type': 'text/plain; charset=utf-8'
             },
-            body: JSON.stringify(completePayload)
+            body: JSON.stringify(socketParameters)
           })
             .catch(error => {
               this.uploading.next({ status: this.UPLOAD_ERROR, err: error });
