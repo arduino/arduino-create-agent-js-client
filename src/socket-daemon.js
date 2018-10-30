@@ -393,13 +393,27 @@ export default class SocketDaemon extends Daemon {
 
   /**
    * Perform an upload via http on the daemon
-   * @param {Object} uploadPayload common payload properties defined in parent
+   * @param {Object} data
+   */
+  daemonUpload(data) {
+    fetch(`${this.pluginURL}/upload`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'text/plain; charset=utf-8'
+      },
+      body: JSON.stringify(data)
+    })
+      .catch(error => {
+        this.uploading.next({ status: this.UPLOAD_ERROR, err: error });
+      });
+  }
+
+  /**
+   * Upload compiled sketch to serial target
+   * @param {Object} uploadPayload payload properties defined in parent
    * @param {Object} uploadCommandInfo = {
    *  commandline: "commandline to execute, for serial upload",
       signature: "signature of the commandline",
-   *  files: [
-   *   {name: "Name of a file to upload on the device", data: 'base64data'}
-   *  ],
    *  options: {
    *    wait_for_upload_port: true or false,
    *    use_1200bps_touch: true or false,
@@ -437,20 +451,52 @@ export default class SocketDaemon extends Daemon {
       this.serialMonitorOpened.pipe(filter(open => !open))
         .pipe(first())
         .subscribe(() => {
-          fetch(`${this.pluginURL}/upload`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'text/plain; charset=utf-8'
-            },
-            body: JSON.stringify(socketParameters)
-          })
-            .catch(error => {
-              this.uploading.next({ status: this.UPLOAD_ERROR, err: error });
-            });
+          this.daemonUpload(socketParameters);
         });
     });
 
     this.downloadingError.subscribe(error => this.uploading.next({ status: this.UPLOAD_ERROR, err: error }));
+  }
+
+  /**
+   * Upload compiled sketch to network target
+   * @param {Object} target = {
+   *    board: 'fqbn',
+   *    port: 'ip address',
+   *    extra: {},
+   * }
+   * @param {string} sketchName
+   * @param {Object} compilationResult
+   */
+  uploadNetwork(target, sketchName, compilationResult) {
+    this.uploading.next({ status: this.UPLOAD_IN_PROGRESS });
+
+    const uploadPayload = {
+      ...target,
+      filename: `${sketchName}.hex`,
+      hex: compilationResult.hex,
+    };
+    this.daemonUpload(uploadPayload);
+  }
+
+  /**
+   * Upload file to network target (arduino-connector)
+   * @param {Object} target
+   * @param {string} sketchName
+   * @param {Object} encodedFile
+   * @param {Object} commandData {commandline: '', signature: ''}
+   */
+  uploadConnector(target, sketchName, encodedFile, commandData) {
+    this.uploading.next({ status: this.UPLOAD_IN_PROGRESS });
+
+    const uploadPayload = {
+      ...target,
+      commandline: commandData.commandline,
+      signature: commandData.signature,
+      filename: sketchName,
+      hex: encodedFile
+    };
+    this.daemonUpload(uploadPayload);
   }
 
   /**

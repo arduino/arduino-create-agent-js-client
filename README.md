@@ -48,8 +48,11 @@ daemon.writeSerial('port-name', 'message');
 // Close serial monitor
 daemon.closeSerialMonitor('port-name');
 
-// Upload hex
-daemon.upload(target, sketchName, compilationResult);
+// Upload sketch on serial target (desktop agent and chrome app)
+daemon.uploadSerial(target, sketchName, compilationResult, verbose);
+
+// Upload sketch on network target (daesktop agent only)
+daemon.uploadNetwork(target, sketchName, compilationResult);
 
 // Upload progress
 daemon.uploading.subscribe(upload => {

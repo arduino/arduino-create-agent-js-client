@@ -231,22 +231,24 @@ export default class ChromeOsDaemon extends Daemon {
    * @param {Object} target = {
    *   board: "name of the board",
    *   port: "port of the board",
-   * }
-   * @param {Object} data = {
-   *  commandline: "commandline to execute",
-   *  files: [
-   *   {name: "Name of a file to upload on the device", data: 'base64data'}
-   *  ],
+   *   commandline: "commandline to execute",
+   *   data: "compiled sketch"
    * }
    */
-  _upload(payload) {
-    const currPayload = payload;
+  _upload({
+    board, port, commandline, data
+  }) {
     try {
       window.oauth.token().then(token => {
-        currPayload.token = token.token;
         this.channel.postMessage({
           command: 'upload',
-          data: currPayload
+          data: {
+            board,
+            port,
+            commandline,
+            data,
+            token: token.token
+          }
         });
       });
     }

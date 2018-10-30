@@ -99,19 +99,17 @@ export default class Daemon {
   }
 
   /**
-   * Upload a sketch to serial, network or cloud target
-   * Do not send commandline and signature for network upload
+   * Upload a sketch to serial target
+   * Fetch commandline from boards API for serial upload
    * @param {Object} target
    * @param {string} sketchName
    * @param {Object} compilationResult
+   * @param {boolean} verbose
    */
-  upload(target, sketchName, compilationResult, verbose = true) {
-    const isNetworkDevice = target.extra && target.extra.network;
-    if (!isNetworkDevice) {
-      this.closeSerialMonitor(target.port);
-    }
+  uploadSerial(target, sketchName, compilationResult, verbose = true) {
     this.uploading.next({ status: this.UPLOAD_IN_PROGRESS });
 
+    this.closeSerialMonitor(target.port);
 
     // Fetch command line for the board
     fetch(`https://builder.arduino.cc/v3/boards/${target.board}/compute`, {
@@ -129,14 +127,11 @@ export default class Daemon {
 
         const uploadPayload = {
           ...target,
+          commandline: uploadCommandInfo.commandline,
           filename: `${sketchName}.${ext}`,
           hex: compilationResult[ext], // For desktop agent
-          data: compilationResult[ext], // For chromeOS plugin, consider to align this
+          data: compilationResult[ext] // For chromeOS plugin, consider to align this
         };
-
-        if (!isNetworkDevice) {
-          uploadPayload.commandline = uploadCommandInfo.commandline;
-        }
 
         this._upload(uploadPayload, uploadCommandInfo);
       });
