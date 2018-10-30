@@ -231,42 +231,24 @@ export default class ChromeOsDaemon extends Daemon {
    * @param {Object} target = {
    *   board: "name of the board",
    *   port: "port of the board",
-   * }
-   * @param {Object} data = {
-   *  commandline: "commandline to execute",
-   *  files: [
-   *   {name: "Name of a file to upload on the device", data: 'base64data'}
-   *  ],
+   *   commandline: "commandline to execute",
+   *   data: "compiled sketch"
    * }
    */
-  upload(target, data) {
-    this.closeSerialMonitor(target.port);
-    this.uploading.next({ status: this.UPLOAD_IN_PROGRESS });
-
-    if (data.files.length === 0) { // At least one file to upload
-      this.uploading.next({ status: this.UPLOAD_ERROR, err: 'You need at least one file to upload' });
-      return;
-    }
-
-    // Main file
-    const file = data.files[0];
-    file.name = file.name.split('/');
-    file.name = file.name[file.name.length - 1];
-
-    const payload = {
-      board: target.board,
-      port: target.port,
-      commandline: data.commandline,
-      filename: file.name,
-      data: file.data,
-    };
-
+  _upload({
+    board, port, commandline, data
+  }) {
     try {
       window.oauth.token().then(token => {
-        payload.token = token.token;
         this.channel.postMessage({
           command: 'upload',
-          data: payload
+          data: {
+            board,
+            port,
+            commandline,
+            data,
+            token: token.token
+          }
         });
       });
     }

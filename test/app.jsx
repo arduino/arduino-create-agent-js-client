@@ -40,21 +40,8 @@ const handleUpload = () => {
     network: false
   };
 
-  const data = {
-    files: [{
-      name: 'serial_mirror.bin',
-      data: HEX
-    }],
-    commandline: '\"{runtime.tools.bossac-1.7.0.path}/bossac\" {upload.verbose} --port={serial.port.file} -U true -i -e -w -v \"{build.path}/{build.project_name}.bin\" -R',
-    signature: '66695789d14908f52cb1964da58ec9fa816d6ddb321900c60ad6ec2d84a7c713abb2b71404030c043e32cf548736eb706180da8256f2533bd132430896437c72b396abe19e632446f16e43b80b73f5cf40aec946d00e7543721cc72d77482a84d2d510e46ea6ee0aaf063ec267b5046a1ace36b7eb04c64b4140302586f1e10eda8452078498ab5c9985e8f5d521786064601daa5ba2978cf91cfeb64e83057b3475ec029a1b835460f4e203c1635eaba812b076248a3589cd5d84c52398f09d255f8aae25d66a40d5ab2b1700247defbdfd044c77d44078197d1f543800e11f79d6ef1c6eb46df65fe2fffd81716b11d798ba21a3ca2cb20f6d955d8e1f8aef',
-    extrafiles: [],
-    options: {
-      wait_for_upload_port: true,
-      use_1200bps_touch: true,
-      params_verbose: '-v'
-    }
-  };
-  daemon.upload(target, data);
+  // Upload a compiled sketch.
+  daemon.uploadSerial(target, 'serial_mirror', { bin: HEX });
 };
 
 const handleDownloadTool = e => {

@@ -99,6 +99,45 @@ export default class Daemon {
   }
 
   /**
+   * Upload a sketch to serial target
+   * Fetch commandline from boards API for serial upload
+   * @param {Object} target
+   * @param {string} sketchName
+   * @param {Object} compilationResult
+   * @param {boolean} verbose
+   */
+  uploadSerial(target, sketchName, compilationResult, verbose = true) {
+    this.uploading.next({ status: this.UPLOAD_IN_PROGRESS });
+
+    this.closeSerialMonitor(target.port);
+
+    // Fetch command line for the board
+    fetch(`https://builder.arduino.cc/v3/boards/${target.board}/compute`, {
+      method: 'POST',
+      body: JSON.stringify({ action: 'upload', verbose })
+    })
+      .then(result => result.json())
+      .then(uploadCommandInfo => {
+        const projectNameIndex = uploadCommandInfo.commandline.indexOf('{build.project_name}');
+        let ext = uploadCommandInfo.commandline.substring(projectNameIndex + 21, projectNameIndex + 24);
+        if (!ext || !compilationResult[ext]) {
+          console.log('we received a faulty ext property, defaulting to .bin');
+          ext = 'bin';
+        }
+
+        const uploadPayload = {
+          ...target,
+          commandline: uploadCommandInfo.commandline,
+          filename: `${sketchName}.${ext}`,
+          hex: compilationResult[ext], // For desktop agent
+          data: compilationResult[ext] // For chromeOS plugin, consider to align this
+        };
+
+        this._upload(uploadPayload, uploadCommandInfo);
+      });
+  }
+
+  /**
    * Compares 2 devices list checking they contains the same ports in the same order
    * @param {Array<device>} a the first list
    * @param {Array<device>} b the second list

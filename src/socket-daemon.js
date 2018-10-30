@@ -30,7 +30,7 @@ import Daemon from './daemon';
 // Required agent version
 const MIN_VERSION = '1.1.76';
 const browser = detect();
-const POLLING_INTERVAL = 2500;
+const POLLING_INTERVAL = 3500;
 const UPLOAD_DONE_TIMER = 5000;
 
 const PROTOCOL = {
@@ -393,83 +393,110 @@ export default class SocketDaemon extends Daemon {
 
   /**
    * Perform an upload via http on the daemon
-   * @param {Object} target = {
-   *   board: "name of the board",
-   *   port: "port of the board",
-   *   auth_user: "Optional user to use as authentication",
-   *   auth_pass: "Optional pass to use as authentication"
-   *   auth_key: "Optional private key",
-   *   auth_port: "Optional alternative port (default 22)"
-   *   network: true or false
-   * }
-   * @param {Object} data = {
-   *  commandline: "commandline to execute",
+   * @param {Object} data
+   */
+  daemonUpload(data) {
+    fetch(`${this.pluginURL}/upload`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'text/plain; charset=utf-8'
+      },
+      body: JSON.stringify(data)
+    })
+      .catch(error => {
+        this.uploading.next({ status: this.UPLOAD_ERROR, err: error });
+      });
+  }
+
+  /**
+   * Upload compiled sketch to serial target
+   * @param {Object} uploadPayload payload properties defined in parent
+   * @param {Object} uploadCommandInfo = {
+   *  commandline: "commandline to execute, for serial upload",
       signature: "signature of the commandline",
-   *  files: [
-   *   {name: "Name of a file to upload on the device", data: 'base64data'}
-   *  ],
-   *  options: {}
+   *  options: {
+   *    wait_for_upload_port: true or false,
+   *    use_1200bps_touch: true or false,
+   *  },
+   *  tools: [{
+   *      name: 'avrdude',
+   *      packager: 'arduino',
+   *      version '6.3.0-arduino9'
+   *    },
+   *    {...}
+   *  ]
    * }
    */
-  upload(target, data) {
-    if (!target.network) {
-      this.closeSerialMonitor(target.port);
-    }
-    this.uploading.next({ status: this.UPLOAD_IN_PROGRESS });
+  _upload(uploadPayload, uploadCommandInfo) {
+    uploadCommandInfo.tools.forEach(tool => {
+      this.downloadTool(tool.name, tool.version, tool.packager);
+    });
 
-    if (data.files.length === 0) { // At least one file to upload
-      this.uploading.next({ status: this.UPLOAD_ERROR, err: 'You need at least one file to upload' });
-      return;
-    }
-
-    // Main file
-    const file = data.files[0];
-    file.name = file.name.split('/');
-    file.name = file.name[file.name.length - 1];
-
-    const payload = {
-      board: target.board,
-      port: target.port,
-      commandline: data.commandline,
-      signature: data.signature,
-      hex: file.data,
-      filename: file.name,
+    const socketParameters = {
+      ...uploadPayload,
       extra: {
-        auth: {
-          username: target.auth_user,
-          password: target.auth_pass,
-          private_key: target.auth_key,
-          port: target.auth_port
-        },
-        wait_for_upload_port: data.options.wait_for_upload_port === 'true' || data.options.wait_for_upload_port === true,
-        use_1200bps_touch: data.options.use_1200bps_touch === 'true' || data.options.use_1200bps_touch === true,
-        network: target.network,
-        ssh: target.ssh,
-        params_verbose: data.options.param_verbose,
-        params_quiet: data.options.param_quiet,
-        verbose: data.options.verbose
+        ...uploadPayload.extra,
+        wait_for_upload_port: uploadCommandInfo.options.wait_for_upload_port === 'true' || uploadCommandInfo.options.wait_for_upload_port === true,
+        use_1200bps_touch: uploadCommandInfo.options.use_1200bps_touch === 'true' || uploadCommandInfo.options.use_1200bps_touch === true,
       },
-      extrafiles: data.extrafiles || []
+      extrafiles: uploadCommandInfo.extrafiles || []
+      // Consider to push extra resource files from sketch in future if feature requested (from data folder)
     };
 
-    for (let i = 1; i < data.files.length; i += 1) {
-      payload.extrafiles.push({ filename: data.files[i].name, hex: data.files[i].data });
+    if (!socketParameters.extra.network) {
+      socketParameters.signature = uploadCommandInfo.signature;
     }
 
-    this.serialMonitorOpened.pipe(filter(open => !open))
-      .pipe(first())
-      .subscribe(() => {
-        fetch(`${this.pluginURL}/upload`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'text/plain; charset=utf-8'
-          },
-          body: JSON.stringify(payload)
-        })
-          .catch(error => {
-            this.uploading.next({ status: this.UPLOAD_ERROR, err: error });
-          });
-      });
+    this.downloadingDone.subscribe(() => {
+      this.serialMonitorOpened.pipe(filter(open => !open))
+        .pipe(first())
+        .subscribe(() => {
+          this.daemonUpload(socketParameters);
+        });
+    });
+
+    this.downloadingError.subscribe(error => this.uploading.next({ status: this.UPLOAD_ERROR, err: error }));
+  }
+
+  /**
+   * Upload compiled sketch to network target
+   * @param {Object} target = {
+   *    board: 'fqbn',
+   *    port: 'ip address',
+   *    extra: {},
+   * }
+   * @param {string} sketchName
+   * @param {Object} compilationResult
+   */
+  uploadNetwork(target, sketchName, compilationResult) {
+    this.uploading.next({ status: this.UPLOAD_IN_PROGRESS });
+
+    const uploadPayload = {
+      ...target,
+      filename: `${sketchName}.hex`,
+      hex: compilationResult.hex,
+    };
+    this.daemonUpload(uploadPayload);
+  }
+
+  /**
+   * Upload file to network target (arduino-connector)
+   * @param {Object} target
+   * @param {string} sketchName
+   * @param {Object} encodedFile
+   * @param {Object} commandData {commandline: '', signature: ''}
+   */
+  uploadConnector(target, sketchName, encodedFile, commandData) {
+    this.uploading.next({ status: this.UPLOAD_IN_PROGRESS });
+
+    const uploadPayload = {
+      ...target,
+      commandline: commandData.commandline,
+      signature: commandData.signature,
+      filename: sketchName,
+      hex: encodedFile
+    };
+    this.daemonUpload(uploadPayload);
   }
 
   /**
