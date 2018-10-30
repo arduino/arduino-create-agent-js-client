@@ -30,7 +30,7 @@ import Daemon from './daemon';
 // Required agent version
 const MIN_VERSION = '1.1.76';
 const browser = detect();
-const POLLING_INTERVAL = 2500;
+const POLLING_INTERVAL = 3500;
 const UPLOAD_DONE_TIMER = 5000;
 
 const PROTOCOL = {
