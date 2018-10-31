@@ -428,9 +428,11 @@ export default class SocketDaemon extends Daemon {
    * }
    */
   _upload(uploadPayload, uploadCommandInfo) {
-    uploadCommandInfo.tools.forEach(tool => {
-      this.downloadTool(tool.name, tool.version, tool.packager);
-    });
+    if (Array.isArray(uploadCommandInfo.tools)) {
+      uploadCommandInfo.tools.forEach(tool => {
+        this.downloadTool(tool.name, tool.version, tool.packager);
+      });
+    }
 
     const socketParameters = {
       ...uploadPayload,
