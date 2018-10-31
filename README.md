@@ -1,7 +1,7 @@
 [![License: GPL v3](https://img.shields.io/badge/License-GPL%20v3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
 
 # arduino-create-agent-js-client
-JS module providing discovery of the Arduino Create Plugin and communication with it
+JS module providing discovery of the [Arduino Create Plugin](https://github.com/arduino/arduino-create-agent) and communication with it
 
 ## Installation
 
