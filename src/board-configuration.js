@@ -146,7 +146,7 @@ export default class BoardConfiguration {
       network: false
     };
 
-    this.daemon.upload(uploadTarget, compiledSketch.name, compiledSketch);
+    this.daemon.uploadSerial(uploadTarget, compiledSketch.name, compiledSketch);
   }
 
   /**
