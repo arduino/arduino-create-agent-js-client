@@ -203,7 +203,7 @@ class App extends React.Component {
 
     return (
       <div>
-        <h1>Test Arduino Create Plugin</h1>
+        <h1>Arduino Create Plugin Client Demo</h1>
 
         <div className="section">
           <h2>Plugin info</h2>

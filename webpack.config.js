@@ -2,7 +2,7 @@ const path = require('path');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
 // const CleanWebpackPlugin = require('clean-webpack-plugin');
 
-const src = path.join(__dirname, 'test');
+const src = path.join(__dirname, 'demo');
 const dist = path.join(__dirname, '.tmp');
 
 module.exports = {
