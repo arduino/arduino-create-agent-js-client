@@ -19,7 +19,7 @@
 */
 
 import React from 'react';
-import { Daemon } from '../src';
+import Daemon from '../src';
 
 import { HEX } from './serial_mirror';
 

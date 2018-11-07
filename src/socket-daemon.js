@@ -299,7 +299,7 @@ export default class SocketDaemon extends Daemon {
    * Request serial port open
    * @param {string} port the port name
    */
-  openSerialMonitor(port, baudrate) {
+  openSerialMonitor(port, baudrate = 9600) {
     const serialPort = this.devicesList.getValue().serial.find(p => p.Name === port);
     if (!serialPort) {
       return this.serialMonitorOpened.error(new Error(`Can't find board at ${port}`));

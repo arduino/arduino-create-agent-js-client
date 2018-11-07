@@ -20,10 +20,8 @@
 
 import SocketDaemon from './socket-daemon';
 import ChromeOsDaemon from './chrome-app-daemon';
-import BoardConfiguration from './board-configuration';
 
 
 const Daemon = window.navigator.userAgent.indexOf(' CrOS ') !== -1 ? ChromeOsDaemon : SocketDaemon;
 
-export { Daemon, BoardConfiguration };
 export default Daemon;
