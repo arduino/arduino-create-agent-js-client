@@ -43,6 +43,7 @@ const LOOPBACK_HOST = `${PROTOCOL.HTTPS}://localhost`;
 const LOOKUP_PORT_START = 8991;
 const LOOKUP_PORT_END = 9000;
 let orderedPluginAddresses = [LOOPBACK_ADDRESS, LOOPBACK_HOST];
+let driversRequested = false;
 
 const CANT_FIND_AGENT_MESSAGE = 'Arduino Create Agent cannot be found';
 
@@ -179,8 +180,11 @@ export default class SocketDaemon extends Daemon {
 
     this.socket.on('connect', () => {
       // On connect download windows drivers which are indispensable for detection of boards
-      this.downloadTool('windows-drivers', 'latest', 'arduino');
-      this.downloadTool('bossac', '1.7.0', 'arduino');
+      if (!driversRequested) {
+        this.downloadTool('windows-drivers', 'latest', 'arduino');
+        this.downloadTool('bossac', '1.7.0', 'arduino');
+        driversRequested = false;
+      }
 
       this.initSocket();
 

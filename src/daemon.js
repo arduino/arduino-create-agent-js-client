@@ -160,8 +160,4 @@ export default class Daemon {
       throw new Error('Stop Upload not supported on Chrome OS');
     }
   }
-
-  initUpload() {
-    this.uploading.next({ status: this.UPLOAD_NOPE });
-  }
 }
