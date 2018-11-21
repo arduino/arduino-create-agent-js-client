@@ -31,7 +31,7 @@ const scrollToBottom = (target) => {
   }
 };
 
-const daemon = new Daemon(chromeExtensionID);
+const daemon = new Daemon('https://builder.arduino.cc/v3/boards', chromeExtensionID);
 
 const handleUpload = () => {
   const target = {

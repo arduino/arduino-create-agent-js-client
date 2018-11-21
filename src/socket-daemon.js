@@ -54,8 +54,8 @@ if (browser.name !== 'chrome' && browser.name !== 'firefox') {
 }
 
 export default class SocketDaemon extends Daemon {
-  constructor() {
-    super();
+  constructor(boardsUrl) {
+    super(boardsUrl);
     this.selectedProtocol = PROTOCOL.HTTP;
     this.socket = null;
     this.pluginURL = null;

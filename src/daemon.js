@@ -24,7 +24,8 @@ import { takeUntil, filter, startWith, first, distinctUntilChanged } from 'rxjs/
 const POLLING_INTERVAL = 1500;
 
 export default class Daemon {
-  constructor() {
+  constructor(boardsUrl = 'https://builder.arduino.cc/v3/boards') {
+    this.BOARDS_URL = boardsUrl;
     this.UPLOAD_NOPE = 'UPLOAD_NOPE';
     this.UPLOAD_DONE = 'UPLOAD_DONE';
     this.UPLOAD_ERROR = 'UPLOAD_ERROR';
@@ -112,7 +113,7 @@ export default class Daemon {
     this.closeSerialMonitor(target.port);
 
     // Fetch command line for the board
-    fetch(`https://builder.arduino.cc/v3/boards/${target.board}/compute`, {
+    fetch(`${this.BOARDS_URL}/${target.board}/compute`, {
       method: 'POST',
       body: JSON.stringify({ action: 'upload', verbose })
     })
