@@ -26,8 +26,8 @@ import Daemon from './daemon';
 const POLLING_INTERVAL = 2000;
 
 export default class ChromeOsDaemon extends Daemon {
-  constructor(boardsUrl, chromeExtensionId) {
-    super(boardsUrl);
+  constructor(chromeExtensionId) {
+    super();
     this.channel = null;
 
     this.openChannel(() => this.channel.postMessage({

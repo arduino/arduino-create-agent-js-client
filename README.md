@@ -15,7 +15,7 @@ npm install arduino-create-agent-js-client --save
 ```js
 import Daemon from 'arduino-create-agent-js-client';
 
-const daemon = new Daemon('https://builder.arduino.cc/v3/boards');
+const daemon = new Daemon();
 
 daemon.agentFound.subscribe(status => {
   // true / false
