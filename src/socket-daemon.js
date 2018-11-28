@@ -28,7 +28,7 @@ import { filter, takeUntil, first } from 'rxjs/operators';
 import Daemon from './daemon';
 
 // Required agent version
-const MIN_VERSION = '1.1.76';
+const MIN_VERSION = '1.1.80';
 const browser = detect();
 const POLLING_INTERVAL = 3500;
 const UPLOAD_DONE_TIMER = 5000;
