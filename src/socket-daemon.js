@@ -28,7 +28,6 @@ import { filter, takeUntil, first } from 'rxjs/operators';
 import Daemon from './daemon';
 
 // Required agent version
-const MIN_VERSION = '1.1.80';
 const browser = detect();
 const POLLING_INTERVAL = 3500;
 const UPLOAD_DONE_TIMER = 5000;
@@ -139,19 +138,25 @@ export default class SocketDaemon extends Daemon {
         });
 
         if (found) {
-          if (this.agentInfo.version && (semVerCompare(this.agentInfo.version, MIN_VERSION) >= 0 || this.agentInfo.version.indexOf('dev') !== -1)) {
-            return this.agentInfo;
-          }
+          return fetch('https://s3.amazonaws.com/arduino-create-static/agent-metadata/agent-version.json')
+            .then(response => response.json().then(data => {
+              if (this.agentInfo.version && (semVerCompare(this.agentInfo.version, data.Version) >= 0 || this.agentInfo.version.indexOf('dev') !== -1)) {
+                return this.agentInfo;
+              }
 
-          updateAttempts += 1;
-          if (updateAttempts === 0) {
-            return this.update();
-          }
-          if (updateAttempts < 3) {
-            return timer(10000).subscribe(() => this.update());
-          }
-          this.error.next('plugin version incompatible');
-          return Promise.reject(new Error('plugin version incompatible'));
+              updateAttempts += 1;
+              if (updateAttempts === 0) {
+                return this.update();
+              }
+              if (updateAttempts < 3) {
+                return timer(10000).subscribe(() => this.update());
+              }
+              this.error.next('plugin version incompatible');
+              return Promise.reject(new Error('plugin version incompatible'));
+            }))
+            .catch(() =>
+              // If version API broken, go ahead with current version
+              this.agentInfo);
         }
 
         // Set channelOpen false for the first time
