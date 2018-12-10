@@ -154,13 +154,13 @@ export default class SocketDaemon extends Daemon {
                 return this.agentInfo;
               }
 
-              updateAttempts += 1;
               if (updateAttempts === 0) {
                 return this.update();
               }
               if (updateAttempts < 3) {
                 return timer(10000).subscribe(() => this.update());
               }
+              updateAttempts += 1;
               this.error.next('plugin version incompatible');
               return Promise.reject(new Error('plugin version incompatible'));
             }))
