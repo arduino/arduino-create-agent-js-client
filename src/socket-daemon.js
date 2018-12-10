@@ -92,6 +92,16 @@ export default class SocketDaemon extends Daemon {
    * First search in LOOPBACK_ADDRESS, after in LOOPBACK_HOST if in Chrome or Firefox, otherwise vice versa.
    */
   findAgent() {
+    if (this.pluginURL) {
+      fetch(`${this.pluginURL}/info`)
+        .then(response => response.json().then(data => {
+          this.agentInfo = data;
+          this.agentFound.next(true);
+        }))
+        .catch(() => timer(POLLING_INTERVAL).subscribe(() => this.findAgent()));
+      return;
+    }
+
     this._tryPorts(orderedPluginAddresses[0])
       .catch(() => this._tryPorts(orderedPluginAddresses[1]))
       .then(() => this.agentFound.next(true))
@@ -196,9 +206,13 @@ export default class SocketDaemon extends Daemon {
       this.channelOpen.next(true);
     });
 
-    this.socket.on('error', error => this.error.next(error));
+    this.socket.on('error', error => {
+      this.socket.disconnect();
+      this.error.next(error);
+    });
 
     this.socket.on('disconnect', () => {
+      this.socket.disconnect();
       this.channelOpen.next(false);
     });
   }
