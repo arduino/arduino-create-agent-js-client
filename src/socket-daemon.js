@@ -58,6 +58,7 @@ export default class SocketDaemon extends Daemon {
     this.selectedProtocol = PROTOCOL.HTTP;
     this.socket = null;
     this.pluginURL = null;
+    this.disabled = false;
 
     this.openChannel(() => this.socket.emit('command', 'list'));
 
@@ -92,6 +93,9 @@ export default class SocketDaemon extends Daemon {
    * First search in LOOPBACK_ADDRESS, after in LOOPBACK_HOST if in Chrome or Firefox, otherwise vice versa.
    */
   findAgent() {
+    if (this.disabled) {
+      return;
+    }
     if (this.pluginURL) {
       fetch(`${this.pluginURL}/info`)
         .then(response => response.json().then(data => {
@@ -545,5 +549,14 @@ export default class SocketDaemon extends Daemon {
       err: 'upload stopped'
     });
     this.socket.emit('command', 'killupload');
+  }
+
+  disable() {
+    this.disabled = true;
+  }
+
+  enable() {
+    this.disable = false;
+    this.findAgent();
   }
 }
