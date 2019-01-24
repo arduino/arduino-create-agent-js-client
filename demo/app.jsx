@@ -22,6 +22,7 @@ import React from 'react';
 import Daemon from '../src';
 
 import { HEX } from './serial_mirror';
+import V2 from './v2/v2.jsx'
 
 const chromeExtensionID = 'hfejhkbipnickajaidoppbadcomekkde';
 
@@ -213,6 +214,8 @@ class App extends React.Component {
 
     return (
       <div>
+        <V2></V2>
+
         <h1>Arduino Create Plugin Client Demo</h1>
 
         <div className="section">
