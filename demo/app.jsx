@@ -214,7 +214,7 @@ class App extends React.Component {
 
     return (
       <div>
-        <V2></V2>
+        <V2 daemon={daemon}></V2>
 
         <h1>Arduino Create Plugin Client Demo</h1>
 
