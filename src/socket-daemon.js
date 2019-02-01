@@ -168,9 +168,8 @@ export default class SocketDaemon extends Daemon {
               this.error.next('plugin version incompatible');
               return Promise.reject(new Error('plugin version incompatible'));
             }))
-            .catch(() =>
-              // If version API broken, go ahead with current version
-              this.agentInfo);
+            // If version API broken, go ahead with current version
+            .catch(() => this.agentInfo);
         }
 
         // Set channelOpen false for the first time
@@ -355,10 +354,7 @@ export default class SocketDaemon extends Daemon {
    */
   closeSerialMonitor(port) {
     const serialPort = this.devicesList.getValue().serial.find(p => p.Name === port);
-    if (!serialPort) {
-      return this.serialMonitorOpened.error(new Error(`Can't find board at ${port}`));
-    }
-    if (!serialPort.IsOpen) {
+    if (!serialPort || !serialPort.IsOpen) {
       return;
     }
 
