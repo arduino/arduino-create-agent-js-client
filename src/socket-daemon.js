@@ -426,6 +426,11 @@ export default class SocketDaemon extends Daemon {
       },
       body: JSON.stringify(data)
     })
+      .then(result => {
+        if (!result.ok) {
+          this.uploading.next({ status: this.UPLOAD_ERROR, err: result.statusText });
+        }
+      })
       .catch(error => {
         this.uploading.next({ status: this.UPLOAD_ERROR, err: error });
       });
