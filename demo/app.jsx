@@ -73,11 +73,13 @@ class App extends React.Component {
       uploadError: '',
       downloadStatus: '',
       downloadError: '',
+      serialInput: '',
       supportedBoards: []
     };
     this.handleOpen = this.handleOpen.bind(this);
     this.handleClose = this.handleClose.bind(this);
     this.handleSend = this.handleSend.bind(this);
+    this.handleChangeSerial = this.handleChangeSerial.bind(this);
     this.showError = this.showError.bind(this);
     this.clearError = this.clearError.bind(this);
   }
@@ -148,36 +150,37 @@ class App extends React.Component {
     this.setState({ serialPortOpen: null });
   }
 
+  handleChangeSerial(e) {
+    this.setState({ serialInput: e.target.value });
+  }
+
   handleSend(e) {
     e.preventDefault();
     const serialInput = document.getElementById('serial-input');
-    const sendData = `${serialInput.value}\n`;
+    const sendData = `${this.state.serialInput}\n`;
     daemon.writeSerial(this.state.serialPortOpen, sendData);
     serialInput.focus();
-    serialInput.value = '';
+    this.setState({ serialInput: '' });
   }
 
   render() {
-    const listSerialDevices = this.state.serialDevices.map((device, i) =>
-      <li key={i}>
-        {device.Name} - IsOpen: <span className={device.IsOpen ? 'open' : 'closed'}>
-          {device.IsOpen ? 'true' : 'false'}
-        </span> - <a href="#" onClick={(e) => this.handleOpen(e, device.Name)}>
+    const listSerialDevices = this.state.serialDevices.map((device, i) => <li key={i}>
+      {device.Name} - IsOpen: <span className={device.IsOpen ? 'open' : 'closed'}>
+        {device.IsOpen ? 'true' : 'false'}
+      </span> - <a href="#" onClick={(e) => this.handleOpen(e, device.Name)}>
           open
-        </a> - <a href="#" onClick={(e) => this.handleClose(e, device.Name)}>
+      </a> - <a href="#" onClick={(e) => this.handleClose(e, device.Name)}>
           close
-        </a>
-      </li>);
+      </a>
+    </li>);
 
-    const listNetworkDevices = this.state.networkDevices.map((device, i) =>
-      <li key={i}>
-        {device.Name}
-      </li>);
+    const listNetworkDevices = this.state.networkDevices.map((device, i) => <li key={i}>
+      {device.Name}
+    </li>);
 
-    const supportedBoards = this.state.supportedBoards.map((board, i) =>
-      <li key={i}>
-        { board }
-      </li>);
+    const supportedBoards = this.state.supportedBoards.map((board, i) => <li key={i}>
+      { board }
+    </li>);
 
     let uploadClass;
     if (this.state.uploadStatus === daemon.UPLOAD_DONE) {
@@ -241,8 +244,8 @@ class App extends React.Component {
         </div>
 
         {
-          this.state.supportedBoards.length ?
-            <div className="section">
+          this.state.supportedBoards.length
+            ? <div className="section">
               <h2>Supported boards</h2>
 
               <ul>
@@ -256,11 +259,11 @@ class App extends React.Component {
           <h2>Serial Monitor</h2>
 
           <form onSubmit={this.handleSend}>
-            <input id="serial-input" />
+            <input id="serial-input" value={this.state.serialInput} onChange={this.handleChangeSerial}/>
             <input type="submit" value="Send" />
           </form>
 
-          <textarea id="serial-textarea" value={ this.state.serialMonitorContent }/>
+          <textarea id="serial-textarea" value={ this.state.serialMonitorContent } readOnly/>
         </div>
 
         <div className="section">

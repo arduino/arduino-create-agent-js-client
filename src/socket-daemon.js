@@ -469,7 +469,7 @@ export default class SocketDaemon extends Daemon {
         wait_for_upload_port: uploadCommandInfo.options.wait_for_upload_port === 'true' || uploadCommandInfo.options.wait_for_upload_port === true,
         use_1200bps_touch: uploadCommandInfo.options.use_1200bps_touch === 'true' || uploadCommandInfo.options.use_1200bps_touch === true,
       },
-      extrafiles: uploadCommandInfo.extrafiles || []
+      extrafiles: uploadCommandInfo.files || []
       // Consider to push extra resource files from sketch in future if feature requested (from data folder)
     };
 
