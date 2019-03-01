@@ -18,6 +18,7 @@
 -->
 
 <html lang="en">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -26,15 +27,20 @@
   <style>
     body {
       color: #2c353a;
-      font-family: Lucida Grande,Lucida,Verdana,sans-serif;
+      font-family: Lucida Grande, Lucida, Verdana, sans-serif;
       padding: 15px;
     }
 
-    #error, .not-found, .closed, .error {
+    #error,
+    .not-found,
+    .closed,
+    .error {
       color: red
     }
 
-    .found, .open, .success {
+    .found,
+    .open,
+    .success {
       color: green;
     }
 
@@ -53,9 +59,20 @@
     .section {
       margin: 20px;
     }
+
+    table {
+      border-collapse: collapse;
+    }
+
+    table td {
+      border: 1px solid black;
+      padding: 3px;
+    }
   </style>
 </head>
+
 <body>
   <div id="root"></div>
 </body>
+
 </html>

@@ -22,10 +22,11 @@ import io from 'socket.io-client';
 import semVerCompare from 'semver-compare';
 import { detect } from 'detect-browser';
 
-import { timer } from 'rxjs';
+import { timer, BehaviorSubject } from 'rxjs';
 import { filter, takeUntil, first } from 'rxjs/operators';
 
 import Daemon from './daemon';
+import V2 from './v2';
 
 // Required agent version
 const browser = detect();
@@ -62,10 +63,14 @@ export default class SocketDaemon extends Daemon {
 
     this.openChannel(() => this.socket.emit('command', 'list'));
 
+    this.agentV2Found = new BehaviorSubject(null);
+
     this.agentFound
       .subscribe(agentFound => {
         if (agentFound) {
           this._wsConnect();
+          this.v2 = new V2(this.pluginURL);
+          this.agentV2Found.next(this.v2);
         }
         else {
           this.findAgent();
