@@ -1,4 +1,5 @@
 import React from 'react';
+import { V2InstallTool } from './install_tool.jsx';
 
 class V2 extends React.Component {
   constructor() {
@@ -6,7 +7,6 @@ class V2 extends React.Component {
     this.state = {
       tools: []
     };
-
   }
 
   componentDidMount() {
@@ -24,10 +24,9 @@ class V2 extends React.Component {
       });
     })
   }
-
   render() {
     const tools = this.state.tools.map((tool, i) =>
-      <tr>
+      <tr key={i}>
         <td>{tool.packager}</td>
         <td>{tool.name}</td>
         <td>{tool.version}</td>
@@ -38,14 +37,20 @@ class V2 extends React.Component {
         <h2>V2</h2>
         <section>
           <h3>Installed tools</h3>
-          <table>
-            <tr>
-              <th>Packager</th>
-              <th>Name</th>
-              <th>Version</th>
-            </tr>
-            {tools}
-          </table>
+          <form onSubmit={this.handleInstallTool}>
+            <table>
+              <thead>
+                <tr>
+                  <th>Packager</th>
+                  <th>Name</th>
+                  <th>Version</th>
+                </tr>
+              </thead>
+              <tbody>{tools}</tbody>
+            </table>
+          </form>
+
+          <V2InstallTool daemon={this.props.daemon}></V2InstallTool>
         </section>
       </section >
     )

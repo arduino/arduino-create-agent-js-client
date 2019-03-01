@@ -174,11 +174,11 @@ class App extends React.Component {
       {device.Name} - IsOpen: <span className={device.IsOpen ? 'open' : 'closed'}>
         {device.IsOpen ? 'true' : 'false'}
       </span> - <a href="#" onClick={(e) => this.handleOpen(e, device.Name)}>
-          open
+        open
       </a> - <a href="#" onClick={(e) => this.handleClose(e, device.Name)}>
-          close
+        close
       </a> - <a href="#" onClick={(e) => handleBootloaderMode(e, device.Name)}>
-          bootloader mode
+        bootloader mode
       </a>
     </li>);
 
@@ -186,9 +186,10 @@ class App extends React.Component {
       {device.Name}
     </li>);
 
-    const supportedBoards = this.state.supportedBoards.map((board, i) => <li key={i}>
-      { board }
-    </li>);
+    const supportedBoards = this.state.supportedBoards.map((board, i) =>
+      <li key={i}>
+        {board}
+      </li>);
 
     let uploadClass;
     if (this.state.uploadStatus === daemon.UPLOAD_DONE) {
@@ -222,18 +223,18 @@ class App extends React.Component {
           <h2>Plugin info</h2>
 
           <p>
-            Agent status: <span className={ this.state.agentStatus ? 'found' : 'not-found' }>
-              { this.state.agentStatus ? 'Found' : 'Not found' }
+            Agent status: <span className={this.state.agentStatus ? 'found' : 'not-found'}>
+              {this.state.agentStatus ? 'Found' : 'Not found'}
             </span>
           </p>
           <p>
-            Channel status: <span className={ this.state.channelStatus ? 'found' : 'not-found' }>
-              { this.state.channelStatus ? 'Connected' : 'Not connected' }
+            Channel status: <span className={this.state.channelStatus ? 'found' : 'not-found'}>
+              {this.state.channelStatus ? 'Connected' : 'Not connected'}
             </span>
           </p>
 
           <pre>
-            { this.state.agentInfo }
+            {this.state.agentInfo}
           </pre>
         </div>
 
@@ -242,12 +243,12 @@ class App extends React.Component {
 
           <strong>serial:</strong>
           <ul>
-            { listSerialDevices }
+            {listSerialDevices}
           </ul>
 
           <strong>network:</strong>
           <ul>
-            { listNetworkDevices }
+            {listNetworkDevices}
           </ul>
 
           <p id="error"></p>
@@ -269,20 +270,20 @@ class App extends React.Component {
           <h2>Serial Monitor</h2>
 
           <form onSubmit={this.handleSend}>
-            <input id="serial-input" value={this.state.serialInput} onChange={this.handleChangeSerial}/>
+            <input id="serial-input" value={this.state.serialInput} onChange={this.handleChangeSerial} />
             <input type="submit" value="Send" />
           </form>
 
-          <textarea id="serial-textarea" value={ this.state.serialMonitorContent } readOnly/>
+          <textarea id="serial-textarea" value={this.state.serialMonitorContent} readOnly />
         </div>
 
         <div className="section">
           <h2>Upload a sample sketch on a MKR1000 at /dev/ttyACM0</h2>
-          <button onClick={ handleUpload } disabled={ this.state.uploadStatus === daemon.UPLOAD_IN_PROGRESS }>Upload Sketch</button><br/>
-          <div>Upload status: <span className={ uploadClass }> { this.state.uploadStatus }</span> <span>{ this.state.uploadError }</span></div>
+          <button onClick={handleUpload} disabled={this.state.uploadStatus === daemon.UPLOAD_IN_PROGRESS}>Upload Sketch</button><br />
+          <div>Upload status: <span className={uploadClass}> {this.state.uploadStatus}</span> <span>{this.state.uploadError}</span></div>
         </div>
 
-        { daemon.downloading ? <div className="section">
+        {daemon.downloading ? <div className="section">
           <h2>Download tool (not supported on Chrome OS)</h2>
 
           <div>
@@ -303,19 +304,19 @@ class App extends React.Component {
           </div>
 
           <form onSubmit={handleDownloadTool}>
-            <div><input id="toolname" placeholder="Tool Name"/></div>
+            <div><input id="toolname" placeholder="Tool Name" /></div>
             <div><input id="toolversion" placeholder="Tool Version" /></div>
             <div><input id="package" placeholder="Package" /></div>
-            <div><input id="replacement" placeholder="Replacement strategy"/></div>
+            <div><input id="replacement" placeholder="Replacement strategy" /></div>
 
             <input type="submit" value="Download" />
-            <div>Download status: <span className={ downloadClass }> { this.state.downloadStatus }</span></div>
+            <div>Download status: <span className={downloadClass}> {this.state.downloadStatus}</span></div>
           </form>
         </div> : null}
 
         <div className="section">
           <h2>Errors</h2>
-          <div className="error">{ this.state.error }</div>
+          <div className="error">{this.state.error}</div>
         </div>
       </div>
     );

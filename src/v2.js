@@ -1,6 +1,6 @@
 export default class SocketDaemonV2 {
   constructor(daemonURL) {
-    this.daemonURL = daemonURL + '/v2/';
+    this.daemonURL = daemonURL + '/v2';
   }
 
   // installedTools uses the new v2 apis to ask the daemon a list of the tools already present in the system
@@ -23,12 +23,26 @@ export default class SocketDaemonV2 {
   //   "checksum": "SHA256:90384nhfoso8..." // proof that the package wasn't tampered with
   // }
   installTool(payload) {
-    fetch(`${this.daemonURL}/pkgs/tools/installed`, {
-      method: 'POST',
+    return fetch(`${this.daemonURL}/pkgs/tools/installed`, {
+      method: 'PUT',
       body: JSON.stringify(payload)
     })
-      .catch(error => {
-        console.error(error);
+      .then(this.handleResponse);
+  }
+
+  handleResponse(response) {
+    return response.json()
+      .then((json) => {
+        if (!response.ok) {
+          const error = Object.assign({}, json, {
+            status: response.status,
+            statusText: response.statusText,
+          });
+
+          return Promise.reject(error);
+        }
+        return json;
       });
   }
+
 }
