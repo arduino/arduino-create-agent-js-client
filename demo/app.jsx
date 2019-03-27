@@ -44,6 +44,11 @@ const handleUpload = () => {
   daemon.uploadSerial(target, 'serial_mirror', { bin: HEX });
 };
 
+const handleBootloaderMode = (e, port) => {
+  e.preventDefault();
+  daemon.setBootloaderMode(port);
+};
+
 const handleDownloadTool = e => {
   e.preventDefault();
   const toolname = document.getElementById('toolname');
@@ -171,6 +176,8 @@ class App extends React.Component {
           open
       </a> - <a href="#" onClick={(e) => this.handleClose(e, device.Name)}>
           close
+      </a> - <a href="#" onClick={(e) => handleBootloaderMode(e, device.Name)}>
+          bootloader mode
       </a>
     </li>);
 

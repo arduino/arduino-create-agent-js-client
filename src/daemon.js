@@ -18,8 +18,12 @@
 *
 */
 
-import { Subject, BehaviorSubject, interval } from 'rxjs';
-import { takeUntil, filter, startWith, first, distinctUntilChanged } from 'rxjs/operators';
+import {
+  Subject, BehaviorSubject, interval, timer
+} from 'rxjs';
+import {
+  takeUntil, filter, startWith, first, distinctUntilChanged
+} from 'rxjs/operators';
 
 const POLLING_INTERVAL = 1500;
 
@@ -160,5 +164,17 @@ export default class Daemon {
     else {
       throw new Error('Stop Upload not supported on Chrome OS');
     }
+  }
+
+  /**
+   * Set the board in bootloader mode. This is needed to bo 100% sure to receive the correct vid/pid from the board.
+   * To do that we just touch the port at 1200 bps and then close it. The sketch on the board will be erased.
+   * @param {String} port the port name
+   */
+  setBootloaderMode(port) {
+    this.serialMonitorOpened.pipe(filter(open => open)).pipe(first()).subscribe(() => {
+      timer(1000).subscribe(() => this.closeSerialMonitor(port));
+    });
+    this.openSerialMonitor(port, 1200);
   }
 }
