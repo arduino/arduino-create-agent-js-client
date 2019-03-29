@@ -22,7 +22,7 @@ import React from 'react';
 import Daemon from '../src';
 
 import { HEX } from './serial_mirror';
-import V2 from './v2/v2.jsx'
+import V2 from './v2/v2.jsx';
 
 const chromeExtensionID = 'hfejhkbipnickajaidoppbadcomekkde';
 
@@ -186,10 +186,9 @@ class App extends React.Component {
       {device.Name}
     </li>);
 
-    const supportedBoards = this.state.supportedBoards.map((board, i) =>
-      <li key={i}>
-        {board}
-      </li>);
+    const supportedBoards = this.state.supportedBoards.map((board, i) => <li key={i}>
+      {board}
+    </li>);
 
     let uploadClass;
     if (this.state.uploadStatus === daemon.UPLOAD_DONE) {

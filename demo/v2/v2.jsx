@@ -22,15 +22,15 @@ class V2 extends React.Component {
           tools: res
         });
       });
-    })
+    });
   }
+
   render() {
-    const tools = this.state.tools.map((tool, i) =>
-      <tr key={i}>
-        <td>{tool.packager}</td>
-        <td>{tool.name}</td>
-        <td>{tool.version}</td>
-      </tr>);
+    const tools = this.state.tools.map((tool, i) => <tr key={i}>
+      <td>{tool.packager}</td>
+      <td>{tool.name}</td>
+      <td>{tool.version}</td>
+    </tr>);
 
     return (
       <section>
@@ -53,7 +53,7 @@ class V2 extends React.Component {
           <V2InstallTool daemon={this.props.daemon}></V2InstallTool>
         </section>
       </section >
-    )
+    );
   }
 }
 

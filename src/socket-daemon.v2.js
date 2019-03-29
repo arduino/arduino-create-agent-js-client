@@ -1,15 +1,13 @@
 export default class SocketDaemonV2 {
   constructor(daemonURL) {
-    this.daemonURL = daemonURL + '/v2';
+    this.daemonURL = `${daemonURL}/v2`;
   }
 
   // installedTools uses the new v2 apis to ask the daemon a list of the tools already present in the system
   installedTools() {
     return fetch(`${this.daemonURL}/pkgs/tools/installed`, {
       method: 'GET',
-    }).then(res => {
-      return res.json();
-    })
+    }).then(res => res.json());
   }
 
   // installTool uses the new v2 apis to ask the daemon to download a specific tool on the system
@@ -26,23 +24,17 @@ export default class SocketDaemonV2 {
     return fetch(`${this.daemonURL}/pkgs/tools/installed`, {
       method: 'PUT',
       body: JSON.stringify(payload)
-    })
-      .then(this.handleResponse);
-  }
-
-  handleResponse(response) {
-    return response.json()
+    }).then(res => res.json()
       .then((json) => {
-        if (!response.ok) {
+        if (!res.ok) {
           const error = Object.assign({}, json, {
-            status: response.status,
-            statusText: response.statusText,
+            status: res.status,
+            statusText: res.statusText,
           });
 
           return Promise.reject(error);
         }
         return json;
-      });
+      }));
   }
-
 }

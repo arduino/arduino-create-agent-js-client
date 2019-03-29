@@ -26,7 +26,7 @@ import { timer, BehaviorSubject } from 'rxjs';
 import { filter, takeUntil, first } from 'rxjs/operators';
 
 import Daemon from './daemon';
-import V2 from './v2';
+import V2 from './socket-daemon.v2';
 
 // Required agent version
 const browser = detect();
