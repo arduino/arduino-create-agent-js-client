@@ -119,7 +119,7 @@ export default class Daemon {
     // Fetch command line for the board
     fetch(`${this.BOARDS_URL}/${target.board}/compute`, {
       method: 'POST',
-      body: JSON.stringify({ action: 'upload', verbose })
+      body: JSON.stringify({ action: 'upload', verbose, os: this.agentInfo.os })
     })
       .then(result => result.json())
       .then(uploadCommandInfo => {
