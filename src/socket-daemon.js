@@ -463,7 +463,15 @@ export default class SocketDaemon extends Daemon {
   _upload(uploadPayload, uploadCommandInfo) {
     if (Array.isArray(uploadCommandInfo.tools)) {
       uploadCommandInfo.tools.forEach(tool => {
-        this.downloadTool(tool.name, tool.version, tool.packager);
+        if (this.v2) {
+          this.downloading.next({ status: this.DOWNLOAD_IN_PROGRESS });
+          this.v2.installTool(tool).then(() => {
+            this.downloading.next({ status: this.DOWNLOAD_DONE });
+          });
+        }
+        else {
+          this.downloadTool(tool.name, tool.version, tool.packager);
+        }
       });
     }
 
