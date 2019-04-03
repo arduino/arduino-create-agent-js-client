@@ -3,6 +3,18 @@ export default class SocketDaemonV2 {
     this.daemonURL = `${daemonURL}/v2`;
   }
 
+  // init tries an HEAD
+  init() {
+    return fetch(`${this.daemonURL}/pkgs/tools/installed`, {
+      method: 'HEAD',
+    }).then(res => {
+      if (res.status !== 200) {
+        throw Error('v2 not available');
+      }
+      return res;
+    });
+  }
+
   // installedTools uses the new v2 apis to ask the daemon a list of the tools already present in the system
   installedTools() {
     return fetch(`${this.daemonURL}/pkgs/tools/installed`, {

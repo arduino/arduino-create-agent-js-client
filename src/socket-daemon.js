@@ -69,8 +69,11 @@ export default class SocketDaemon extends Daemon {
       .subscribe(agentFound => {
         if (agentFound) {
           this._wsConnect();
-          this.v2 = new V2(this.pluginURL);
-          this.agentV2Found.next(this.v2);
+          const v2 = new V2(this.pluginURL);
+          v2.init().then(() => {
+            this.v2 = v2;
+            this.agentV2Found.next(this.v2);
+          });
         }
         else {
           this.findAgent();
