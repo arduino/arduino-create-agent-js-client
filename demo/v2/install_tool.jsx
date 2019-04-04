@@ -59,33 +59,45 @@ export class V2InstallTool extends React.Component {
 
   render() {
     return (
-      <section>
+      <section className="install-tool-container">
         <h2>Install a new tool</h2>
         <form onSubmit={this.handleSubmit}>
-          <label>
-            Name:
+          <div className="tool-input">
+            <label for="name">
+              Name:
+            </label>
             <input type="text" name="name" value={this.state.name} onChange={this.handleChange} />
-          </label><br />
-          <label>
-            Version:
+          </div>
+          <div className="tool-input">
+            <label for="version">
+              Version:
+            </label>
             <input type="text" name="version" value={this.state.version} onChange={this.handleChange} />
-          </label> <br />
-          <label>
-            Packager:
+          </div>
+          <div className="tool-input">
+            <label for="packager">
+              Packager:
+            </label>
             <input type="text" name="packager" value={this.state.packager} onChange={this.handleChange} />
-          </label> <br />
-          <label>
-            Url:
+          </div>
+          <div className="tool-input">
+            <label for="url">
+              Url:
+            </label>
             <input type="text" name="url" value={this.state.url} onChange={this.handleChange} />
-          </label> <br />
-          <label>
-            Checksum:
+          </div>
+          <div className="tool-input">
+            <label for="checksum">
+              Checksum:
+            </label>
             <input type="text" name="checksum" value={this.state.checksum} onChange={this.handleChange} />
-          </label> <br />
-          <label>
-            Signature:
+          </div>
+          <div className="tool-input">
+            <label for="signature">
+              Signature:
+            </label>
             <input type="text" name="signature" value={this.state.signature} onChange={this.handleChange} />
-          </label> <br />
+          </div>
           <input type="submit" value="Submit" />
         </form>
         <textarea cols="100" rows="10" value={this.state.res} readOnly></textarea>
