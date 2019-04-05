@@ -22,10 +22,11 @@ import io from 'socket.io-client';
 import semVerCompare from 'semver-compare';
 import { detect } from 'detect-browser';
 
-import { timer } from 'rxjs';
+import { timer, BehaviorSubject } from 'rxjs';
 import { filter, takeUntil, first } from 'rxjs/operators';
 
 import Daemon from './daemon';
+import V2 from './socket-daemon.v2';
 
 // Required agent version
 const browser = detect();
@@ -62,10 +63,17 @@ export default class SocketDaemon extends Daemon {
 
     this.openChannel(() => this.socket.emit('command', 'list'));
 
+    this.agentV2Found = new BehaviorSubject(null);
+
     this.agentFound
       .subscribe(agentFound => {
         if (agentFound) {
           this._wsConnect();
+          const v2 = new V2(this.pluginURL);
+          v2.init().then(() => {
+            this.v2 = v2;
+            this.agentV2Found.next(this.v2);
+          });
         }
         else {
           this.findAgent();
@@ -458,7 +466,15 @@ export default class SocketDaemon extends Daemon {
   _upload(uploadPayload, uploadCommandInfo) {
     if (Array.isArray(uploadCommandInfo.tools)) {
       uploadCommandInfo.tools.forEach(tool => {
-        this.downloadTool(tool.name, tool.version, tool.packager);
+        if (this.v2) {
+          this.downloading.next({ status: this.DOWNLOAD_IN_PROGRESS });
+          this.v2.installTool(tool).then(() => {
+            this.downloading.next({ status: this.DOWNLOAD_DONE });
+          });
+        }
+        else {
+          this.downloadTool(tool.name, tool.version, tool.packager);
+        }
       });
     }
 
