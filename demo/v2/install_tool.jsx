@@ -63,44 +63,44 @@ export class V2InstallTool extends React.Component {
         <h2>Install a new tool</h2>
         <form onSubmit={this.handleSubmit}>
           <div className="tool-input">
-            <label for="name">
+            <label htmlFor="name">
               Name:
             </label>
-            <input type="text" name="name" value={this.state.name} onChange={this.handleChange} />
+            <input type="text" id="name" value={this.state.name} onChange={this.handleChange} />
           </div>
           <div className="tool-input">
-            <label for="version">
+            <label htmlFor="version">
               Version:
             </label>
-            <input type="text" name="version" value={this.state.version} onChange={this.handleChange} />
+            <input type="text" id="version" value={this.state.version} onChange={this.handleChange} />
           </div>
           <div className="tool-input">
-            <label for="packager">
+            <label htmlFor="packager">
               Packager:
             </label>
-            <input type="text" name="packager" value={this.state.packager} onChange={this.handleChange} />
+            <input type="text" id="packager" value={this.state.packager} onChange={this.handleChange} />
           </div>
           <div className="tool-input">
-            <label for="url">
+            <label htmlFor="url">
               Url:
             </label>
-            <input type="text" name="url" value={this.state.url} onChange={this.handleChange} />
+            <input type="text" id="url" value={this.state.url} onChange={this.handleChange} />
           </div>
           <div className="tool-input">
-            <label for="checksum">
+            <label htmlFor="checksum">
               Checksum:
             </label>
-            <input type="text" name="checksum" value={this.state.checksum} onChange={this.handleChange} />
+            <input type="text" id="checksum" value={this.state.checksum} onChange={this.handleChange} />
           </div>
           <div className="tool-input">
-            <label for="signature">
+            <label htmlFor="signature">
               Signature:
             </label>
-            <input type="text" name="signature" value={this.state.signature} onChange={this.handleChange} />
+            <input type="text" id="signature" value={this.state.signature} onChange={this.handleChange} />
           </div>
           <input type="submit" value="Submit" />
         </form>
-        <textarea cols="100" rows="10" value={this.state.res} readOnly></textarea>
+        <textarea aria-label="Install tool output" cols="100" rows="10" value={this.state.res} readOnly></textarea>
       </section>
     );
   }

@@ -214,8 +214,6 @@ class App extends React.Component {
 
     return (
       <div>
-        <V2 daemon={daemon}></V2>
-
         <h1>Arduino Create Plugin Client Demo</h1>
 
         <div className="section">
@@ -269,11 +267,15 @@ class App extends React.Component {
           <h2>Serial Monitor</h2>
 
           <form onSubmit={this.handleSend}>
-            <input id="serial-input" value={this.state.serialInput} onChange={this.handleChangeSerial}/>
+            <input aria-label="serial input" id="serial-input" value={this.state.serialInput} onChange={this.handleChangeSerial}/>
             <input type="submit" value="Send" />
           </form>
 
-          <textarea id="serial-textarea" value={ this.state.serialMonitorContent } readOnly/>
+          <textarea aria-label="Serial Monitor output" id="serial-textarea" value={ this.state.serialMonitorContent } readOnly/>
+        </div>
+
+        <div className="v2">
+          <V2 daemon={daemon}></V2>
         </div>
 
         <div className="section">
