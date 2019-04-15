@@ -35,6 +35,9 @@ export default class SocketDaemonV2 {
   installTool(payload) {
     return fetch(`${this.daemonURL}/pkgs/tools/installed`, {
       method: 'PUT',
+      headers: {
+        'Content-Type': 'text/plain; charset=utf-8'
+      },
       body: JSON.stringify(payload)
     }).then(res => res.json()
       .then((json) => {

@@ -306,7 +306,12 @@ export default class SocketDaemon extends Daemon {
    */
   stopPlugin() {
     if (this.agentFound.getValue()) {
-      return fetch(`${this.agentInfo[this.selectedProtocol]}/pause`, { method: 'POST' });
+      return fetch(`${this.agentInfo[this.selectedProtocol]}/pause`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'text/plain; charset=utf-8'
+        }
+      });
     }
   }
 
