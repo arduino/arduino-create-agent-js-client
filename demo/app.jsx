@@ -22,7 +22,7 @@ import React from 'react';
 import Daemon from '../src';
 
 import { HEX } from './serial_mirror';
-// import V2 from './v2/v2.jsx';
+import V2 from './v2/v2.jsx';
 
 const chromeExtensionID = 'hfejhkbipnickajaidoppbadcomekkde';
 
@@ -274,9 +274,9 @@ class App extends React.Component {
           <textarea aria-label="Serial Monitor output" id="serial-textarea" value={ this.state.serialMonitorContent } readOnly/>
         </div>
 
-        {/* <div className="v2">
+        <div className="v2">
           <V2 daemon={daemon}></V2>
-        </div> */}
+        </div>
 
         <div className="section">
           <h2>Upload a sample sketch on a MKR1000 at /dev/ttyACM0</h2>

@@ -26,7 +26,7 @@ import { timer, BehaviorSubject } from 'rxjs';
 import { filter, takeUntil, first } from 'rxjs/operators';
 
 import Daemon from './daemon';
-// import V2 from './socket-daemon.v2';
+import V2 from './socket-daemon.v2';
 
 // Required agent version
 const browser = detect();
@@ -63,17 +63,17 @@ export default class SocketDaemon extends Daemon {
 
     this.openChannel(() => this.socket.emit('command', 'list'));
 
-    // this.agentV2Found = new BehaviorSubject(null);
+    this.agentV2Found = new BehaviorSubject(null);
 
     this.agentFound
       .subscribe(agentFound => {
         if (agentFound) {
           this._wsConnect();
-          /* const v2 = new V2(this.pluginURL);
+          const v2 = new V2(this.pluginURL);
           v2.init().then(() => {
             this.v2 = v2;
             this.agentV2Found.next(this.v2);
-          }); */
+          });
         }
         else {
           this.findAgent();
@@ -279,10 +279,7 @@ export default class SocketDaemon extends Daemon {
    */
   update() {
     return fetch(`${this.agentInfo[this.selectedProtocol]}/update`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'text/plain; charset=utf-8'
-      }
+      method: 'POST'
     })
       .then(result => result.json())
       .then(response => {
@@ -307,10 +304,7 @@ export default class SocketDaemon extends Daemon {
   stopPlugin() {
     if (this.agentFound.getValue()) {
       return fetch(`${this.agentInfo[this.selectedProtocol]}/pause`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'text/plain; charset=utf-8'
-        }
+        method: 'POST'
       });
     }
   }
@@ -434,9 +428,6 @@ export default class SocketDaemon extends Daemon {
   daemonUpload(data) {
     fetch(`${this.pluginURL}/upload`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'text/plain; charset=utf-8'
-      },
       body: JSON.stringify(data)
     })
       .then(result => {
@@ -471,15 +462,15 @@ export default class SocketDaemon extends Daemon {
   _upload(uploadPayload, uploadCommandInfo) {
     if (Array.isArray(uploadCommandInfo.tools)) {
       uploadCommandInfo.tools.forEach(tool => {
-        // if (this.v2) {
-        //   this.downloading.next({ status: this.DOWNLOAD_IN_PROGRESS });
-        //   this.v2.installTool(tool).then(() => {
-        //     this.downloading.next({ status: this.DOWNLOAD_DONE });
-        //   });
-        // }
-        // else {
-        this.downloadTool(tool.name, tool.version, tool.packager);
-        // }
+        if (this.v2) {
+          this.downloading.next({ status: this.DOWNLOAD_IN_PROGRESS });
+          this.v2.installTool(tool).then(() => {
+            this.downloading.next({ status: this.DOWNLOAD_DONE });
+          });
+        }
+        else {
+          this.downloadTool(tool.name, tool.version, tool.packager);
+        }
       });
     }
 
