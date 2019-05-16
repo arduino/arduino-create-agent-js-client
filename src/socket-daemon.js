@@ -459,10 +459,10 @@ export default class SocketDaemon extends Daemon {
    *  ]
    * }
    */
-  async _upload(uploadPayload, uploadCommandInfo) {
+  _upload(uploadPayload, uploadCommandInfo) {
     // Wait for tools to be installed
+    const promises = [];
     if (Array.isArray(uploadCommandInfo.tools)) {
-      const promises = [];
 
       uploadCommandInfo.tools.forEach(tool => {
         if (this.v2) {
@@ -475,8 +475,6 @@ export default class SocketDaemon extends Daemon {
           this.downloadTool(tool.name, tool.version, tool.packager);
         }
       });
-
-      await Promise.all(promises);
     }
 
     const socketParameters = {
@@ -494,7 +492,7 @@ export default class SocketDaemon extends Daemon {
       socketParameters.signature = uploadCommandInfo.signature;
     }
 
-    this.downloadingDone.subscribe(() => {
+    Promise.all(promises).then(() => {
       this.serialMonitorOpened.pipe(filter(open => !open))
         .pipe(first())
         .subscribe(() => {
