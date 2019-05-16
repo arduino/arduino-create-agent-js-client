@@ -459,19 +459,24 @@ export default class SocketDaemon extends Daemon {
    *  ]
    * }
    */
-  _upload(uploadPayload, uploadCommandInfo) {
+  async _upload(uploadPayload, uploadCommandInfo) {
+    // Wait for tools to be installed
     if (Array.isArray(uploadCommandInfo.tools)) {
+      const promises = [];
+
       uploadCommandInfo.tools.forEach(tool => {
         if (this.v2) {
           this.downloading.next({ status: this.DOWNLOAD_IN_PROGRESS });
-          this.v2.installTool(tool).then(() => {
+          promises.push(this.v2.installTool(tool).then(() => {
             this.downloading.next({ status: this.DOWNLOAD_DONE });
-          });
+          }));
         }
         else {
           this.downloadTool(tool.name, tool.version, tool.packager);
         }
       });
+
+      await Promise.all(promises);
     }
 
     const socketParameters = {
