@@ -54,11 +54,17 @@ const handleBootloaderMode = (e, port) => {
 
 const handleUpdateFirmware = (e, boardId, port, wifiModule) => {
   e.preventDefault();
-  firmwareUpdater.updateFirmware(boardId, port, wifiModule).then(response => {
+  if (![firmwareUpdater.updateStatusEnum.NOPE, firmwareUpdater.updateStatusEnum.DONE, firmwareUpdater.updateStatusEnum.ERROR].includes(firmwareUpdater.updating.getValue().status)) {
+    return;
+  }
+  firmwareUpdater.updateFirmware(boardId, port, wifiModule);
+  firmwareUpdater.updatingDone.subscribe(() => {
     console.log('Firmware updated successfully!');
-  }).catch(reason => {
+  });
+  
+  firmwareUpdater.updatingError.subscribe(update => {
     console.log('Something went wrong when trying to update the firmware');
-    console.error(reason);
+    console.error(update.err);
   });
 };
 

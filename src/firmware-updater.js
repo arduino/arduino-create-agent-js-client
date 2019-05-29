@@ -1,3 +1,11 @@
+import {BehaviorSubject} from 'rxjs';
+
+import {
+  takeUntil,
+  filter,
+  first
+} from 'rxjs/operators';
+
 const versionsMap = {
   wifi101: {
     latestVersion: 'WINC1500 19.5.4',
@@ -29,75 +37,197 @@ const signaturesEnum = Object.freeze({
 
 export default class FirmwareUpdater {
   constructor(Daemon) {
+    this.updateStatusEnum = Object.freeze({
+      NOPE: 'NOPE',
+      STARTED: 'STARTED',
+      GETTING_INFO: 'GETTING_INFO',
+      GOT_INFO: 'GOT_INFO',
+      UPLOADING: 'UPLOADING',
+      DONE: 'DONE',
+      ERROR: 'ERROR'
+    });
+
     this.Daemon = Daemon;
     this.Daemon.downloadingDone.subscribe(() => {
       this.FWUToolStatus = FWUToolStatusEnum.OK;
     });
 
     this.FWUToolStatus = FWUToolStatusEnum.NOPE;
+    this.updating = new BehaviorSubject({ status: this.updateStatusEnum.NOPE });
+    
+    this.updatingDone = this.updating.pipe(filter(update => update.status === this.updateStatusEnum.DONE))
+      .pipe(first())
+      .pipe(takeUntil(this.updating.pipe(filter(update => update.status === this.updateStatusEnum.ERROR))));
+    
+    this.updatingError = this.updating.pipe(filter(update => update.status === this.updateStatusEnum.ERROR))
+      .pipe(first())
+      .pipe(takeUntil(this.updatingDone));
+    
+    this.gotFWInfo = this.updating.pipe(filter(update => update.status === this.updateStatusEnum.GOT_INFO))
+      .pipe(first())
+      .pipe(takeUntil(this.updatingDone))
+      .pipe(takeUntil(this.updatingError));
   }
 
   getFirmwareInfo(boardId, port, wifiModule) {
-    return new Promise((resolve, reject) => {
-      let versionsList = [];
-      let firmwareInfoMessagesSubscription;
+    this.updating.next({ status: this.updateStatusEnum.GETTING_INFO });
+    let versionsList = [];
+    let firmwareInfoMessagesSubscription;
 
-      const handleFirmwareInfoMessage = message => {
-        switch (message.ProgrammerStatus) {
-          case 'Starting':
-            break;
-          case 'Busy':
-            if (message.Msg.indexOf('Flashing with command:') >= 0) {
-              return;
+    const handleFirmwareInfoMessage = message => {
+      switch (message.ProgrammerStatus) {
+        case 'Starting':
+          break;
+        case 'Busy':
+          if (message.Msg.indexOf('Flashing with command:') >= 0) {
+            return;
+          }
+          const versions = JSON.parse(message.Msg);
+          Object.keys(versions).forEach(v => {
+            if (versions[v][0].IsLoader) {
+              versionsMap[wifiModule].loaderPath = versions[v][0].Path;
             }
-            const versions = JSON.parse(message.Msg);
-            Object.keys(versions).forEach(v => {
-              if (versions[v][0].IsLoader) {
-                versionsMap[wifiModule].loaderPath = versions[v][0].Path;
-              }
-              else {
-                versionsList = [...versionsList, ...versions[v]];
-              }
-            });
-            const latestVersion = versionsList.find(version => version.Name === versionsMap[wifiModule].latestVersion)
-            versionsMap[wifiModule].latestVersionPath = latestVersion.Path;
-            break;
+            else {
+              versionsList = [...versionsList, ...versions[v]];
+            }
+          });
+          const latestVersion = versionsList.find(version => version.Name === versionsMap[wifiModule].latestVersion)
+          versionsMap[wifiModule].latestVersionPath = latestVersion.Path;
+          break;
+        case 'Error':
+          this.updating.next({ status: this.updateStatusEnum.ERROR, err: `Couldn't get firmware info: ${message}` })
+          firmwareInfoMessagesSubscription.unsubscribe();
+          break;
+        case 'Done':
+          firmwareInfoMessagesSubscription.unsubscribe();
+          this.updating.next({ status: this.updateStatusEnum.GOT_INFO, versionsList })
+          break;
+        default:
+          break;
+      }
+    }
+  
+    if (this.FWUToolStatus !== FWUToolStatusEnum.OK) {
+      this.updating.next({ status: this.updateStatusEnum.ERROR, err: `Can't get firmware info: couldn't find firmware updater tool` });
+      return;
+    }
+
+    firmwareInfoMessagesSubscription = this.Daemon.appMessages.subscribe(message => {
+      if (message.ProgrammerStatus) {
+        handleFirmwareInfoMessage(message);
+      }
+    });
+    const data = {
+      board: boardId,
+      port,
+      commandline: `"{runtime.tools.fwupdater.path}/updater" -get_available_for {network.password}`,
+      signature: signaturesEnum.GET_FIRMWARE_INFO,
+      extra: {
+        auth: {
+          password: boardId
+        }
+      },
+      filename: 'ListFirmwareVersionsInfo.bin'
+    };
+
+    return fetch(`${this.Daemon.pluginURL}/upload`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'text/plain; charset=utf-8'
+      },
+      body: JSON.stringify(data)
+    }).then(response => {
+      if (!response.ok) {
+        this.updating.next({ status: this.updateStatusEnum.ERROR, err: `Error fetching ${this.Daemon.pluginURL}/upload` });
+        return;
+      }
+    }).catch(reason => {
+      this.updating.next({ status: this.updateStatusEnum.ERROR, err: `Coudln't list firmware versions info.` });
+      return ;
+    });  
+  }
+
+  /*
+    wifiModule can be either 'wifiNina' or 'wifi101'
+  */
+  updateFirmware(boardId, port, wifiModule) {
+    this.updating.next({ status: this.updateStatusEnum.STARTED });
+    if (!port) {
+      this.updating.next({ status: this.updateStatusEnum.ERROR, err: `Can't update Firmware: no port selected.` });
+      return;
+    }
+    this.gotFWInfo.subscribe(state => {
+      if (!versionsMap[wifiModule] && !versionsMap[wifiModule].latestVersion) {
+        this.updating.next({ status: this.updateStatusEnum.ERROR, err: `Can't update Firmware: couldn't find module '${wifiModule}'` });
+        return;
+      }
+      const latestVersion = state.versionsList.find(version => version.Name === versionsMap[wifiModule].latestVersion);
+      if (!latestVersion) {
+        this.updating.next({ status: this.updateStatusEnum.ERROR, err: `Can't update Firmware: couldn't find version '${versionsMap[wifiModule].latestVersion}' for module '${versionsMap[wifiModule]}'` });
+        return;
+      }
+
+      let updateFirmwareMessagesSubscription;
+      
+      const handleFirmwareUpdateMessage = message => {
+        switch (message.ProgrammerStatus) {
           case 'Error':
-            return reject(`Couldn't get firmware info: ${message}`)
-            firmwareInfoMessagesSubscription.unsubscribe();
+            this.updating.next({ status: this.updateStatusEnum.ERROR, err: `Can't update Firmware: ${message.Msg}`});
+            updateFirmwareMessagesSubscription.unsubscribe();
             break;
           case 'Done':
-            firmwareInfoMessagesSubscription.unsubscribe();
-            return resolve(versionsList);
+            this.updating.next({ status: this.updateStatusEnum.DONE});
+            updateFirmwareMessagesSubscription.unsubscribe();
             break;
           default:
             break;
         }
       }
-    
-      if (this.FWUToolStatus !== FWUToolStatusEnum.OK) {
-        return reject(`Can't get firmware info: couldn't find firmware updater tool`)
-      }
 
-      firmwareInfoMessagesSubscription = this.Daemon.appMessages.subscribe(message => {
+      updateFirmwareMessagesSubscription = this.Daemon.appMessages.subscribe(message => {
         if (message.ProgrammerStatus) {
-          handleFirmwareInfoMessage(message);
+          handleFirmwareUpdateMessage(message);
         }
       });
+
+      let addresses = '';
+      const rootCertificates = [{
+        domain: 'arduino.cc',
+        port: 443
+      }];
+  
+      rootCertificates.forEach(address => {
+        if (address.domain && address.port) {
+          addresses += `-address ${address.domain}:${address.port} `;
+        }
+      });
+
+      const isUsingAvrdude = boardId === 'uno2018';
+      const programmer = isUsingAvrdude ? '{runtime.tools.avrdude}/bin/avrdude' : '{runtime.tools.bossac}/bossac';
+
+      const loaderPath = versionsMap[wifiModule].loaderPath;
+      if (!loaderPath) {
+        this.updating.next({ status: this.updateStatusEnum.ERROR, err: `Can't update Firmware: invalid loaderPath` });
+        return;
+      }
+
       const data = {
         board: boardId,
         port,
-        commandline: `"{runtime.tools.fwupdater.path}/updater" -get_available_for {network.password}`,
-        signature: signaturesEnum.GET_FIRMWARE_INFO,
+        commandline: `"{runtime.tools.fwupdater.path}/updater" -flasher {network.password} -firmware {upload.verbose} -port {serial.port} -restore_binary "{build.path}/{build.project_name}.bin" -programmer ${programmer}`,
+        hex: '',
         extra: {
           auth: {
-            password: boardId
-          }
+            password: loaderPath
+          },
+          verbose: true,
+          params_verbose: `${versionsMap[wifiModule].latestVersionPath} ${addresses}` // eslint-disable-line camelcase
         },
-        filename: 'ListFirmwareVersionsInfo.bin'
+        signature: isUsingAvrdude ? signaturesEnum.UPLOAD_FIRMWARE_AVRDUDE : signaturesEnum.UPLOAD_FIRMWARE_BOSSAC,
+        filename: 'CheckFirmwareVersion.bin'
       };
-  
-      return fetch(`${this.Daemon.pluginURL}/upload`, {
+
+      fetch(`${this.Daemon.pluginURL}/upload`, {
         method: 'POST',
         headers: {
           'Content-Type': 'text/plain; charset=utf-8'
@@ -105,106 +235,14 @@ export default class FirmwareUpdater {
         body: JSON.stringify(data)
       }).then(response => {
         if (!response.ok) {
-          return reject(`Error fetching ${this.Daemon.pluginURL}/upload`);
+          this.updating.next({ status: this.updateStatusEnum.ERROR, err: `Can't update Firmware: error fetching ${this.Daemon.pluginURL}/upload` });
+          return;
         }
       }).catch(reason => {
-        return reject(`Coudln't list firmware versions info.`);
-      });  
-    }) 
-  }
-
-  /*
-    wifiModule can be either 'wifiNina' or 'wifi101'
-  */
-  updateFirmware(boardId, port, wifiModule) {
-    return new Promise((resolve, reject) => {
-      if (!port) {
-        return reject(`Can't update Firmware: no port selected.`);
-      }
-      this.getFirmwareInfo(boardId, port, wifiModule).then(versionsList => {
-        if (!versionsMap[wifiModule] && !versionsMap[wifiModule].latestVersion) {
-          return reject(`Can't update Firmware: couldn't find module '${wifiModule}'`);
-        }
-        const latestVersion = versionsList.find(version => version.Name === versionsMap[wifiModule].latestVersion);
-        if (!latestVersion) {
-          return reject(`Can't update Firmware: couldn't find version '${versionsMap[wifiModule].latestVersion}' for module '${versionsMap[wifiModule]}'`);
-        }
-
-        let updateFirmwareMessagesSubscription;
-        
-        const handleFirmwareUpdateMessage = message => {
-          switch (message.ProgrammerStatus) {
-            case 'Error':
-              return reject(`Can't update Firmware: ${message.Msg}`)
-              updateFirmwareMessagesSubscription.unsubscribe();
-              break;
-            case 'Done':
-              return resolve();
-              updateFirmwareMessagesSubscription.unsubscribe();
-              break;
-            default:
-              break;
-          }
-        }
-
-        updateFirmwareMessagesSubscription = this.Daemon.appMessages.subscribe(message => {
-          if (message.ProgrammerStatus) {
-            handleFirmwareUpdateMessage(message);
-          }
-        });
-
-        let addresses = '';
-        const rootCertificates = [{
-          domain: 'arduino.cc',
-          port: 443
-        }];
-    
-        rootCertificates.forEach(address => {
-          if (address.domain && address.port) {
-            addresses += `-address ${address.domain}:${address.port} `;
-          }
-        });
-
-        const isUsingAvrdude = boardId === 'uno2018';
-        const programmer = isUsingAvrdude ? '{runtime.tools.avrdude}/bin/avrdude' : '{runtime.tools.bossac}/bossac';
-
-        const loaderPath = versionsMap[wifiModule].loaderPath;
-        if (!loaderPath) {
-          return reject(`Can't update Firmware: invalid loaderPath`);
-        }
-
-        const data = {
-          board: boardId,
-          port,
-          commandline: `"{runtime.tools.fwupdater.path}/updater" -flasher {network.password} -firmware {upload.verbose} -port {serial.port} -restore_binary "{build.path}/{build.project_name}.bin" -programmer ${programmer}`,
-          hex: '',
-          extra: {
-            auth: {
-              password: loaderPath
-            },
-            verbose: true,
-            params_verbose: `${versionsMap[wifiModule].latestVersionPath} ${addresses}` // eslint-disable-line camelcase
-          },
-          signature: isUsingAvrdude ? signaturesEnum.UPLOAD_FIRMWARE_AVRDUDE : signaturesEnum.UPLOAD_FIRMWARE_BOSSAC,
-          filename: 'CheckFirmwareVersion.bin'
-        };
-
-        fetch(`${this.Daemon.pluginURL}/upload`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'text/plain; charset=utf-8'
-          },
-          body: JSON.stringify(data)
-        }).then(response => {
-          if (!response.ok) {
-            return reject(`Can't update Firmware: Error fetching ${this.Daemon.pluginURL}/upload`);
-          }
-        }).catch(reason => {
-          return reject(`Can't update Firmware: ${reason}`)
-        });
-      }).catch(reason => {
-        return reject(reason)
+        this.updating.next({ status: this.updateStatusEnum.ERROR, err: `Can't update Firmware: ${reason}` });
+        return;
       });
-    })
+    });
+    this.getFirmwareInfo(boardId, port, wifiModule);
   }
 }
