@@ -209,6 +209,7 @@ export default class SocketDaemon extends Daemon {
       if (!driversRequested) {
         this.downloadTool('windows-drivers', 'latest', 'arduino');
         this.downloadTool('bossac', '1.7.0', 'arduino');
+        this.downloadTool('fwupdater', 'latest', 'arduino');
         driversRequested = false;
       }
 

@@ -20,6 +20,7 @@
 
 import React from 'react';
 import Daemon from '../src';
+import FirmwareUpdater from '../src/firmware-updater';
 
 import { HEX } from './serial_mirror';
 import V2 from './v2/v2.jsx';
@@ -33,6 +34,7 @@ const scrollToBottom = (target) => {
 };
 
 const daemon = new Daemon('https://builder.arduino.cc/v3/boards', chromeExtensionID);
+const firmwareUpdater = new FirmwareUpdater(daemon);
 
 const handleUpload = () => {
   const target = {
@@ -48,6 +50,22 @@ const handleUpload = () => {
 const handleBootloaderMode = (e, port) => {
   e.preventDefault();
   daemon.setBootloaderMode(port);
+};
+
+const handleUpdateFirmware = (e, boardId, port, wifiModule) => {
+  e.preventDefault();
+  if (![firmwareUpdater.updateStatusEnum.NOPE, firmwareUpdater.updateStatusEnum.DONE, firmwareUpdater.updateStatusEnum.ERROR].includes(firmwareUpdater.updating.getValue().status)) {
+    return;
+  }
+  firmwareUpdater.updateFirmware(boardId, port, wifiModule);
+  firmwareUpdater.updatingDone.subscribe(() => {
+    console.log('Firmware updated successfully!');
+  });
+  
+  firmwareUpdater.updatingError.subscribe(update => {
+    console.log('Something went wrong when trying to update the firmware');
+    console.error(update.err);
+  });
 };
 
 const handleDownloadTool = e => {
@@ -179,6 +197,10 @@ class App extends React.Component {
           close
       </a> - <a href="#" onClick={(e) => handleBootloaderMode(e, device.Name)}>
           bootloader mode
+      </a> - <a href="#" onClick={(e) => handleUpdateFirmware(e, 'mkrwifi1010', device.Name, 'wifiNina')}>
+          Wifi NINA update firmware
+      </a> - <a href="#" onClick={(e) => handleUpdateFirmware(e, 'mkr1000', device.Name, 'wifi101')}>
+          Wifi 101 update firmware
       </a>
     </li>);
 
