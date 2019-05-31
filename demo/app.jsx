@@ -52,12 +52,12 @@ const handleBootloaderMode = (e, port) => {
   daemon.setBootloaderMode(port);
 };
 
-const handleUpdateFirmware = (e, boardId, port, wifiModule) => {
+const handleUpdateFirmware = (e, boardId, port, firmwareVersion) => {
   e.preventDefault();
   if (![firmwareUpdater.updateStatusEnum.NOPE, firmwareUpdater.updateStatusEnum.DONE, firmwareUpdater.updateStatusEnum.ERROR].includes(firmwareUpdater.updating.getValue().status)) {
     return;
   }
-  firmwareUpdater.updateFirmware(boardId, port, wifiModule);
+  firmwareUpdater.updateFirmware(boardId, port, firmwareVersion);
   firmwareUpdater.updatingDone.subscribe(() => {
     console.log('Firmware updated successfully!');
   });
@@ -197,10 +197,10 @@ class App extends React.Component {
           close
       </a> - <a href="#" onClick={(e) => handleBootloaderMode(e, device.Name)}>
           bootloader mode
-      </a> - <a href="#" onClick={(e) => handleUpdateFirmware(e, 'mkrwifi1010', device.Name, 'wifiNina')}>
-          Wifi NINA update firmware
-      </a> - <a href="#" onClick={(e) => handleUpdateFirmware(e, 'mkr1000', device.Name, 'wifi101')}>
-          Wifi 101 update firmware
+      </a> - <a href="#" onClick={(e) => handleUpdateFirmware(e, 'mkrwifi1010', device.Name, '1.0.0')}>
+          MKR WiFi 1010 update firmware
+      </a> - <a href="#" onClick={(e) => handleUpdateFirmware(e, 'mkr1000', device.Name, '19.4.4')}>
+          MKR1000 update firmware
       </a>
     </li>);
 
