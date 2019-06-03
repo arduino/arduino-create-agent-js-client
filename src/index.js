@@ -25,4 +25,4 @@ import FirmwareUpdater from './firmware-updater';
 const Daemon = window.navigator.userAgent.indexOf(' CrOS ') !== -1 ? ChromeOsDaemon : SocketDaemon;
 
 export default Daemon;
-export {FirmwareUpdater};
+export { FirmwareUpdater };
