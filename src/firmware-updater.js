@@ -1,4 +1,4 @@
-import {BehaviorSubject} from 'rxjs';
+import { BehaviorSubject } from 'rxjs';
 
 import {
   takeUntil,
@@ -41,15 +41,15 @@ export default class FirmwareUpdater {
 
     this.FWUToolStatus = FWUToolStatusEnum.NOPE;
     this.updating = new BehaviorSubject({ status: this.updateStatusEnum.NOPE });
-    
+
     this.updatingDone = this.updating.pipe(filter(update => update.status === this.updateStatusEnum.DONE))
       .pipe(first())
       .pipe(takeUntil(this.updating.pipe(filter(update => update.status === this.updateStatusEnum.ERROR))));
-    
+
     this.updatingError = this.updating.pipe(filter(update => update.status === this.updateStatusEnum.ERROR))
       .pipe(first())
       .pipe(takeUntil(this.updatingDone));
-    
+
     this.gotFWInfo = this.updating.pipe(filter(update => update.status === this.updateStatusEnum.GOT_INFO))
       .pipe(first())
       .pipe(takeUntil(this.updatingDone))
@@ -64,6 +64,7 @@ export default class FirmwareUpdater {
     let firmwareInfoMessagesSubscription;
 
     const handleFirmwareInfoMessage = message => {
+      let versions;
       switch (message.ProgrammerStatus) {
         case 'Starting':
           break;
@@ -71,7 +72,7 @@ export default class FirmwareUpdater {
           if (message.Msg.indexOf('Flashing with command:') >= 0) {
             return;
           }
-          const versions = JSON.parse(message.Msg);
+          versions = JSON.parse(message.Msg);
           Object.keys(versions).forEach(v => {
             if (versions[v][0].IsLoader) {
               this.loaderPath = versions[v][0].Path;
@@ -83,7 +84,6 @@ export default class FirmwareUpdater {
           this.firmwareVersionData = versionsList.find(version => version.Name.split(' ').splice(-1)[0].trim() === firmwareVersion);
           if (!this.firmwareVersionData) {
             this.updating.next({ status: this.updateStatusEnum.ERROR, err: `Can't get firmware info: couldn't find version '${firmwareVersion}' for board '${boardId}'` });
-            return;
           }
           break;
         case 'Error':
@@ -97,8 +97,8 @@ export default class FirmwareUpdater {
         default:
           break;
       }
-    }
-  
+    };
+
     if (this.FWUToolStatus !== FWUToolStatusEnum.OK) {
       this.updating.next({ status: this.updateStatusEnum.ERROR, err: `Can't get firmware info: couldn't find firmware updater tool` });
       return;
@@ -131,12 +131,12 @@ export default class FirmwareUpdater {
     }).then(response => {
       if (!response.ok) {
         this.updating.next({ status: this.updateStatusEnum.ERROR, err: `Error fetching ${this.Daemon.pluginURL}/upload` });
-        return;
+
       }
-    }).catch(reason => {
+    }).catch(() => {
       this.updating.next({ status: this.updateStatusEnum.ERROR, err: `Coudln't list firmware versions info.` });
-      return ;
-    });  
+
+    });
   }
 
   updateFirmware(boardId, port, firmwareVersion) {
@@ -147,28 +147,28 @@ export default class FirmwareUpdater {
         this.updating.next({ status: this.updateStatusEnum.ERROR, err: `Can't update Firmware: no port selected.` });
         return;
       }
-      this.gotFWInfo.subscribe(state => {
+      this.gotFWInfo.subscribe(() => {
         if (!this.firmwareVersionData) {
           this.updating.next({ status: this.updateStatusEnum.ERROR, err: `Can't update Firmware: couldn't find version '${firmwareVersion}' for board '${boardId}'` });
           return;
         }
 
         let updateFirmwareMessagesSubscription;
-        
+
         const handleFirmwareUpdateMessage = message => {
           switch (message.ProgrammerStatus) {
             case 'Error':
-              this.updating.next({ status: this.updateStatusEnum.ERROR, err: `Can't update Firmware: ${message.Msg}`});
+              this.updating.next({ status: this.updateStatusEnum.ERROR, err: `Can't update Firmware: ${message.Msg}` });
               updateFirmwareMessagesSubscription.unsubscribe();
               break;
             case 'Done':
-              this.updating.next({ status: this.updateStatusEnum.DONE});
+              this.updating.next({ status: this.updateStatusEnum.DONE });
               updateFirmwareMessagesSubscription.unsubscribe();
               break;
             default:
               break;
           }
-        }
+        };
 
         updateFirmwareMessagesSubscription = this.Daemon.appMessages.subscribe(message => {
           if (message.ProgrammerStatus) {
@@ -181,7 +181,7 @@ export default class FirmwareUpdater {
           domain: 'arduino.cc',
           port: 443
         }];
-    
+
         rootCertificates.forEach(address => {
           if (address.domain && address.port) {
             addresses += `-address ${address.domain}:${address.port} `;
@@ -221,11 +221,11 @@ export default class FirmwareUpdater {
         }).then(response => {
           if (!response.ok) {
             this.updating.next({ status: this.updateStatusEnum.ERROR, err: `Can't update Firmware: error fetching ${this.Daemon.pluginURL}/upload` });
-            return;
+
           }
         }).catch(reason => {
           this.updating.next({ status: this.updateStatusEnum.ERROR, err: `Can't update Firmware: ${reason}` });
-          return;
+
         });
       });
       this.getFirmwareInfo(boardId, port, firmwareVersion);

@@ -61,7 +61,7 @@ const handleUpdateFirmware = (e, boardId, port, firmwareVersion) => {
   firmwareUpdater.updatingDone.subscribe(() => {
     console.log('Firmware updated successfully!');
   });
-  
+
   firmwareUpdater.updatingError.subscribe(update => {
     console.log('Something went wrong when trying to update the firmware');
     console.error(update.err);
@@ -197,7 +197,7 @@ class App extends React.Component {
           close
       </a> - <a href="#" onClick={(e) => handleBootloaderMode(e, device.Name)}>
           bootloader mode
-      </a> - <a href="#" onClick={(e) => handleUpdateFirmware(e, 'mkrwifi1010', device.Name, '1.0.0')}>
+      </a> - <a href="#" onClick={(e) => handleUpdateFirmware(e, 'mkrwifi1010', device.Name, '1.2.1')}>
           MKR WiFi 1010 update firmware
       </a> - <a href="#" onClick={(e) => handleUpdateFirmware(e, 'mkr1000', device.Name, '19.4.4')}>
           MKR1000 update firmware

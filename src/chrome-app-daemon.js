@@ -19,7 +19,9 @@
 */
 
 import { interval } from 'rxjs';
-import { distinctUntilChanged, filter, startWith, takeUntil } from 'rxjs/operators';
+import {
+  distinctUntilChanged, filter, startWith, takeUntil
+} from 'rxjs/operators';
 
 import Daemon from './daemon';
 
