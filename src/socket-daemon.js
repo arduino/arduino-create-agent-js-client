@@ -336,7 +336,7 @@ export default class SocketDaemon extends Daemon {
   openSerialMonitor(port, baudrate = 9600) {
     const serialPort = this.devicesList.getValue().serial.find(p => p.Name === port);
     if (!serialPort) {
-      return this.serialMonitorOpened.error(new Error(`Can't find board at ${port}`));
+      return this.serialMonitorError.next(`Can't find board at ${port}`);
     }
     if (this.uploading.getValue().status === this.UPLOAD_IN_PROGRESS || serialPort.IsOpen) {
       return;
@@ -349,7 +349,7 @@ export default class SocketDaemon extends Daemon {
           this.serialMonitorOpened.next(true);
         }
         if (message.Cmd === 'OpenFail') {
-          this.serialMonitorOpened.error(new Error(`Failed to open serial monitor at ${port}`));
+          this.serialMonitorError.next(`Failed to open serial monitor at ${port}`);
         }
       });
 
@@ -373,7 +373,7 @@ export default class SocketDaemon extends Daemon {
           this.serialMonitorOpened.next(false);
         }
         if (message.Cmd === 'CloseFail') {
-          this.serialMonitorOpened.error(new Error(`Failed to close serial monitor at ${port}`));
+          this.serialMonitorError.next(`Failed to close serial monitor at ${port}`);
         }
       });
     this.socket.emit('command', `close ${port}`);
