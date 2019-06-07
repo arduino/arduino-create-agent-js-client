@@ -45,6 +45,7 @@ export default class Daemon {
     this.channelOpen = new BehaviorSubject(null);
     this.channelOpenStatus = this.channelOpen.pipe(distinctUntilChanged());
     this.error = new BehaviorSubject(null).pipe(distinctUntilChanged());
+    this.serialMonitorError = new BehaviorSubject(null);
 
     this.appMessages = new Subject();
     this.serialMonitorOpened = new BehaviorSubject(false);

@@ -158,7 +158,7 @@ export default class ChromeOsDaemon extends Daemon {
     }
     const serialPort = this.devicesList.getValue().serial.find(p => p.Name === port);
     if (!serialPort) {
-      return this.serialMonitorOpened.error(new Error(`Can't find port ${port}`));
+      return this.serialMonitorError.next(`Can't find port ${port}`);
     }
     this.appMessages
       .pipe(takeUntil(this.serialMonitorOpened.pipe(filter(open => open))))
@@ -167,7 +167,7 @@ export default class ChromeOsDaemon extends Daemon {
           this.serialMonitorOpened.next(true);
         }
         if (message.portOpenStatus === 'error') {
-          this.serialMonitorOpened.error(new Error(`Failed to open serial ${port}`));
+          this.serialMonitorError.next(`Failed to open serial ${port}`);
         }
       });
     this.channel.postMessage({
@@ -189,7 +189,7 @@ export default class ChromeOsDaemon extends Daemon {
     }
     const serialPort = this.devicesList.getValue().serial.find(p => p.Name === port);
     if (!serialPort) {
-      return this.serialMonitorOpened.error(new Error(`Can't find port ${port}`));
+      return this.serialMonitorError.next(`Can't find port ${port}`);
     }
     this.appMessages
       .pipe(takeUntil(this.serialMonitorOpened.pipe(filter(open => !open))))
@@ -198,7 +198,7 @@ export default class ChromeOsDaemon extends Daemon {
           this.serialMonitorOpened.next(false);
         }
         if (message.portCloseStatus === 'error') {
-          this.serialMonitorOpened.error(new Error(`Failed to close serial ${port}`));
+          this.serialMonitorError.next(`Failed to close serial ${port}`);
         }
       });
     this.channel.postMessage({

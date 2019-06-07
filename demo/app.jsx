@@ -121,6 +121,9 @@ class App extends React.Component {
     });
 
     daemon.error.subscribe(this.showError);
+    daemon.serialMonitorError.subscribe(this.showError);
+    daemon.uploadingError.subscribe(this.showError);
+    daemon.downloadingError.subscribe(this.showError);
 
     daemon.devicesList.subscribe(({ serial, network }) => this.setState({
       serialDevices: serial,
@@ -155,6 +158,7 @@ class App extends React.Component {
 
   showError(err) {
     this.setState({ error: err });
+    scrollToBottom(document.body);
   }
 
   clearError() {
