@@ -47,9 +47,9 @@
     "rollup-plugin-replace": "^2.2.0",
     "rollup-plugin-uglify-es": "^0.0.1",
     "rollup-watch": "^4.3.1",
-    "webpack": "^3.11.0",
-    "webpack-cli": "^3.3.2",
-    "webpack-dev-server": "^3.1.11"
+    "webpack": "^4.35.3",
+    "webpack-cli": "^3.3.5",
+    "webpack-dev-server": "^3.7.2"
   },
   "scripts": {
     "test": "",
