@@ -36,7 +36,7 @@
     "eslint-plugin-import": "^2.17.3",
     "eslint-plugin-react": "^7.13.0",
     "html-webpack-plugin": "^3.2.0",
-    "lodash": "^4.17.11",
+    "lodash": "^4.17.14",
     "react": "^16.8.6",
     "react-dom": "^16.8.6",
     "rimraf": "^2.6.3",
