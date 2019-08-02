@@ -36,17 +36,6 @@ const scrollToBottom = (target) => {
 const daemon = new Daemon('https://builder.arduino.cc/v3/boards', chromeExtensionID);
 const firmwareUpdater = new FirmwareUpdater(daemon);
 
-const handleUpload = () => {
-  const target = {
-    board: 'arduino:samd:mkr1000',
-    port: '/dev/ttyACM0',
-    network: false
-  };
-
-  // Upload a compiled sketch.
-  daemon.uploadSerial(target, 'serial_mirror', { bin: HEX });
-};
-
 const handleBootloaderMode = (e, port) => {
   e.preventDefault();
   daemon.setBootloaderMode(port);
@@ -98,7 +87,8 @@ class App extends React.Component {
       downloadStatus: '',
       downloadError: '',
       serialInput: '',
-      supportedBoards: []
+      supportedBoards: [],
+      uploadingPort: ''
     };
     this.handleOpen = this.handleOpen.bind(this);
     this.handleClose = this.handleClose.bind(this);
@@ -106,6 +96,7 @@ class App extends React.Component {
     this.handleChangeSerial = this.handleChangeSerial.bind(this);
     this.showError = this.showError.bind(this);
     this.clearError = this.clearError.bind(this);
+    this.handleUpload = this.handleUpload.bind(this);
   }
 
   componentDidMount() {
@@ -190,6 +181,20 @@ class App extends React.Component {
     serialInput.focus();
     this.setState({ serialInput: '' });
   }
+
+  handleUpload() {
+    const target = {
+      board: 'arduino:samd:mkr1000',
+      port: '/dev/ttyACM1',
+      network: false
+    };
+
+    this.setState({ uploadingPort: target.port });
+    daemon.uploadingPortChanged.subscribe(newPort => this.setState({ uploadingPort: newPort }));
+
+    // Upload a compiled sketch.
+    daemon.uploadSerial(target, 'serial_mirror', { bin: HEX });
+  };
 
   render() {
     const listSerialDevices = this.state.serialDevices.map((device, i) => <li key={i}>
@@ -306,8 +311,9 @@ class App extends React.Component {
 
         <div className="section">
           <h2>Upload a sample sketch on a MKR1000 at /dev/ttyACM0</h2>
-          <button onClick={ handleUpload } disabled={ this.state.uploadStatus === daemon.UPLOAD_IN_PROGRESS }>Upload Sketch</button><br/>
+          <button onClick={ this.handleUpload } disabled={ this.state.uploadStatus === daemon.UPLOAD_IN_PROGRESS }>Upload Sketch</button><br/>
           <div>Upload status: <span className={ uploadClass }> { this.state.uploadStatus }</span> <span>{ this.state.uploadError }</span></div>
+          <div>Uploading port: { this.state.uploadingPort || '-' }</div>
         </div>
 
         { daemon.downloading ? <div className="section">
