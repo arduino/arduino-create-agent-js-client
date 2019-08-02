@@ -19,7 +19,7 @@
 */
 
 import {
-  Subject, BehaviorSubject, interval, timer, UnsubscriptionError
+  Subject, BehaviorSubject, interval, timer
 } from 'rxjs';
 import {
   takeUntil, filter, startWith, first, distinctUntilChanged
@@ -80,7 +80,7 @@ export default class Daemon {
       .pipe(first())
       .pipe(takeUntil(this.downloadingDone));
 
-    this.uploadingPortChanged = new Subject();
+    this.boardPortAfterUpload = new Subject().pipe(first());
     this.uploadingPort = null;
   }
 
@@ -152,7 +152,10 @@ export default class Daemon {
               boardFound = currentSerialDevices.find(d => this.serialDevicesBeforeUpload.every(e => e.Name !== d.Name));
               if (boardFound) {
                 this.uploadingPort = boardFound.Name;
-                this.uploadingPortChanged.next(this.uploadingPort)
+                this.boardPortAfterUpload.next({
+                  hasChanged: true,
+                  newPort: this.uploadingPort
+                });
               }
             }
 
@@ -160,9 +163,12 @@ export default class Daemon {
               this.waitingForPortToComeUp.unsubscribe();
               this.uploadingPort = null;
               this.serialDevicesBeforeUpload = null;
+              this.boardPortAfterUpload.next({
+                hasChanged: false
+              });
             }
-          })
-        })
+          });
+        });
         this._upload(uploadPayload, uploadCommandInfo);
       });
   }

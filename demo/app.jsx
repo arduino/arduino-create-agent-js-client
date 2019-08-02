@@ -190,11 +190,15 @@ class App extends React.Component {
     };
 
     this.setState({ uploadingPort: target.port });
-    daemon.uploadingPortChanged.subscribe(newPort => this.setState({ uploadingPort: newPort }));
+    daemon.boardPortAfterUpload.subscribe(portStatus => {
+      if (portStatus.hasChanged) {
+        this.setState({ uploadingPort: portStatus.newPort });
+      }
+    });
 
     // Upload a compiled sketch.
     daemon.uploadSerial(target, 'serial_mirror', { bin: HEX });
-  };
+  }
 
   render() {
     const listSerialDevices = this.state.serialDevices.map((device, i) => <li key={i}>
