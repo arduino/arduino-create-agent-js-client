@@ -79,6 +79,9 @@ export default class Daemon {
     this.downloadingError = this.downloading.pipe(filter(download => download.status === this.DOWNLOAD_ERROR))
       .pipe(first())
       .pipe(takeUntil(this.downloadingDone));
+
+    this.boardPortAfterUpload = new Subject().pipe(first());
+    this.uploadingPort = null;
   }
 
   notifyUploadError(err) {
@@ -113,7 +116,9 @@ export default class Daemon {
    * @param {boolean} verbose
    */
   uploadSerial(target, sketchName, compilationResult, verbose = true) {
-    this.uploading.next({ status: this.UPLOAD_IN_PROGRESS });
+    this.uploadingPort = target.port;
+    this.uploading.next({ status: this.UPLOAD_IN_PROGRESS, msg: 'Upload started' });
+    this.serialDevicesBeforeUpload = this.devicesList.getValue().serial;
 
     this.closeSerialMonitor(target.port);
 
@@ -139,6 +144,31 @@ export default class Daemon {
           data: compilationResult[ext] // For chromeOS plugin, consider to align this
         };
 
+        this.uploadingDone.subscribe(() => {
+          this.waitingForPortToComeUp = timer(1000).subscribe(() => {
+            const currentSerialDevices = this.devicesList.getValue().serial;
+            let boardFound = currentSerialDevices.find(device => device.Name === this.uploadingPort);
+            if (!boardFound) {
+              boardFound = currentSerialDevices.find(d => this.serialDevicesBeforeUpload.every(e => e.Name !== d.Name));
+              if (boardFound) {
+                this.uploadingPort = boardFound.Name;
+                this.boardPortAfterUpload.next({
+                  hasChanged: true,
+                  newPort: this.uploadingPort
+                });
+              }
+            }
+
+            if (boardFound) {
+              this.waitingForPortToComeUp.unsubscribe();
+              this.uploadingPort = null;
+              this.serialDevicesBeforeUpload = null;
+              this.boardPortAfterUpload.next({
+                hasChanged: false
+              });
+            }
+          });
+        });
         this._upload(uploadPayload, uploadCommandInfo);
       });
   }
