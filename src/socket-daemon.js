@@ -284,11 +284,9 @@ export default class SocketDaemon extends Daemon {
     })
       .then(result => result.json())
       .then(response => {
-        if (!response.ok) {
-          if (response && response.error && (response.error.indexOf('proxy') !== -1 || response.error.indexOf('dial tcp') !== -1)) {
-            this.error.next('proxy error');
-            return new Error('proxy error');
-          }
+        if (response && response.error && (response.error.indexOf('proxy') !== -1 || response.error.indexOf('dial tcp') !== -1)) {
+          this.error.next('proxy error');
+          return new Error('proxy error');
         }
         // We reject the promise because the daemon will be restarted, we need to continue looking for the port
         return Promise.reject();
