@@ -23,7 +23,7 @@
   "devDependencies": {
     "babel-cli": "^6.26.0",
     "babel-core": "^6.26.3",
-    "babel-eslint": "^10.0.2",
+    "babel-eslint": "^10.0.3",
     "babel-loader": "^7.1.5",
     "babel-plugin-transform-object-rest-spread": "^6.26.0",
     "babel-preset-env": "^1.7.0",
@@ -47,8 +47,8 @@
     "rollup-plugin-replace": "^2.2.0",
     "rollup-plugin-uglify-es": "^0.0.1",
     "rollup-watch": "^4.3.1",
-    "webpack": "^4.39.1",
-    "webpack-cli": "^3.3.6",
+    "webpack": "^4.39.3",
+    "webpack-cli": "^3.3.7",
     "webpack-dev-server": "^3.7.2"
   },
   "scripts": {
