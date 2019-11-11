@@ -39,11 +39,11 @@ export default class SocketDaemonV2 {
     }).then(res => res.json()
       .then((json) => {
         if (!res.ok) {
-          const error = Object.assign({}, json, {
+          const error = {
+            ...json,
             status: res.status,
             statusText: res.statusText,
-          });
-
+          };
           return Promise.reject(error);
         }
         return json;
