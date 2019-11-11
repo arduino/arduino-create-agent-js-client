@@ -1,6 +1,5 @@
 const path = require('path');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
-// const CleanWebpackPlugin = require('clean-webpack-plugin');
 
 const src = path.join(__dirname, 'demo');
 const dist = path.join(__dirname, '.tmp');
@@ -16,7 +15,6 @@ module.exports = {
     allowedHosts: ['local.arduino.cc']
   },
   plugins: [
-    // new CleanWebpackPlugin([dist]),
     new HtmlWebpackPlugin({
       template: path.join(src, 'index.html')
     })
