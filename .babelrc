@@ -2,19 +2,27 @@
   "env": {
     "commonjs": {
       "presets": [
-        ["env", {
-          "useBuiltIns": false
-        }]
+        [
+          "@babel/env",
+          {
+            "useBuiltIns": false
+          }
+        ]
       ]
     },
     "es": {
       "presets": [
-        ["env", {
-          "useBuiltIns": false,
-          "modules": false
-        }]
+        [
+          "@babel/env",
+          {
+            "useBuiltIns": false,
+            "modules": false
+          }
+        ]
       ]
     }
   },
-  "plugins": ["transform-object-rest-spread"]
+  "plugins": [
+    "@babel/proposal-object-rest-spread"
+  ]
 }
