@@ -109,3 +109,4 @@ add `origins = http://localhost:8000` on your agent config.ini file
 
 - On macOs ~/Applications/ArduinoCreateAgent-1.1/ArduinoCreateAgent.app/Contents/MacOS/config.ini
 - On Linux ~/ArduinoCreateAgent-1.1/config.ini
+- On Windows C:\Users\[your user]\AppData\Roaming\ArduinoCreateAgent-1.1
