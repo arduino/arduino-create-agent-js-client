@@ -17,8 +17,8 @@ const FWUToolStatusEnum = Object.freeze({
 /* The signatures needed to run the commands to use the Firmware Updater Tool */
 const signaturesEnum = Object.freeze({
   GET_FIRMWARE_INFO: 'aceffd98d331df0daa5bb3308bb49a95767d77e7a1557c07a0ec544d2f41c3ec67269f01ce9a63e01f3b43e087ab8eb22b7f1d34135b6686e8ce27d4b5dc083ec8e6149df11880d32486448a71280ef3128efccbd45a84dbd7990a9420a65ee86b3822edba3554fa8e6ca11aec12d4dd99ad072285b98bfdf7b2b64f677da50feb8bddef25a36f52d7605078487d8a5d7cbdc84bfa65d510cee97b46baefea149139a9a6ed4b545346040536e33d850e6ad84c83fe605f677e2ca77439de3fa42350ce504ad9a49cf62c6751d4c2a284500d2c628cd52cd73b4c3e7ef08ae823eb8941383f9c6ff0686da532369d3b266ded8fdd33cca1a128068a4795920f25',
-  UPLOAD_FIRMWARE_BOSSAC: 'b2137435f74601a0b1b090ca1592b14199c1c79c87cecac4bb168456b570f17b635f438f5cd80649a101ab27085394e4a0e92f41a2b1b65932789eee8c3ebf39633a503a8a53d3291944afe10ff88f6ea06b0fd7fd7de6d70b302df3a92091a2abe2691ad1aeee051e4bb69f6afa3bd41e643855769347dca018804ae97bcb1331df796fd8921a11b333b45bebe430d323ddd151a907e8fb0e875a45d093cdb4332ec3dbd72a50341b538e058b3f25d4a528bea514b96b8e0701032d64232b7141c62f2231352f4197a1011292a4c3e900c133824e148f3703ea8374873d9097578146819e62685f1a8cbc442dd435ea603136c86ecf028df39fd10a8b3499c6',
-  UPLOAD_FIRMWARE_AVRDUDE: '68ed3d9abdc7c77d01223d09c7ae55b08b8ff94f2a42d21a672effb4bdeeb12b10177e831805b3037d9f8d38e8eeeb8327b6c4691731a2a146cfd12398e5a12596e097160ae8d84fc488650ee57439f7fcd83f27d01e9834de555ceec7dc6951b3be5e5a3507752dce8e4ba1f6f9e6494162d537009db899882b9c4fca0868ad446b82fdeabf93bc30c5a39f8fe9c25e799842a10f4171e2896a0e19667b34258f06494663a4a102bcf9fd61d1ff8ebec18204bbd1a66de3e0b53e257ce521b41999dc82428539086ae9a4a5ea7112d87c05a2782cdace0e6576b162294f9ba47c658cc40999ba31be8a129689a703f6c4182055a600b6e41d450fad2896180d'
+  UPLOAD_FIRMWARE_BOSSAC: '5c61682e3ce2544365b05577f9016d5fbfa4c20efdce6ec2ebe6940380ea4f9421322b338c83b7721f900c99c61282720224d9fb20a639154984fd1feef682ee432c8a225f14fe7ba80d2d71d51bc92bfffe63de9386c0b9bc17a827ce21dda837fe3fd0c518ff0b84982c65db81a3eebab88712593c068f5a43f7bc22d4a3f3608969e8f30b3102b382d2c0f7f28d482b39cbcfd16eb680dd04bda66b9cb0d1c2b2e91d89dd8c6033562f1d3983002b61aa39ef70d45a456178867609c058a09bbcd8bce4d97d2e65c28756659bf5ba111e8541302cea934a2c005331ef89425390f610d2f609d581175d16193e72752fe8384f66051e6a2abea79757f042eb',
+  UPLOAD_FIRMWARE_AVRDUDE: '83b177b05dcd7043d484e321417d1dd499fdbd80b7109cc86fcb91cb14e59b834c3956a279e8d4ceba466a308cb8a1aceb5ab6770b8f207e9bc92e84a191edc21cdecb4f7cc1883fbf0eb258f1f849ffbe76bb0320dfe92d85f77226b45fd90824fc126e22ebe8d2350f854c9d43a03186d7f260d8d03bf83e6669646b2e13a6371dcbf1dd5711edcbe3c3a0f186d091ba26118ed2cdb3ef58e0079096403a2e93684d5089b216c53f2fcb1387b6e9d49feea914943971ac1e58bba1ecdf4f14f557d278e8b4f05d594e21887ba87322fbe1d70d05f03412d87f3149a4b3aff302088a2f0ecc42302b6ba66024e94226b5d99c9e0375383e4494bc1e0d0e20b8'
 });
 
 
@@ -35,11 +35,11 @@ export default class FirmwareUpdater {
     });
 
     this.Daemon = Daemon;
+    this.FWUToolStatus = FWUToolStatusEnum.NOPE;
     this.Daemon.downloadingDone.subscribe(() => {
       this.FWUToolStatus = FWUToolStatusEnum.OK;
     });
 
-    this.FWUToolStatus = FWUToolStatusEnum.NOPE;
     this.updating = new BehaviorSubject({ status: this.updateStatusEnum.NOPE });
 
     this.updatingDone = this.updating.pipe(filter(update => update.status === this.updateStatusEnum.DONE))
@@ -81,6 +81,7 @@ export default class FirmwareUpdater {
               versionsList = [...versionsList, ...versions[v]];
             }
           });
+          de
           this.firmwareVersionData = versionsList.find(version => version.Name.split(' ').splice(-1)[0].trim() === firmwareVersion);
           if (!this.firmwareVersionData) {
             this.updating.next({ status: this.updateStatusEnum.ERROR, err: `Can't get firmware info: couldn't find version '${firmwareVersion}' for board '${boardId}'` });
@@ -199,17 +200,15 @@ export default class FirmwareUpdater {
         const data = {
           board: boardId,
           port,
-          commandline: `"{runtime.tools.fwupdater.path}/updater" -flasher {network.password} -firmware {upload.verbose} -port {serial.port} -restore_binary "{build.path}/{build.project_name}.bin" -programmer ${programmer}`,
+          commandline: `"{runtime.tools.fwupdater.path}/updater" -flasher {network.password} -port {serial.port} -restore_binary "{build.path}/{build.project_name}.bin" -programmer ${programmer}`,
           hex: '',
           extra: {
             auth: {
-              password: this.loaderPath
+              password: `${this.loaderPath} -firmware ${this.firmwareVersionData.Path} ${addresses}`,
             },
-            verbose: true,
-            params_verbose: `${this.firmwareVersionData.Path} ${addresses}` // eslint-disable-line camelcase
           },
           signature: isUsingAvrdude ? signaturesEnum.UPLOAD_FIRMWARE_AVRDUDE : signaturesEnum.UPLOAD_FIRMWARE_BOSSAC,
-          filename: 'CheckFirmwareVersion.bin'
+          filename: 'CheckFirmwareVersion.bin',
         };
 
         fetch(`${this.Daemon.pluginURL}/upload`, {
