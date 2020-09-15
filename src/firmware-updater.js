@@ -17,8 +17,8 @@ const FWUToolStatusEnum = Object.freeze({
 /* The signatures needed to run the commands to use the Firmware Updater Tool */
 const signaturesEnum = Object.freeze({
   GET_FIRMWARE_INFO: 'aceffd98d331df0daa5bb3308bb49a95767d77e7a1557c07a0ec544d2f41c3ec67269f01ce9a63e01f3b43e087ab8eb22b7f1d34135b6686e8ce27d4b5dc083ec8e6149df11880d32486448a71280ef3128efccbd45a84dbd7990a9420a65ee86b3822edba3554fa8e6ca11aec12d4dd99ad072285b98bfdf7b2b64f677da50feb8bddef25a36f52d7605078487d8a5d7cbdc84bfa65d510cee97b46baefea149139a9a6ed4b545346040536e33d850e6ad84c83fe605f677e2ca77439de3fa42350ce504ad9a49cf62c6751d4c2a284500d2c628cd52cd73b4c3e7ef08ae823eb8941383f9c6ff0686da532369d3b266ded8fdd33cca1a128068a4795920f25',
-  UPLOAD_FIRMWARE_BOSSAC: '5f164410e51db804529b94e11597092de0297b78cda74ffc132d9017dd9e996abddfe927de2ec86d79af412326a331b7f327ac40bf10468c1b26da702d85241a39336600afcd608d5b018fd87e97ba96bd685f8c00c20b62eb71b3c1cac05e9c9bd46e8f4238bea56fbf755b950f41dba5df71e2c04d4413a7e75c35c3cf2d141dbe935102c619152ada1e965ad8c706fe39c4dd2e8d51971798ce26af1089ab3efbead61ac7b222ebaf95529999e9832a05402741a70871998e32e7a9b6b15c42fbd024a126bd5bb580991dedb45125260dac453350c9989d461b1e2bd084ecf0e7908375d5addc5ae78465461481c351cfee39d9211aa8a5ae6a6011ff8fe0',
-  UPLOAD_FIRMWARE_AVRDUDE: '3007b6053d6c5a1614143818061b7749a570044125bc033a93427ca8db44b1176b7963b45a3749778c1cf82a23d90a065a54ae946f56d4e37ea4a39d50e522b7c4154099292b46b29aca72530a7cb1b91f03d3ed041632c8d294e09cd80da9f1fe529729e5098097a31d50e78ceb0ac82b2c3afc9dccd11508f587ba78debaff11d3e34da2ed8b9489eaafc5d5f4184060f0749cf7dbb20334b22580b33d18c60dc4901956c4497334184937200778a8f7ddc6fc48cb6a632017d16a401f5416035e3d7fcefef5fc0e893f405454eed85eb7a44a6aabfa75cee2b345a4932eed3b301695ce0cffd2e9cb57b9241e43f33b776136fefe066868077861f1724490'
+  UPLOAD_FIRMWARE_BOSSAC: '0ebbe429902601f10e5e33ffb0ffb168db8d6f40a0b6d3c7dce98795842d52b60a29100bc9ba315a48ad4cd2fee85f2efd3fbde37dcff395791bd0ff72e54d736ad2f3a82cf1571a79df27dec7ba1ae7983386b48ea28f52a94f2939588f332b87cdcf6a026fb5035313334f3e15671e4059475a036cd5e0b564b4a591b3a96cea6f9147685bc631a2f56843cc33d4a73cb4ab606e0cf6d38caa357d89275a4e5bb54fa1f00af30295f7ec3ff3cace43cc8ad756f1b0a18f12ff2a52fce8bda10d3485af3004359af7e5838cfe64e7f81f7b6f161f3b57c29e5bcc237112dc8bc022fbe089c019c7fa0bd0ab3a3c9027e7d3d564aaaeed6619e1f6d4fce25f85',
+  UPLOAD_FIRMWARE_AVRDUDE: '83b177b05dcd7043d484e321417d1dd499fdbd80b7109cc86fcb91cb14e59b834c3956a279e8d4ceba466a308cb8a1aceb5ab6770b8f207e9bc92e84a191edc21cdecb4f7cc1883fbf0eb258f1f849ffbe76bb0320dfe92d85f77226b45fd90824fc126e22ebe8d2350f854c9d43a03186d7f260d8d03bf83e6669646b2e13a6371dcbf1dd5711edcbe3c3a0f186d091ba26118ed2cdb3ef58e0079096403a2e93684d5089b216c53f2fcb1387b6e9d49feea914943971ac1e58bba1ecdf4f14f557d278e8b4f05d594e21887ba87322fbe1d70d05f03412d87f3149a4b3aff302088a2f0ecc42302b6ba66024e94226b5d99c9e0375383e4494bc1e0d0e20b8'
 });
 
 
@@ -199,12 +199,11 @@ export default class FirmwareUpdater {
         const data = {
           board: boardId,
           port,
-          commandline: `"{runtime.tools.fwupdater.path}/updater" -flasher {network.password} -firmware {network.username} -port {serial.port} -restore_binary "{build.path}/{build.project_name}.bin" -programmer ${programmer}`,
+          commandline: `"{runtime.tools.fwupdater.path}/updater" -flasher {network.password} -port {serial.port} -restore_binary "{build.path}/{build.project_name}.bin" -programmer ${programmer}`,
           hex: '',
           extra: {
             auth: {
-              password: this.loaderPath,
-              username: `${this.firmwareVersionData.Path} ${addresses}`
+              password: `${this.loaderPath} -firmware ${this.firmwareVersionData.Path} ${addresses}`,
             },
           },
           signature: isUsingAvrdude ? signaturesEnum.UPLOAD_FIRMWARE_AVRDUDE : signaturesEnum.UPLOAD_FIRMWARE_BOSSAC,
