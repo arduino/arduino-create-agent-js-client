@@ -81,7 +81,6 @@ export default class FirmwareUpdater {
               versionsList = [...versionsList, ...versions[v]];
             }
           });
-          de
           this.firmwareVersionData = versionsList.find(version => version.Name.split(' ').splice(-1)[0].trim() === firmwareVersion);
           if (!this.firmwareVersionData) {
             this.updating.next({ status: this.updateStatusEnum.ERROR, err: `Can't get firmware info: couldn't find version '${firmwareVersion}' for board '${boardId}'` });
