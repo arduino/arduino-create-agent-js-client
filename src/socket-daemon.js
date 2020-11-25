@@ -110,7 +110,10 @@ export default class SocketDaemon extends Daemon {
           this.agentInfo = data;
           this.agentFound.next(true);
         }))
-        .catch(() => timer(POLLING_INTERVAL).subscribe(() => this.findAgent()));
+        .catch(() => timer(POLLING_INTERVAL).subscribe(() => {
+          this.pluginURL = null;
+          this.findAgent();
+        }));
       return;
     }
 
