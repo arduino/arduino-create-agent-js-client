@@ -2,7 +2,7 @@
 [![npm version](https://badge.fury.io/js/arduino-create-agent-js-client.svg)](https://badge.fury.io/js/arduino-create-agent-js-client)
 
 # arduino-create-agent-js-client
-JS module providing discovery of the [Arduino Create Plugin](https://github.com/arduino/arduino-create-agent) and communication with it
+JS module providing discovery of the [Arduino Create Agent](https://github.com/arduino/arduino-create-agent) and communication with it
 
 ## Installation
 
