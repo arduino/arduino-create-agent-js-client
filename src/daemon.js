@@ -50,6 +50,7 @@ export default class Daemon {
     this.appMessages = new Subject();
     this.serialMonitorOpened = new BehaviorSubject(false);
     this.serialMonitorMessages = new Subject();
+    this.serialMonitorMessagesWithPort = new Subject();
     this.uploading = new BehaviorSubject({ status: this.UPLOAD_NOPE });
     this.uploadingDone = this.uploading.pipe(filter(upload => upload.status === this.UPLOAD_DONE))
       .pipe(first())

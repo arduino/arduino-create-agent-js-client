@@ -134,6 +134,10 @@ class App extends React.Component {
       scrollToBottom(serialTextarea);
     });
 
+    daemon.serialMonitorMessagesWithPort.subscribe(messageObj => {
+      console.log(messageObj);
+    });
+
     daemon.uploading.subscribe(upload => {
       this.setState({ uploadStatus: upload.status, uploadError: upload.err });
       // console.log(upload);

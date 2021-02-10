@@ -38,9 +38,20 @@ daemon.devicesList.subscribe(({serial, network}) => {
 // Open serial monitor
 daemon.openSerialMonitor('port-name');
 
-// Read from serial monitor
+// Read from serial monitor (ouputs string)
 daemon.serialMonitorMessages.subscribe(message => {
   console.log(message);
+});
+
+// Read from serial monitor, output object with source port name
+/*
+  {
+    "P": "dev/ttyACM0",
+    "D":"output text here\r\n"
+  }
+*/
+daemon.serialMonitorMessagesWithPort.subscribe(messageObj => {
+  console.log(messageObj);
 });
 
 // Write to serial monitor
@@ -72,7 +83,7 @@ daemon.downloading.subscribe(download => {
 
 ## Version 2
 
-Version 2 of the arduino-create-agent aims to provide a cleaner api based on promises. 
+Version 2 of the arduino-create-agent aims to provide a cleaner api based on promises.
 It will remain confined to a v2 property on the daemon object until it will be stable.
 At the moment it only supports tool management.
 
