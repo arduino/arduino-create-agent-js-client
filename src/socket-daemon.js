@@ -240,6 +240,7 @@ export default class SocketDaemon extends Daemon {
     // Serial monitor message
     if (message.D) {
       this.serialMonitorMessages.next(message.D);
+      this.serialMonitorMessagesWithPort.next(message);
     }
 
     if (message.ProgrammerStatus) {
