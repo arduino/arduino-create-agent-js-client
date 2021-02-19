@@ -209,7 +209,7 @@ export default class FirmwareUpdater {
           hex: '',
           extra: {
             auth: {
-              password: `${this.loaderPath} -firmware ${this.firmwareVersionData.Path} ${addresses}`,
+              password: `"${this.loaderPath}" -firmware "${this.firmwareVersionData.Path}" ${addresses}`,
             },
           },
           signature: isUsingAvrdude ? signaturesEnum.UPLOAD_FIRMWARE_AVRDUDE : signaturesEnum.UPLOAD_FIRMWARE_BOSSAC,
