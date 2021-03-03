@@ -78,7 +78,7 @@ export default class ChromeOsDaemon extends Daemon {
       });
     }
   }
-
+// for app message handling function
   handleAppMessage(message) {
     if (message.ports) {
       this.handleListMessage(message);
@@ -101,7 +101,7 @@ export default class ChromeOsDaemon extends Daemon {
     }
   }
 
-
+// for List message handling function
   handleListMessage(message) {
     const lastDevices = this.devicesList.getValue();
     if (!Daemon.devicesListAreEquals(lastDevices.serial, message.ports)) {
