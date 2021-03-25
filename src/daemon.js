@@ -132,6 +132,7 @@ export default class Daemon {
       .then(uploadCommandInfo => {
         const projectNameIndex = uploadCommandInfo.commandline.indexOf('{build.project_name}');
         let ext = uploadCommandInfo.commandline.substring(projectNameIndex + 21, projectNameIndex + 24);
+        const data = compilationResult[ext] || compilationResult.bin;
         if (!ext || !compilationResult[ext]) {
           console.log('we received a faulty ext property, defaulting to .bin');
           ext = 'bin';
@@ -141,8 +142,8 @@ export default class Daemon {
           ...target,
           commandline: uploadCommandInfo.commandline,
           filename: `${sketchName}.${ext}`,
-          hex: compilationResult[ext], // For desktop agent
-          data: compilationResult[ext] // For chromeOS plugin, consider to align this
+          hex: data, // For desktop agent
+          data // For chromeOS plugin, consider to align this
         };
 
         this.uploadingDone.subscribe(() => {
