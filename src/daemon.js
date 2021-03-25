@@ -133,7 +133,7 @@ export default class Daemon {
         const projectNameIndex = uploadCommandInfo.commandline.indexOf('{build.project_name}');
         let ext = uploadCommandInfo.commandline.substring(projectNameIndex + 21, projectNameIndex + 24);
         const data = compilationResult[ext] || compilationResult.bin;
-        if (!ext || !compilationResult[ext]) {
+        if (!ext || !data) {
           console.log('we received a faulty ext property, defaulting to .bin');
           ext = 'bin';
         }
