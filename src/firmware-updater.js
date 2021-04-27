@@ -205,7 +205,7 @@ export default class FirmwareUpdater {
         const data = {
           board: boardId,
           port,
-          commandline: `"{runtime.tools.fwupdater.path}/${updaterBinaryName}" -flasher {network.password} -port {serial.port} -restore_binary "{build.path}/{build.project_name}.bin" -programmer "${programmer}"`,
+          commandline: `"{runtime.tools.fwupdater.path}/${updaterBinaryName}" -flasher {network.password} -port {serial.port} -programmer "${programmer}"`,
           hex: '',
           extra: {
             auth: {
