@@ -91,14 +91,14 @@ export default class FirmwareUpdater {
           if (!this.firmwareVersionData) {
             this.updating.next({ status: this.updateStatusEnum.ERROR, err: `Can't get firmware info: couldn't find version '${firmwareVersion}' for board '${boardId}'` });
           }
+          else {
+            firmwareInfoMessagesSubscription.unsubscribe();
+            this.updating.next({ status: this.updateStatusEnum.GOT_INFO });
+          }
           break;
         case 'Error':
           this.updating.next({ status: this.updateStatusEnum.ERROR, err: `Couldn't get firmware info: ${message.Msg}` });
           firmwareInfoMessagesSubscription.unsubscribe();
-          break;
-        case 'Done':
-          firmwareInfoMessagesSubscription.unsubscribe();
-          this.updating.next({ status: this.updateStatusEnum.GOT_INFO });
           break;
         default:
           break;
