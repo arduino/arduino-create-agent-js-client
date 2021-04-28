@@ -163,12 +163,14 @@ export default class FirmwareUpdater {
 
         const handleFirmwareUpdateMessage = message => {
           switch (message.ProgrammerStatus) {
+            case 'Busy':
+              if (message.Msg.indexOf('Operation completed: success! :-)') >= 0) {
+                this.updating.next({ status: this.updateStatusEnum.DONE });
+                updateFirmwareMessagesSubscription.unsubscribe();
+              }
+              break;
             case 'Error':
               this.updating.next({ status: this.updateStatusEnum.ERROR, err: `Can't update Firmware: ${message.Msg}` });
-              updateFirmwareMessagesSubscription.unsubscribe();
-              break;
-            case 'Done':
-              this.updating.next({ status: this.updateStatusEnum.DONE });
               updateFirmwareMessagesSubscription.unsubscribe();
               break;
             default:
