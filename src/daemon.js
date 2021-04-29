@@ -171,7 +171,8 @@ export default class Daemon {
             }
           });
         });
-        this._upload(uploadPayload, uploadCommandInfo);
+        const files = [...(uploadCommandInfo.files || []), ...(compilationResult.files || [])];
+        this._upload(uploadPayload, { ...uploadCommandInfo, files });
       });
   }
 
