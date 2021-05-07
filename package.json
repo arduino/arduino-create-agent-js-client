@@ -18,7 +18,7 @@
     "detect-browser": "^4.8.0",
     "rxjs": "^6.5.3",
     "semver-compare": "^1.0.0",
-    "socket.io-client": "2.3.0"
+    "socket.io-client": "4.0.2"
   },
   "devDependencies": {
     "@babel/core": "^7.12.9",
