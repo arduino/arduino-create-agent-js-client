@@ -16,9 +16,16 @@ const FWUToolStatusEnum = Object.freeze({
 });
 
 /* The signatures needed to run the commands to use the Firmware Updater Tool */
-let signaturesEnum = fwupdaterSignatures;
+let signatures = fwupdaterSignatures;
 
 let updaterBinaryName = 'FirmwareUploader';
+
+function programmerFor(boardId) {
+  if (boardId === 'uno2018') return ['{runtime.tools.avrdude}/bin/avrdude', signatures.UPLOAD_FIRMWARE_AVRDUDE];
+  if (boardId === 'nanorp2040connect') return [`{runtime.tools.rp2040tools.path}/rp2040load`, signatures.UPLOAD_FIRMWARE_RP2040];
+
+  return [`{runtime.tools.bossac}/bossac`, signatures.UPLOAD_FIRMWARE_BOSSAC];
+}
 
 export default class FirmwareUpdater {
   constructor(Daemon) {
@@ -57,7 +64,7 @@ export default class FirmwareUpdater {
   setToolVersion(version) {
     this.toolVersion = version;
     if (semverCompare(version, '0.1.2') < 0) {
-      signaturesEnum = oldFwupdaterSignatures;
+      signatures = oldFwupdaterSignatures;
       updaterBinaryName = 'updater';
     }
   }
@@ -119,7 +126,7 @@ export default class FirmwareUpdater {
       board: boardId,
       port,
       commandline: `"{runtime.tools.fwupdater.path}/${updaterBinaryName}" -get_available_for {network.password}`,
-      signature: signaturesEnum.GET_FIRMWARE_INFO,
+      signature: signatures.GET_FIRMWARE_INFO,
       extra: {
         auth: {
           password: boardId
@@ -196,8 +203,7 @@ export default class FirmwareUpdater {
           }
         });
 
-        const isUsingAvrdude = boardId === 'uno2018';
-        const programmer = isUsingAvrdude ? '{runtime.tools.avrdude}/bin/avrdude' : '{runtime.tools.bossac}/bossac';
+        const [programmer, signature] = programmerFor(boardId);
 
         if (!this.loaderPath) {
           this.updating.next({ status: this.updateStatusEnum.ERROR, err: `Can't update Firmware: 'loaderPath' is empty or 'null'` });
@@ -214,7 +220,7 @@ export default class FirmwareUpdater {
               password: `"${this.loaderPath}" -firmware "${this.firmwareVersionData.Path}" ${addresses}`,
             },
           },
-          signature: isUsingAvrdude ? signaturesEnum.UPLOAD_FIRMWARE_AVRDUDE : signaturesEnum.UPLOAD_FIRMWARE_BOSSAC,
+          signature,
           filename: 'CheckFirmwareVersion.bin',
         };
 
