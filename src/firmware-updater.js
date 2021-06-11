@@ -22,7 +22,7 @@ let updaterBinaryName = 'FirmwareUploader';
 
 function programmerFor(boardId) {
   if (boardId === 'uno2018') return ['{runtime.tools.avrdude}/bin/avrdude', signatures.UPLOAD_FIRMWARE_AVRDUDE];
-  if (boardId === 'rp2040') return [`{runtime.tools.rp2040tools.path}/rp2040load`, signatures.UPLOAD_FIRMWARE_RP2040];
+  if (boardId === 'nanorp2040connect') return [`{runtime.tools.rp2040tools.path}/rp2040load`, signatures.UPLOAD_FIRMWARE_RP2040];
 
   return [`{runtime.tools.bossac}/bossac`, signatures.UPLOAD_FIRMWARE_BOSSAC];
 }
