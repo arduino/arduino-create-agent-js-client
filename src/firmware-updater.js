@@ -1,10 +1,6 @@
 import { BehaviorSubject } from 'rxjs';
-import {
-  takeUntil,
-  filter,
-  first
-} from 'rxjs/operators';
 import semverCompare from 'semver-compare';
+import { takeUntil, filter, first } from 'rxjs/operators';
 import { fwupdaterSignatures, oldFwupdaterSignatures } from './signatures';
 
 /* The status of the Firmware Updater Tool */
@@ -191,18 +187,6 @@ export default class FirmwareUpdater {
           }
         });
 
-        let addresses = '';
-        const rootCertificates = [{
-          domain: 'arduino.cc',
-          port: 443
-        }];
-
-        rootCertificates.forEach(address => {
-          if (address.domain && address.port) {
-            addresses += `-address ${address.domain}:${address.port} `;
-          }
-        });
-
         const [programmer, signature] = programmerFor(boardId);
 
         if (!this.loaderPath) {
@@ -217,7 +201,7 @@ export default class FirmwareUpdater {
           hex: '',
           extra: {
             auth: {
-              password: `"${this.loaderPath}" -firmware "${this.firmwareVersionData.Path}" ${addresses}`,
+              password: `"${this.loaderPath}" -firmware "${this.firmwareVersionData.Path}"`,
             },
           },
           signature,
