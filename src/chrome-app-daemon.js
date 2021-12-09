@@ -239,7 +239,8 @@ export default class ChromeOsDaemon extends Daemon {
    */
   _upload(uploadPayload, uploadCommandInfo) {
     const { board, port, commandline, data } = uploadPayload;
-      try {
+    const extrafiles = uploadCommandInfo && uploadCommandInfo.files && Array.isArray(uploadCommandInfo.files) || []
+    try {
       window.oauth.token().then(token => {
         this.channel.postMessage({
           command: 'upload',
@@ -249,7 +250,7 @@ export default class ChromeOsDaemon extends Daemon {
             commandline,
             data,
             token: token.token,
-            extrafiles: uploadCommandInfo.files || []
+            extrafiles
           }
         });
       });
