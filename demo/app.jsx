@@ -27,6 +27,8 @@ import V2 from './v2/v2.jsx';
 
 const chromeExtensionID = 'hfejhkbipnickajaidoppbadcomekkde';
 
+const isChromeOs = () => window.navigator.userAgent.indexOf(' CrOS ') !== -1;
+
 const scrollToBottom = (target) => {
   if (target) {
     target.scrollTop = target.scrollHeight; // eslint-disable-line no-param-reassign
@@ -150,6 +152,17 @@ class App extends React.Component {
       });
     }
   }
+
+  requestDevicePermission = () => {
+    if ('serial' in navigator) {
+      navigator.serial.requestPort([{ usbVendorId: 0x2341 }]).then((port) => {
+        daemon.devicesList.next({
+          serial: [port],
+          network: []
+        });
+      });
+    }
+  };
 
   showError(err) {
     this.setState({ error: err });
@@ -275,8 +288,10 @@ class App extends React.Component {
         </div>
 
         <div className="section">
-          <h2>Connected Devices</h2>
-
+          <div>
+            <h2 style={{ display: 'inline-block', marginRight: 10 } }>Connected Devices </h2>
+            { isChromeOs() && <button type="button" onClick={() => this.requestDevicePermission()}>Request access to serial port</button> }
+          </div>
           <strong>serial:</strong>
           <ul>
             { listSerialDevices }
