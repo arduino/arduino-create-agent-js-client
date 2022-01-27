@@ -27,16 +27,34 @@ import Daemon from './daemon';
 
 const POLLING_INTERVAL = 2000;
 
+class WebSerialPort {
+  sendVersion () {}
+  sendSupportedBoards () {}
+  listPorts () {}
+  log (message, category) {}
+  upload (data) {}
+  openPort (data) {}
+  closePort (data) {}
+  writePort (data) {}
+  onMessage (message) {}
+  onDisconnect (message) {}
+  onSerialData (name, data) {}
+}
 export default class ChromeOsDaemon extends Daemon {
-  constructor(boardsUrl, chromeExtensionId) {
+  constructor(boardsUrl, options) { // , chromeExtensionId) {
     super(boardsUrl);
+    if (typeof options === 'string') {
+      this.chromeExtensionId = options;  
+    } else {
+      this.chromeExtensionId = options.chromeExtensionId;  
+      this.webSerialPort = new WebSerialPort(); // options.webSerialPort;
+    }
+    this.webSerialChannel = null;
     this.channel = null;
 
     this.openChannel(() => this.channel.postMessage({
       command: 'listPorts'
     }));
-
-    this.chromeExtensionId = chromeExtensionId;
 
     this.agentFound
       .pipe(distinctUntilChanged())

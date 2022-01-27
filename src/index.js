@@ -20,9 +20,23 @@
 
 import SocketDaemon from './socket-daemon';
 import ChromeOsDaemon from './chrome-app-daemon';
+import WebSerialDaemon from './web-serial-daemon';
 import FirmwareUpdater from './firmware-updater';
 
-const Daemon = window.navigator.userAgent.indexOf(' CrOS ') !== -1 ? ChromeOsDaemon : SocketDaemon;
+// eslint-disable-next-line import/no-mutable-exports
+let Daemon;
+
+if (window.navigator.userAgent.indexOf(' CrOS ') !== -1) {
+  if (navigator.serial) {
+    Daemon = WebSerialDaemon;
+  }
+  else {
+    Daemon = ChromeOsDaemon;
+  }
+}
+else {
+  Daemon = SocketDaemon;
+}
 
 export default Daemon;
 export { FirmwareUpdater };
