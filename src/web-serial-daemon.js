@@ -1,17 +1,17 @@
 import { WebSerialManager } from '@bcmi-labs/arduino-chromeos-uploader';
 import Daemon from './daemon';
 
-function mapSerialPortToDevice(port) {
-  const info = port.getInfo();
-  return {
-    Name: `Board-${info.usbVendorId}-${info.usbProductId}`,
-    SerialNumber: `${info.usbVendorId}-${info.usbProductId}`,
-    IsOpen: true,
-    VendorID: '0x2341', // String(info.usbVendorId),
-    ProductID: '0x0054', // String(info.usbProductId)
-    // type: 'web-serial'
-  };
-}
+// function mapSerialPortToDevice(port) {
+//   const info = port.getInfo();
+//   return {
+//     Name: `Board-${info.usbVendorId}-${info.usbProductId}`,
+//     SerialNumber: `${info.usbVendorId}-${info.usbProductId}`,
+//     IsOpen: true,
+//     VendorID: '0x2341', // String(info.usbVendorId),
+//     ProductID: '0x0054', // String(info.usbProductId)
+//     // type: 'web-serial'
+//   };
+// }
 
 export default class WebSerialDaemon extends Daemon {
   constructor(boardsUrl) {
@@ -24,11 +24,12 @@ export default class WebSerialDaemon extends Daemon {
   // Specific for serial web API on chromebooks
   async requestSerialPortAccess() {
     this.webSerialManager = new WebSerialManager({
-      filters: [{usbVendorId: 0x2341}]
-    })
+      filters: [{ usbVendorId: 0x2341 }]
+    });
     await this.webSerialManager.connect();
   }
 
+  // eslint-disable-next-line class-methods-use-this
   closeSerialMonitor() {
     // TODO: it's a NO OP at the moment
   }
@@ -59,7 +60,12 @@ export default class WebSerialDaemon extends Daemon {
     console.dir(uploadPayload.data.length, { depth: null, colors: true });
     console.dir('********   END: web-serial-daemon:105 ********');
 
-    await this.webSerialManager.flashSketch(Uint8Array.from(atob(uploadPayload.data), c => c.charCodeAt(0)));
-    
+    try {
+      await this.webSerialManager.flashSketch(Uint8Array.from(atob(uploadPayload.data), c => c.charCodeAt(0)));
+      this.uploading.next({ status: this.UPLOAD_DONE, msg: 'Sketch uploaded' });
+    }
+    catch (error) {
+      this.notifyUploadError(error.message);
+    }
   }
 }

@@ -27,27 +27,27 @@ import Daemon from './daemon';
 
 const POLLING_INTERVAL = 2000;
 
-class WebSerialPort {
-  sendVersion () {}
-  sendSupportedBoards () {}
-  listPorts () {}
-  log (message, category) {}
-  upload (data) {}
-  openPort (data) {}
-  closePort (data) {}
-  writePort (data) {}
-  onMessage (message) {}
-  onDisconnect (message) {}
-  onSerialData (name, data) {}
-}
+// class WebSerialPort {
+//   sendVersion () {}
+//   sendSupportedBoards () {}
+//   listPorts () {}
+//   log (message, category) {}
+//   upload (data) {}
+//   openPort (data) {}
+//   closePort (data) {}
+//   writePort (data) {}
+//   onMessage (message) {}
+//   onDisconnect (message) {}
+//   onSerialData (name, data) {}
+// }
 export default class ChromeOsDaemon extends Daemon {
   constructor(boardsUrl, options) { // , chromeExtensionId) {
     super(boardsUrl);
     if (typeof options === 'string') {
-      this.chromeExtensionId = options;  
-    } else {
-      this.chromeExtensionId = options.chromeExtensionId;  
-      this.webSerialPort = new WebSerialPort(); // options.webSerialPort;
+      this.chromeExtensionId = options;
+    }
+    else {
+      this.chromeExtensionId = options.chromeExtensionId;
     }
     this.webSerialChannel = null;
     this.channel = null;
@@ -118,7 +118,6 @@ export default class ChromeOsDaemon extends Daemon {
       this.uploading.next({ status: this.UPLOAD_ERROR, err: message.Err });
     }
   }
-
 
   handleListMessage(message) {
     const lastDevices = this.devicesList.getValue();
@@ -256,7 +255,9 @@ export default class ChromeOsDaemon extends Daemon {
    * }
    */
   _upload(uploadPayload, uploadCommandInfo) {
-    const { board, port, commandline, data } = uploadPayload;
+    const {
+      board, port, commandline, data
+    } = uploadPayload;
     const extrafiles = uploadCommandInfo && uploadCommandInfo.files && Array.isArray(uploadCommandInfo.files) ? uploadCommandInfo.files : [];
     try {
       window.oauth.token().then(token => {
