@@ -23,6 +23,8 @@ import {
   distinctUntilChanged, filter, startWith, takeUntil
 } from 'rxjs/operators';
 
+import webSerialApiBoards from './web-serial-supported-boards';
+
 import Daemon from './daemon';
 
 const POLLING_INTERVAL = 2000;
@@ -40,7 +42,7 @@ const POLLING_INTERVAL = 2000;
 //   onDisconnect (message) {}
 //   onSerialData (name, data) {}
 // }
-export default class ChromeAppDaemon extends Daemon {
+export default class ChromeOsDaemon extends Daemon {
   constructor(boardsUrl, chromeExtensionId) {
     super(boardsUrl);
     this.chromeExtensionId = chromeExtensionId;
@@ -49,6 +51,12 @@ export default class ChromeAppDaemon extends Daemon {
   }
 
   init() {
+    this.initChromeApp();
+    this.initWebSerialApi();
+  }
+
+  /* ChromeApp specific */
+  initChromeApp() {
     this.openChannel(() => this.channel.postMessage({
       command: 'listPorts'
     }));
@@ -61,6 +69,13 @@ export default class ChromeAppDaemon extends Daemon {
       });
   }
 
+  /* WebSerialApi specific */
+  // eslint-disable-next-line class-methods-use-this
+  initWebSerialApi() {
+    // nothing to be done, the channel is open
+  }
+
+  /* ChromeApp specific */
   findApp() {
     interval(POLLING_INTERVAL)
       .pipe(startWith(0))
@@ -114,10 +129,12 @@ export default class ChromeAppDaemon extends Daemon {
   }
 
   handleListMessage(message) {
-    const lastDevices = this.devicesList.getValue();
-    if (!Daemon.devicesListAreEquals(lastDevices.serial, message.ports)) {
+    const newPorts = message.ports;
+    // remove web serial API boards
+    const lastDevices = this.devicesList.getValue()
+    if (!Daemon.devicesListAreEquals(lastDevices.serial, newPorts)) {
       this.devicesList.next({
-        serial: message.ports.map(port => ({
+        serial: newPorts.map(port => ({
           Name: port.name,
           SerialNumber: port.serialNumber,
           IsOpen: port.isOpen,

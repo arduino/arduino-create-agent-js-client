@@ -65,7 +65,12 @@ export default class Daemon {
     });
     this.supportedBoards = new BehaviorSubject([]);
     this.appMessages
-      .subscribe(message => this.handleAppMessage(message));
+      .subscribe(message => {
+        console.dir('******** BEGIN: daemon:69 ********');
+        console.dir(this, { depth: null, colors: true });
+        console.dir('********   END: daemon:69 ********');
+        return this.handleAppMessage(message);
+      });
 
     // Close all serial ports on startup
     this.devicesList

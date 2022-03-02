@@ -19,7 +19,7 @@
 */
 
 import React from 'react';
-import Daemon from '../src';
+import Daemon, { isChromeOs } from '../src';
 import FirmwareUpdater from '../src/firmware-updater';
 
 import { HEX } from './serial_mirror';
@@ -151,6 +151,17 @@ class App extends React.Component {
     }
   }
 
+  requestDevicePermission = async () => {
+    if ('serial' in navigator) {
+      const port = await navigator.serial.requestPort([{ usbVendorId: 0x2341 }]);
+      daemon.devicesList.next({
+        serial: [port],
+        network: []
+      });
+
+    }
+  };
+
   showError(err) {
     this.setState({ error: err });
     scrollToBottom(document.body);
@@ -275,8 +286,10 @@ class App extends React.Component {
         </div>
 
         <div className="section">
-          <h2>Connected Devices</h2>
-
+          <div>
+            <h2 style={{ display: 'inline-block', marginRight: 10 } }>Connected Devices </h2>
+            { isChromeOs() && <button type="button" onClick={() => this.requestDevicePermission()}>Request access to serial port</button> }
+          </div>
           <strong>serial:</strong>
           <ul>
             { listSerialDevices }

@@ -12,17 +12,19 @@ class V2 extends React.Component {
   componentDidMount() {
     this.daemon = this.props.daemon;
 
-    this.daemon.agentV2Found.subscribe(daemonV2 => {
-      if (!daemonV2) {
-        return;
-      }
-      this.daemonV2 = daemonV2;
-      this.daemonV2.installedTools().then(res => {
-        this.setState({
-          tools: res
+    if (this.daemon.agentV2Found) { // agentV2Found not available for instance on chromebooks
+      this.daemon.agentV2Found.subscribe(daemonV2 => {
+        if (!daemonV2) {
+          return;
+        }
+        this.daemonV2 = daemonV2;
+        this.daemonV2.installedTools().then(res => {
+          this.setState({
+            tools: res
+          });
         });
       });
-    });
+    }
   }
 
   render() {

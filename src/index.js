@@ -19,19 +19,19 @@
 */
 
 import SocketDaemon from './socket-daemon';
-import ChromeOsDaemon from './chrome-app-daemon';
 import WebSerialDaemon from './web-serial-daemon';
+import ChromeAppDaemon from './chrome-app-daemon';
 import FirmwareUpdater from './firmware-updater';
 
 // eslint-disable-next-line import/no-mutable-exports
 let Daemon;
 
 if (window.navigator.userAgent.indexOf(' CrOS ') !== -1) {
-  if (navigator.serial) {
+  if ('serial' in window.navigator) {
     Daemon = WebSerialDaemon;
-  }
-  else {
-    Daemon = ChromeOsDaemon;
+  } else {
+    Daemon = ChromeAppDaemon;
+
   }
 }
 else {
