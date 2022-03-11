@@ -27,19 +27,6 @@ import Daemon from './daemon';
 
 const POLLING_INTERVAL = 2000;
 
-// class WebSerialPort {
-//   sendVersion () {}
-//   sendSupportedBoards () {}
-//   listPorts () {}
-//   log (message, category) {}
-//   upload (data) {}
-//   openPort (data) {}
-//   closePort (data) {}
-//   writePort (data) {}
-//   onMessage (message) {}
-//   onDisconnect (message) {}
-//   onSerialData (name, data) {}
-// }
 export default class ChromeAppDaemon extends Daemon {
   constructor(boardsUrl, chromeExtensionId) {
     super(boardsUrl);

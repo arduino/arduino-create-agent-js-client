@@ -1,4 +1,4 @@
-import { WebSerialManager } from '@bcmi-labs/arduino-chromeos-uploader';
+import { Uploader } from '@bcmi-labs/arduino-chromeos-uploader';
 import {
   filter, takeUntil
 } from 'rxjs/operators';
@@ -22,7 +22,8 @@ export default class WebSerialDaemon extends Daemon {
     this.port = null;
     this.agentFound.next(true); // subscribe(() => true);
     this.channelOpenStatus.next(true); // subscribe(() => true);
-    this.webSerialManager = new WebSerialManager({
+    this.uploader = new Uploader({
+      logger: console,
       filters: [
         { usbVendorId: 0x2341 }
       ],
@@ -34,9 +35,6 @@ export default class WebSerialDaemon extends Daemon {
         console.log('CONNECTED');
       },
       sendSupportedBoardsCallback: (supportedBoards) => {
-        console.dir('******** BEGIN: web-serial-daemon:37 ********');
-        console.dir(supportedBoards, { depth: null, colors: true });
-        console.dir('********   END: web-serial-daemon:37 ********');
         this.supportedBoards.next(supportedBoards);
 
       }
@@ -44,11 +42,12 @@ export default class WebSerialDaemon extends Daemon {
 
   }
 
-  // Specific for serial web API on chromebooks
-  // eslint-disable-next-line class-methods-use-this
-  async connectToSerialDevice() {
-    return this.webSerialManager.connect();
-  }
+  // // Specific for serial web API on chromebooks
+  // // eslint-disable-next-line class-methods-use-this
+  // async connectToSerialDevice() {
+  //   this.port = this.webSerialManager.connect();
+  //   return this.port;
+  // }
 
   // eslint-disable-next-line class-methods-use-this
   closeSerialMonitor() {
@@ -56,10 +55,6 @@ export default class WebSerialDaemon extends Daemon {
   }
 
   handleAppMessage(message) {
-    console.dir('******** BEGIN: web-serial-daemon:59 ********');
-    console.dir(`handleAppMessage: ${message}`, { depth: null, colors: true });
-    console.dir(message, { depth: null, colors: true });
-    console.dir('********   END: web-serial-daemon:59 ********');
     if (message.ports) {
       this.devicesList.next({
         serial: message.ports,
@@ -72,44 +67,39 @@ export default class WebSerialDaemon extends Daemon {
   /**
    * Send 'close' command to all the available serial ports
    */
+  // eslint-disable-next-line class-methods-use-this
   closeAllPorts() {
-    const devices = this.devicesList.getValue().serial;
-    devices.forEach(device => {
-      console.dir('******** BEGIN: web-serial-daemon:107 ********');
-      console.dir(device, { depth: null, colors: true });
-      console.dir('********   END: web-serial-daemon:107 ********');
-    });
+    console.log('should be closing serial ports here');
+    // const devices = this.devicesList.getValue().serial;
+    // TODO: do something to close the seriap ports...
   }
 
-  async cdcReset() {
-    this.webSerialManager.cdcReset();
-  }
+  // async cdcReset() {
+  //   this.webSerialManager.cdcReset();
+  // }
 
-  async askPermissionAndCdcReset() {
-    const port = await this.connectToSerialDevice();
-    const { usbVendorId, usbProductId } = port.getInfo();
-    this.webSerialManager.cdcReset();
-    this.appMessages.next({
-      ports: [{
-        Name: `Board-${usbVendorId}-${usbProductId}`,
-        SerialNumber: `${usbVendorId}-${usbProductId}`,
-        IsOpen: true,
-        VendorID: `0x${usbVendorId.toString(16).padStart(4, 0)}`,
-        ProductID: `0x${usbProductId.toString(16).padStart(4, 0)}`,
-        // type: 'web-serial'
-        serialAPI: 'web'
-      }]
-    });
-  }
+  // async askPermissionAndCdcReset() {
+  //   const port = await this.connectToSerialDevice();
+  //   const { usbVendorId, usbProductId } = port.getInfo();
+  //   this.webSerialManager.cdcReset();
+  //   this.appMessages.next({
+  //     ports: [{
+  //       Name: `Board-${usbVendorId}-${usbProductId}`,
+  //       SerialNumber: `${usbVendorId}-${usbProductId}`,
+  //       IsOpen: true,
+  //       VendorID: `0x${usbVendorId.toString(16).padStart(4, 0)}`,
+  //       ProductID: `0x${usbProductId.toString(16).padStart(4, 0)}`,
+  //       // type: 'web-serial'
+  //       serialAPI: 'web'
+  //     }]
+  //   });
+  // }
 
   /**
    * Request serial port open
    * @param {string} port the port name
    */
-  openSerialMonitor(port, baudrate) {
-    console.dir('******** BEGIN: web-serial-daemon:90 ********');
-    console.dir(port, { depth: null, colors: true });
-    console.dir('********   END: web-serial-daemon:90 ********');
+  openSerialMonitor(port) {
     if (this.serialMonitorOpened.getValue()) {
       return;
     }
@@ -128,18 +118,19 @@ export default class WebSerialDaemon extends Daemon {
         }
       });
 
-    console.dir('******** BEGIN: web-serial-daemon:111 ********');
-    console.dir(this.webSerialManager, { depth: null, colors: true });
-    console.dir('********   END: web-serial-daemon:111 ********');
-    this.webSerialManager.cdcReset(serialPort, baudrate);
   }
 
+  /**
+   * @param {object} uploadPayload
+   * TODO: document param's shape
+   */
   async _upload(uploadPayload) {
     try {
-      await this.webSerialManager.flashSketch(Uint8Array.from(atob(uploadPayload.data), c => c.charCodeAt(0)));
+      await this.uploader.upload(uploadPayload);
       this.uploading.next({ status: this.UPLOAD_DONE, msg: 'Sketch uploaded' });
     }
     catch (error) {
+      console.error(error);
       this.notifyUploadError(error.message);
     }
   }
