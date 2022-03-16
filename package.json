@@ -15,7 +15,7 @@
     "lib": "lib"
   },
   "dependencies": {
-    "@bcmi-labs/arduino-chromeos-uploader": "file:../arduino-chromeos-uploader",
+    "@bcmi-labs/arduino-chromeos-uploader": "git://github.com/bcmi-labs/arduino-chromeos-uploader#csarnataro/iot-1597-main-refactoring",
     "detect-browser": "^4.8.0",
     "rxjs": "^6.5.3",
     "semver-compare": "^1.0.0",
@@ -84,7 +84,8 @@
     "Stefania Mellai <s.mellai@arduino.cc>",
     "Fabrizio Mirabito <f.mirabito@arduino.cc>",
     "Alberto Iannaccone <a.iannaccone@arduino.cc>",
-    "Gabriele Destefanis <g.destefanis@topsolution.it>"
+    "Gabriele Destefanis <g.destefanis@topsolution.it>",
+    "Christian Sarnataro <c.sarnataro@arduino.cc>"
   ],
   "license": "GPLv3",
   "bugs": {

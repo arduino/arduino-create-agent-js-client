@@ -30,20 +30,22 @@ import ChromeAppDaemon from './chrome-app-daemon';
  */
 export default function ChromeOsDaemon(boardsUrl, options) {
 
-  // const { cacheStorageKey } = options;
-  if (false) { // typeof options === 'string') {
-    console.dir('******** BEGIN: chrome-os-daemon:40 ********');
-    console.dir('CREATING CHROME APP', { depth: null, colors: true });
-    console.dir('********   END: chrome-os-daemon:40 ********');
-    // chrome app
-    this.flavour = new ChromeAppDaemon(boardsUrl, options);
+  let useWebSerial = null;
+  let chromeExtensionId;
+
+  // check chromeExtensionId OR web serial API
+  if (typeof options === 'string') {
+    chromeExtensionId = options;
   }
   else {
-    console.dir('******** BEGIN: chrome-os-daemon:47 ********');
-    console.dir('CREATING WEB SERIAL', { depth: null, colors: true });
-    console.dir('********   END: chrome-os-daemon:47 ********');
-    // const { cacheStorageKey } = options;
+    useWebSerial = options.useWebSerial;
+    chromeExtensionId = options.chromeExtensionId;
+  }
+  if (useWebSerial === 'true' && 'serial' in navigator) {
     this.flavour = new WebSerialDaemon(boardsUrl);
+  }
+  else {
+    this.flavour = new ChromeAppDaemon(boardsUrl, chromeExtensionId);
   }
 
   const handler = {
@@ -58,4 +60,3 @@ export default function ChromeOsDaemon(boardsUrl, options) {
   return new Proxy(this, handler);
 
 }
-

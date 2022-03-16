@@ -130,7 +130,6 @@ export default class WebSerialDaemon extends Daemon {
       this.uploading.next({ status: this.UPLOAD_DONE, msg: 'Sketch uploaded' });
     }
     catch (error) {
-      console.error(error);
       this.notifyUploadError(error.message);
     }
   }
