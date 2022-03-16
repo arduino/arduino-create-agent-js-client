@@ -4,18 +4,6 @@ import {
 } from 'rxjs/operators';
 import Daemon from './daemon';
 
-// function mapSerialPortToDevice(port) {
-//   const info = port.getInfo();
-//   return {
-//     Name: `Board-${info.usbVendorId}-${info.usbProductId}`,
-//     SerialNumber: `${info.usbVendorId}-${info.usbProductId}`,
-//     IsOpen: true,
-//     VendorID: '0x2341', // String(info.usbVendorId),
-//     ProductID: '0x0054', // String(info.usbProductId)
-//     // type: 'web-serial'
-//   };
-// }
-
 export default class WebSerialDaemon extends Daemon {
   constructor(boardsUrl) {
     super(boardsUrl);
@@ -70,30 +58,7 @@ export default class WebSerialDaemon extends Daemon {
   // eslint-disable-next-line class-methods-use-this
   closeAllPorts() {
     console.log('should be closing serial ports here');
-    // const devices = this.devicesList.getValue().serial;
-    // TODO: do something to close the seriap ports...
   }
-
-  // async cdcReset() {
-  //   this.webSerialManager.cdcReset();
-  // }
-
-  // async askPermissionAndCdcReset() {
-  //   const port = await this.connectToSerialDevice();
-  //   const { usbVendorId, usbProductId } = port.getInfo();
-  //   this.webSerialManager.cdcReset();
-  //   this.appMessages.next({
-  //     ports: [{
-  //       Name: `Board-${usbVendorId}-${usbProductId}`,
-  //       SerialNumber: `${usbVendorId}-${usbProductId}`,
-  //       IsOpen: true,
-  //       VendorID: `0x${usbVendorId.toString(16).padStart(4, 0)}`,
-  //       ProductID: `0x${usbProductId.toString(16).padStart(4, 0)}`,
-  //       // type: 'web-serial'
-  //       serialAPI: 'web'
-  //     }]
-  //   });
-  // }
 
   /**
    * Request serial port open
