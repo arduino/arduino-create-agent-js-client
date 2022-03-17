@@ -13,12 +13,12 @@ import Daemon from './daemon';
  * It must provide a method `upload`.
  */
 export default class WebSerialDaemon extends Daemon {
-  constructor(boardsUrl, Uploader, uploaderOptions) {
+  constructor(boardsUrl, uploader) {
     super(boardsUrl);
     this.port = null;
     this.agentFound.next(true); // subscribe(() => true);
     this.channelOpenStatus.next(true); // subscribe(() => true);
-    this.uploader = new Uploader(uploaderOptions);
+    this.uploader = uploader;
   }
 
   // // Specific for serial web API on chromebooks
@@ -80,13 +80,13 @@ export default class WebSerialDaemon extends Daemon {
    * @param {object} uploadPayload
    * TODO: document param's shape
    */
-  async _upload(uploadPayload) {
-    try {
-      await this.uploader.upload(uploadPayload);
-      this.uploading.next({ status: this.UPLOAD_DONE, msg: 'Sketch uploaded' });
-    }
-    catch (error) {
-      this.notifyUploadError(error.message);
-    }
+  _upload(uploadPayload) {
+    this.uploader.upload(uploadPayload)
+      .then(() => {
+        this.uploading.next({ status: this.UPLOAD_DONE, msg: 'Sketch uploaded' });
+      })
+      .catch(error => {
+        this.notifyUploadError(error.message);
+      });
   }
 }

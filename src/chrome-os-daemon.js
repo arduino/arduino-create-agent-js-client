@@ -32,8 +32,7 @@ export default function ChromeOsDaemon(boardsUrl, options) {
 
   let useWebSerial;
   let chromeExtensionId;
-  let Uploader;
-  let uploaderOptions;
+  let uploader;
 
   // check chromeExtensionId OR web serial API
   if (typeof options === 'string') {
@@ -42,14 +41,15 @@ export default function ChromeOsDaemon(boardsUrl, options) {
   else {
     chromeExtensionId = options.chromeExtensionId;
     useWebSerial = options.useWebSerial;
-    Uploader = options.Uploader;
-    uploaderOptions = options.uploaderOptions || {};
+    uploader = options.uploader;
   }
 
-  if ('serial' in navigator && useWebSerial === 'true' && !!Uploader) {
-    this.flavour = new WebSerialDaemon(boardsUrl, Uploader, uploaderOptions);
+  if ('serial' in navigator && useWebSerial && Boolean(uploader)) {
+    console.debug('Instantiating WebSerialDaemon');
+    this.flavour = new WebSerialDaemon(boardsUrl, uploader);
   }
   else {
+    console.debug('Instantiating ChromeAppDaemon');
     this.flavour = new ChromeAppDaemon(boardsUrl, chromeExtensionId);
   }
 

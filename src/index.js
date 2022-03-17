@@ -26,9 +26,11 @@ import FirmwareUpdater from './firmware-updater';
 let Daemon;
 
 if (window.navigator.userAgent.indexOf(' CrOS ') !== -1) {
+  console.debug('Instantiating ChromeOsDaemon');
   Daemon = ChromeOsDaemon;
 }
 else {
+  console.debug('Instantiating SocketDaemon');
   Daemon = SocketDaemon;
 }
 
