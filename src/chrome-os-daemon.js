@@ -17,32 +17,37 @@
 * a commercial license, send an email to license@arduino.cc.
 *
 */
-
 import WebSerialDaemon from './web-serial-daemon';
 import ChromeAppDaemon from './chrome-app-daemon';
 
 /**
  * ChromeOSDaemon is a new implementation for ChromeOS which allows
  + to select the legacy Chrome app or the new BETA web serial API,
- * based on the the existance of a specific key in the browser CacheStorage,
- * which in turn means that the user has installed it from the Google Play Store
+ * based on the the existance of a `useWebSerial` key available in the constructor.
+ * Warning: support for WebSerialDaemon is still in alpha, so if you don't know
+ * how to deal with Web Serial API, just stick with the Chrome App Deamon.
  *
  */
 export default function ChromeOsDaemon(boardsUrl, options) {
 
-  let useWebSerial = null;
+  let useWebSerial;
   let chromeExtensionId;
+  let Uploader;
+  let uploaderOptions;
 
   // check chromeExtensionId OR web serial API
   if (typeof options === 'string') {
     chromeExtensionId = options;
   }
   else {
-    useWebSerial = options.useWebSerial;
     chromeExtensionId = options.chromeExtensionId;
+    useWebSerial = options.useWebSerial;
+    Uploader = options.Uploader;
+    uploaderOptions = options.uploaderOptions || {};
   }
-  if (useWebSerial === 'true' && 'serial' in navigator) {
-    this.flavour = new WebSerialDaemon(boardsUrl);
+
+  if ('serial' in navigator && useWebSerial === 'true' && !!Uploader) {
+    this.flavour = new WebSerialDaemon(boardsUrl, Uploader, uploaderOptions);
   }
   else {
     this.flavour = new ChromeAppDaemon(boardsUrl, chromeExtensionId);

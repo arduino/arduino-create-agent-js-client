@@ -15,7 +15,6 @@
     "lib": "lib"
   },
   "dependencies": {
-    "@bcmi-labs/arduino-chromeos-uploader": "https://github.com/bcmi-labs/arduino-chromeos-uploader.git#csarnataro/iot-1597-main-refactoring",
     "detect-browser": "^4.8.0",
     "rxjs": "^6.5.3",
     "semver-compare": "^1.0.0",

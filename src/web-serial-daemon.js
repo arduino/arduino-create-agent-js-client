@@ -1,33 +1,24 @@
-import { Uploader } from '@bcmi-labs/arduino-chromeos-uploader';
 import {
   filter, takeUntil
 } from 'rxjs/operators';
 import Daemon from './daemon';
 
+/**
+ * WARNING: the WebSerialDaemon with support for the Web Serial API is still in an alpha version.
+ * At the moment it doesn't implement all the features available in the
+ * Use at your own risk.
+ *
+ * The `Uploader` parameter in the constructor is the component which is
+ * used to interact with the Web Serial API.
+ * It must provide a method `upload`.
+ */
 export default class WebSerialDaemon extends Daemon {
-  constructor(boardsUrl) {
+  constructor(boardsUrl, Uploader, uploaderOptions) {
     super(boardsUrl);
     this.port = null;
     this.agentFound.next(true); // subscribe(() => true);
     this.channelOpenStatus.next(true); // subscribe(() => true);
-    this.uploader = new Uploader({
-      logger: console,
-      filters: [
-        { usbVendorId: 0x2341 }
-      ],
-      disconnectCallback: () => {
-        console.log('DISCONNECTED');
-        // this.appMessages.next({ ports: [] });
-      },
-      connectCallback: () => {
-        console.log('CONNECTED');
-      },
-      sendSupportedBoardsCallback: (supportedBoards) => {
-        this.supportedBoards.next(supportedBoards);
-
-      }
-    });
-
+    this.uploader = new Uploader(uploaderOptions);
   }
 
   // // Specific for serial web API on chromebooks
