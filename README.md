@@ -4,6 +4,13 @@
 # arduino-create-agent-js-client
 JS module providing discovery of the [Arduino Create Agent](https://github.com/arduino/arduino-create-agent) and communication with it
 
+
+## Changelog
+[2.8.0] - 2022-03-21
+
+### Added
+- Added support (still in Beta) for Chrome' Web Serial API on ChromeOS.
+  Other operating system should not be affected.
 ## Installation
 
 ```bash
