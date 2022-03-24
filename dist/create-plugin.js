@@ -15500,6 +15500,16 @@
             network: []
           }); // this.handleListMessage(message);
         }
+
+        if (message.supportedBoards) {
+          console.dir('******** BEGIN: web-serial-daemon:53 ********');
+          console.dir(message.supportedBoards, {
+            depth: null,
+            colors: true
+          });
+          console.dir('********   END: web-serial-daemon:53 ********');
+          this.supportedBoards.next(Object.keys(message.supportedBoards));
+        }
       }
       /**
        * Send 'close' command to all the available serial ports
