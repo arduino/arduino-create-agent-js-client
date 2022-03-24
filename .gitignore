@@ -1,6 +1,6 @@
 node_modules
 # temporarily add dist, lib and es folders to bundle of this specific branch
-!lib
-!dist
-!es
+lib
+dist
+es
 .tmp

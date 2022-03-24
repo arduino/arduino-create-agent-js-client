@@ -19,6 +19,13 @@ export default class WebSerialDaemon extends Daemon {
     this.agentFound.next(true); // subscribe(() => true);
     this.channelOpenStatus.next(true); // subscribe(() => true);
     this.uploader = uploader;
+
+    this._populateSupportedBoards();
+  }
+
+  _populateSupportedBoards() {
+    const supportedBoards = this.uploader.getSupportedBoards();
+    this.appMessages.next({ supportedBoards });
   }
 
   // // Specific for serial web API on chromebooks
@@ -41,6 +48,14 @@ export default class WebSerialDaemon extends Daemon {
       });
       // this.handleListMessage(message);
     }
+
+    if (message.supportedBoards) {
+      console.dir('******** BEGIN: web-serial-daemon:53 ********');
+      console.dir(message.supportedBoards, { depth: null, colors: true });
+      console.dir('********   END: web-serial-daemon:53 ********');
+      this.supportedBoards.next(Object.keys(message.supportedBoards));
+    }
+
   }
 
   /**
