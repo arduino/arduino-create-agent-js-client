@@ -21,12 +21,14 @@ export class V2InstallTool extends React.Component {
   componentDidMount() {
     this.daemon = this.props.daemon;
 
-    this.daemon.agentV2Found.subscribe(daemonV2 => {
-      if (!daemonV2) {
-        return;
-      }
-      this.daemonV2 = daemonV2;
-    });
+    if (this.daemon.agentV2Found) { // agentV2Found not available for instance on chromebooks
+      this.daemon.agentV2Found.subscribe(daemonV2 => {
+        if (!daemonV2) {
+          return;
+        }
+        this.daemonV2 = daemonV2;
+      });
+    }
   }
 
   handleChange(event) {

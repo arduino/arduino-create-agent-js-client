@@ -27,17 +27,18 @@ import Daemon from './daemon';
 
 const POLLING_INTERVAL = 2000;
 
-export default class ChromeOsDaemon extends Daemon {
+export default class ChromeAppDaemon extends Daemon {
   constructor(boardsUrl, chromeExtensionId) {
     super(boardsUrl);
+    this.chromeExtensionId = chromeExtensionId;
     this.channel = null;
+    this.init();
+  }
 
+  init() {
     this.openChannel(() => this.channel.postMessage({
       command: 'listPorts'
     }));
-
-    this.chromeExtensionId = chromeExtensionId;
-
     this.agentFound
       .pipe(distinctUntilChanged())
       .subscribe(agentFound => {
@@ -51,9 +52,7 @@ export default class ChromeOsDaemon extends Daemon {
     interval(POLLING_INTERVAL)
       .pipe(startWith(0))
       .pipe(takeUntil(this.channelOpen.pipe(filter(status => status))))
-      .subscribe(() => {
-        this._appConnect();
-      });
+      .subscribe(() => this._appConnect());
   }
 
   /**
@@ -100,7 +99,6 @@ export default class ChromeOsDaemon extends Daemon {
       this.uploading.next({ status: this.UPLOAD_ERROR, err: message.Err });
     }
   }
-
 
   handleListMessage(message) {
     const lastDevices = this.devicesList.getValue();
@@ -238,7 +236,9 @@ export default class ChromeOsDaemon extends Daemon {
    * }
    */
   _upload(uploadPayload, uploadCommandInfo) {
-    const { board, port, commandline, data } = uploadPayload;
+    const {
+      board, port, commandline, data
+    } = uploadPayload;
     const extrafiles = uploadCommandInfo && uploadCommandInfo.files && Array.isArray(uploadCommandInfo.files) ? uploadCommandInfo.files : [];
     try {
       window.oauth.token().then(token => {
