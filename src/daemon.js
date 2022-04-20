@@ -61,7 +61,8 @@ export default class Daemon {
       first(),
       takeUntil(
         this.uploading.pipe(
-          filter(upload => upload.status === this.UPLOAD_ERROR || upload.status === this.UPLOAD_DONE))
+          filter(upload => upload.status === this.UPLOAD_ERROR || upload.status === this.UPLOAD_DONE)
+        )
       )
     );
 
