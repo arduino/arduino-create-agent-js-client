@@ -46,32 +46,21 @@ export default class WebSerialDaemon extends Daemon {
         serial: message.ports,
         network: []
       });
-      // this.handleListMessage(message);
     }
     else if (message.supportedBoards) {
       this.supportedBoards.next(message.supportedBoards);
     }
     else if (message.connectedSerialPort) {
-      console.dir('******** BEGIN: web-serial-daemon:68 ********');
-      console.dir(message.connectedSerialPort, { depth: null, colors: true });
-
       const port = this.uploader.getBoardInfoFromSerialPort(message.connectedSerialPort);
       this.connectedPorts.push(port);
-      console.dir(this.connectedPorts, { depth: null, colors: true });
-      console.dir('********   END: web-serial-daemon:68 ********');
       this.devicesList.next({
         serial: this.connectedPorts,
         network: []
       });
     }
     else if (message.disconnectedSerialPort) {
-      console.dir('******** BEGIN: web-serial-daemon:79 ********');
-      console.dir(message.disconnectedSerialPort, { depth: null, colors: true });
       const port = this.uploader.getBoardInfoFromSerialPort(message.disconnectedSerialPort);
       this.connectedPorts = this.connectedPorts.filter(connectedPort => connectedPort.Name !== port.Name);
-      console.dir(this.connectedPorts, { depth: null, colors: true });
-      console.dir('********   END: web-serial-daemon:79 ********');
-      console.dir(this.connectedPorts, { depth: null, colors: true });
       this.devicesList.next({
         serial: this.connectedPorts,
         network: []
