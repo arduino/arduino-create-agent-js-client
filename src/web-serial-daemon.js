@@ -33,11 +33,7 @@ export default class WebSerialDaemon extends Daemon {
       this.appMessages.next({ ports });
     });
 
-  }
-
-  // eslint-disable-next-line class-methods-use-this
-  closeSerialMonitor() {
-    // TODO: it's a NO OP at the moment
+    this.uploader.on('data', data => this.serialMonitorMessages.next(data));
   }
 
   handleAppMessage(message) {
@@ -84,7 +80,7 @@ export default class WebSerialDaemon extends Daemon {
     if (this.serialMonitorOpened.getValue()) {
       return;
     }
-    const serialPort = this.devicesList.getValue().serial[0]; // .find(p => p.Name === port);
+    const serialPort = this.devicesList.getValue().serial.find(p => p.Name === port);
     if (!serialPort) {
       return this.serialMonitorError.next(`Can't find port ${port}`);
     }
@@ -98,6 +94,39 @@ export default class WebSerialDaemon extends Daemon {
           this.serialMonitorError.next(`Failed to open serial ${port}`);
         }
       });
+
+    this.uploader.openPort(serialPort)
+      .then(ports => {
+        this.appMessages.next({ portOpenStatus: 'success' });
+        this.appMessages.next({ ports });
+      })
+      .catch(() => this.appMessages.next({ portOpenStatus: 'error' }));
+  }
+
+  closeSerialMonitor(port) {
+    if (!this.serialMonitorOpened.getValue()) {
+      return;
+    }
+    const serialPort = this.devicesList.getValue().serial.find(p => p.Name === port);
+    if (!serialPort) {
+      return this.serialMonitorError.next(`Can't find port ${port}`);
+    }
+    this.appMessages
+      .pipe(takeUntil(this.serialMonitorOpened.pipe(filter(open => !open))))
+      .subscribe(message => {
+        if (message.portCloseStatus === 'success') {
+          this.serialMonitorOpened.next(false);
+        }
+        if (message.portCloseStatus === 'error') {
+          this.serialMonitorError.next(`Failed to close serial ${port}`);
+        }
+      });
+    this.uploader.closePort(serialPort)
+      .then(ports => {
+        this.appMessages.next({ portCloseStatus: 'success' });
+        this.appMessages.next({ ports });
+      })
+      .catch(() => this.appMessages.next({ portCloseStatus: 'error' }));
 
   }
 

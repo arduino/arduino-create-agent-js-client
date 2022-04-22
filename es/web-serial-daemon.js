@@ -73,11 +73,9 @@ var WebSerialDaemon = /*#__PURE__*/function (_Daemon) {
           ports: ports
         });
       });
-    } // eslint-disable-next-line class-methods-use-this
-
-  }, {
-    key: "closeSerialMonitor",
-    value: function closeSerialMonitor() {// TODO: it's a NO OP at the moment
+      this.uploader.on('data', function (data) {
+        return _this2.serialMonitorMessages.next(data);
+      });
     }
   }, {
     key: "handleAppMessage",
@@ -132,7 +130,9 @@ var WebSerialDaemon = /*#__PURE__*/function (_Daemon) {
         return;
       }
 
-      var serialPort = this.devicesList.getValue().serial[0]; // .find(p => p.Name === port);
+      var serialPort = this.devicesList.getValue().serial.find(function (p) {
+        return p.Name === port;
+      });
 
       if (!serialPort) {
         return this.serialMonitorError.next("Can't find port ".concat(port));
@@ -149,22 +149,77 @@ var WebSerialDaemon = /*#__PURE__*/function (_Daemon) {
           _this3.serialMonitorError.next("Failed to open serial ".concat(port));
         }
       });
+      this.uploader.openPort(serialPort).then(function (ports) {
+        _this3.appMessages.next({
+          portOpenStatus: 'success'
+        });
+
+        _this3.appMessages.next({
+          ports: ports
+        });
+      })["catch"](function () {
+        return _this3.appMessages.next({
+          portOpenStatus: 'error'
+        });
+      });
+    }
+  }, {
+    key: "closeSerialMonitor",
+    value: function closeSerialMonitor(port) {
+      var _this4 = this;
+
+      if (!this.serialMonitorOpened.getValue()) {
+        return;
+      }
+
+      var serialPort = this.devicesList.getValue().serial.find(function (p) {
+        return p.Name === port;
+      });
+
+      if (!serialPort) {
+        return this.serialMonitorError.next("Can't find port ".concat(port));
+      }
+
+      this.appMessages.pipe(takeUntil(this.serialMonitorOpened.pipe(filter(function (open) {
+        return !open;
+      })))).subscribe(function (message) {
+        if (message.portCloseStatus === 'success') {
+          _this4.serialMonitorOpened.next(false);
+        }
+
+        if (message.portCloseStatus === 'error') {
+          _this4.serialMonitorError.next("Failed to close serial ".concat(port));
+        }
+      });
+      this.uploader.closePort(serialPort).then(function (ports) {
+        _this4.appMessages.next({
+          portCloseStatus: 'success'
+        });
+
+        _this4.appMessages.next({
+          ports: ports
+        });
+      })["catch"](function () {
+        return _this4.appMessages.next({
+          portCloseStatus: 'error'
+        });
+      });
     }
   }, {
     key: "cdcReset",
     value: function cdcReset(_ref) {
-      var _this4 = this;
+      var _this5 = this;
 
       var fqbn = _ref.fqbn;
       return this.uploader.cdcReset({
         fqbn: fqbn
       }).then(function () {
-        _this4.uploading.next({
-          status: _this4.CDC_RESET_DONE,
+        _this5.uploading.next({
+          status: _this5.CDC_RESET_DONE,
           msg: 'Touch operation succeeded'
         });
       })["catch"](function (error) {
-        _this4.notifyUploadError(error.message);
+        _this5.notifyUploadError(error.message);
       });
     }
     /** A proxy method to get info from the specified SerialPort object */
@@ -187,15 +242,15 @@ var WebSerialDaemon = /*#__PURE__*/function (_Daemon) {
   }, {
     key: "_upload",
     value: function _upload(uploadPayload) {
-      var _this5 = this;
+      var _this6 = this;
 
       return this.uploader.upload(uploadPayload).then(function () {
-        _this5.uploading.next({
-          status: _this5.UPLOAD_DONE,
+        _this6.uploading.next({
+          status: _this6.UPLOAD_DONE,
           msg: 'Sketch uploaded'
         });
       })["catch"](function (error) {
-        _this5.notifyUploadError(error.message);
+        _this6.notifyUploadError(error.message);
       });
     }
   }]);
