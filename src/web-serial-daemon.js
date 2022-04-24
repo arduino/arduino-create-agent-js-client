@@ -70,6 +70,7 @@ export default class WebSerialDaemon extends Daemon {
   // eslint-disable-next-line class-methods-use-this
   closeAllPorts() {
     console.log('should be closing serial ports here');
+    this.uploader.closeAllPorts();
   }
 
   /**

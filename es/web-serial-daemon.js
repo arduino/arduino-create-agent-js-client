@@ -115,6 +115,7 @@ var WebSerialDaemon = /*#__PURE__*/function (_Daemon) {
     key: "closeAllPorts",
     value: function closeAllPorts() {
       console.log('should be closing serial ports here');
+      this.uploader.closeAllPorts();
     }
     /**
      * Request serial port open
