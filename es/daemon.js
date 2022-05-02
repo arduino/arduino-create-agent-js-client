@@ -56,7 +56,6 @@ var Daemon = /*#__PURE__*/function () {
     this.BOARDS_URL = boardsUrl;
     this.UPLOAD_NOPE = 'UPLOAD_NOPE';
     this.UPLOAD_DONE = 'UPLOAD_DONE';
-    this.CDC_RESET_DONE = 'CDC_RESET_DONE';
     this.UPLOAD_ERROR = 'UPLOAD_ERROR';
     this.UPLOAD_IN_PROGRESS = 'UPLOAD_IN_PROGRESS';
     this.DOWNLOAD_DONE = 'DOWNLOAD_DONE';
@@ -76,22 +75,17 @@ var Daemon = /*#__PURE__*/function () {
     this.uploading = new BehaviorSubject({
       status: this.UPLOAD_NOPE
     });
+    this.uploadInProgress = this.uploading.pipe(filter(function (upload) {
+      return upload.status === _this.UPLOAD_IN_PROGRESS;
+    }));
     this.uploadingDone = this.uploading.pipe(filter(function (upload) {
       return upload.status === _this.UPLOAD_DONE;
     })).pipe(first()).pipe(takeUntil(this.uploading.pipe(filter(function (upload) {
       return upload.status === _this.UPLOAD_ERROR;
     }))));
-    this.cdcResetDone = this.uploading.pipe(filter(function (upload) {
-      return upload.status === _this.CDC_RESET_DONE;
-    }), first(), takeUntil(this.uploading.pipe(filter(function (upload) {
-      return upload.status === _this.UPLOAD_ERROR || upload.status === _this.UPLOAD_DONE;
-    }))));
     this.uploadingError = this.uploading.pipe(filter(function (upload) {
       return upload.status === _this.UPLOAD_ERROR;
     })).pipe(first()).pipe(takeUntil(this.uploadingDone));
-    this.uploadInProgress = this.uploading.pipe(filter(function (upload) {
-      return upload.status === _this.UPLOAD_IN_PROGRESS;
-    }));
     this.devicesList = new BehaviorSubject({
       serial: [],
       network: []
@@ -148,13 +142,6 @@ var Daemon = /*#__PURE__*/function () {
           _this2.agentFound.next(false);
         }
       });
-    } // eslint-disable-next-line class-methods-use-this
-
-  }, {
-    key: "cdcReset",
-    value: function cdcReset() {
-      // It's a no-op for daemons different from web serial deamon
-      return Promise.resolve(true);
     }
     /**
      * Upload a sketch to serial target
@@ -246,6 +233,12 @@ var Daemon = /*#__PURE__*/function () {
         });
 
         var files = [].concat(_toConsumableArray(uploadCommandInfo.files || []), _toConsumableArray(compilationResult.files || []));
+        console.dir('******** BEGIN: daemon:176 ********');
+        console.dir(uploadPayload, {
+          depth: null,
+          colors: true
+        });
+        console.dir('********   END: daemon:176 ********');
 
         _this3._upload(uploadPayload, _objectSpread(_objectSpread({}, uploadCommandInfo), {}, {
           files: files

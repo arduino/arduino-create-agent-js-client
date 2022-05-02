@@ -20,14 +20,14 @@ function _isNativeReflectConstruct() { if (typeof Reflect === "undefined" || !Re
 
 function _getPrototypeOf(o) { _getPrototypeOf = Object.setPrototypeOf ? Object.getPrototypeOf : function _getPrototypeOf(o) { return o.__proto__ || Object.getPrototypeOf(o); }; return _getPrototypeOf(o); }
 
-import { filter, takeUntil } from 'rxjs/operators';
+import { distinctUntilChanged, filter, takeUntil } from 'rxjs/operators';
 import Daemon from './daemon';
 /**
  * WARNING: the WebSerialDaemon with support for the Web Serial API is still in an alpha version.
  * At the moment it doesn't implement all the features available in the Chrome App Deamon
  * Use at your own risk.
  *
- * The `uploader` parameter in the constructor is the component which is
+ * The `channel` parameter in the constructor is the component which is
  * used to interact with the Web Serial API.
  * It must provide a method `upload`.
  */
@@ -37,7 +37,7 @@ var WebSerialDaemon = /*#__PURE__*/function (_Daemon) {
 
   var _super = _createSuper(WebSerialDaemon);
 
-  function WebSerialDaemon(boardsUrl, uploader) {
+  function WebSerialDaemon(boardsUrl, channel) {
     var _this;
 
     _classCallCheck(this, WebSerialDaemon);
@@ -45,11 +45,10 @@ var WebSerialDaemon = /*#__PURE__*/function (_Daemon) {
     _this = _super.call(this, boardsUrl);
     _this.port = null;
 
-    _this.agentFound.next(true);
-
     _this.channelOpenStatus.next(true);
 
-    _this.uploader = uploader;
+    _this.channel = channel; // channel is injected from the webide
+
     _this.connectedPorts = [];
 
     _this.init();
@@ -62,46 +61,166 @@ var WebSerialDaemon = /*#__PURE__*/function (_Daemon) {
     value: function init() {
       var _this2 = this;
 
-      var supportedBoards = this.uploader.getSupportedBoards();
-      this.appMessages.next({
-        supportedBoards: supportedBoards
-      });
-      this.uploader.listBoards().then(function (ports) {
-        _this2.connectedPorts = ports;
+      this.agentFound.pipe(distinctUntilChanged()).subscribe(function (found) {
+        if (!found) {
+          // Set channelOpen false for the first time
+          if (_this2.channelOpen.getValue() === null) {
+            _this2.channelOpen.next(false);
+          }
 
-        _this2.appMessages.next({
-          ports: ports
-        });
+          _this2.connectToChannel();
+        } else {
+          _this2.openChannel(function () {
+            return _this2.channel.postMessage({
+              command: 'listPorts'
+            });
+          });
+        }
       });
-      this.uploader.on('data', function (data) {
-        return _this2.serialMonitorMessages.next(data);
+    }
+  }, {
+    key: "connectToChannel",
+    value: function connectToChannel() {
+      var _this3 = this;
+
+      this.channel.onMessage(function (message) {
+        if (message.version) {
+          _this3.agentInfo = message.version;
+
+          _this3.agentFound.next(true);
+
+          _this3.channelOpen.next(true);
+        } else {
+          _this3.appMessages.next(message);
+        }
+      });
+      this.channel.onDisconnect(function () {
+        _this3.channelOpen.next(false);
+
+        _this3.agentFound.next(false);
+      });
+    }
+  }, {
+    key: "_appConnect",
+    value: function _appConnect() {
+      var _this4 = this;
+
+      this.channel.onMessage(function (message) {
+        if (message.version) {
+          _this4.agentInfo = {
+            version: message.version,
+            os: 'ChromeOS'
+          };
+
+          _this4.agentFound.next(true);
+
+          _this4.channelOpen.next(true);
+        } else {
+          _this4.appMessages.next(message);
+        }
+      });
+      this.channel.onDisconnect(function () {
+        _this4.channelOpen.next(false);
+
+        _this4.agentFound.next(false);
       });
     }
   }, {
     key: "handleAppMessage",
     value: function handleAppMessage(message) {
       if (message.ports) {
-        this.devicesList.next({
-          serial: message.ports,
-          network: []
-        });
+        this.handleListMessage(message);
       } else if (message.supportedBoards) {
         this.supportedBoards.next(message.supportedBoards);
-      } else if (message.connectedSerialPort) {
-        var port = this.uploader.getBoardInfoFromSerialPort(message.connectedSerialPort);
-        this.connectedPorts.push(port);
-        this.devicesList.next({
-          serial: this.connectedPorts,
-          network: []
-        });
-      } else if (message.disconnectedSerialPort) {
-        var _port = this.uploader.getBoardInfoFromSerialPort(message.disconnectedSerialPort);
+      }
 
-        this.connectedPorts = this.connectedPorts.filter(function (connectedPort) {
-          return connectedPort.Name !== _port.Name;
+      if (message.serialData) {
+        this.serialMonitorMessages.next(message.serialData);
+      }
+
+      if (message.uploadStatus) {
+        this.handleUploadMessage(message);
+      }
+
+      if (message.err) {
+        this.uploading.next({
+          status: this.UPLOAD_ERROR,
+          err: message.Err
         });
+      } // else if (message.connectedSerialPort) {
+      //   const port = this.uploader.getBoardInfoFromSerialPort(message.connectedSerialPort);
+      //   this.connectedPorts.push(port);
+      //   this.devicesList.next({
+      //     serial: this.connectedPorts,
+      //     network: []
+      //   });
+      // }
+      // else if (message.disconnectedSerialPort) {
+      //   const port = this.uploader.getBoardInfoFromSerialPort(message.disconnectedSerialPort);
+      //   this.connectedPorts = this.connectedPorts.filter(connectedPort => connectedPort.Name !== port.Name);
+      //   this.devicesList.next({
+      //     serial: this.connectedPorts,
+      //     network: []
+      //   });
+      // }
+
+    }
+  }, {
+    key: "handleUploadMessage",
+    value: function handleUploadMessage(message) {
+      if (this.uploading.getValue().status !== this.UPLOAD_IN_PROGRESS) {
+        return;
+      }
+
+      switch (message.uploadStatus) {
+        case 'message':
+          this.uploading.next({
+            status: this.UPLOAD_IN_PROGRESS,
+            msg: message.message,
+            operation: message.operation,
+            port: message.port
+          });
+          break;
+
+        case 'error':
+          this.uploading.next({
+            status: this.UPLOAD_ERROR,
+            err: message.message
+          });
+          break;
+
+        case 'success':
+          this.uploading.next({
+            status: this.UPLOAD_DONE,
+            msg: message.message,
+            operation: message.operation,
+            port: message.port
+          });
+          break;
+
+        default:
+          this.uploading.next({
+            status: this.UPLOAD_IN_PROGRESS
+          });
+      }
+    }
+  }, {
+    key: "handleListMessage",
+    value: function handleListMessage(message) {
+      var lastDevices = this.devicesList.getValue();
+
+      if (!Daemon.devicesListAreEquals(lastDevices.serial, message.ports)) {
         this.devicesList.next({
-          serial: this.connectedPorts,
+          serial: message.ports // .filter(port => Boolean(port.vendorId))
+          .map(function (port) {
+            return {
+              Name: port.name,
+              SerialNumber: port.serialNumber,
+              IsOpen: port.isOpen,
+              VendorID: port.vendorId,
+              ProductID: port.productId
+            };
+          }),
           network: []
         });
       }
@@ -114,8 +233,7 @@ var WebSerialDaemon = /*#__PURE__*/function (_Daemon) {
   }, {
     key: "closeAllPorts",
     value: function closeAllPorts() {
-      console.log('should be closing serial ports here');
-      this.uploader.closeAllPorts();
+      console.log('should be closing serial ports here'); // this.uploader.closeAllPorts();
     }
     /**
      * Request serial port open
@@ -124,8 +242,8 @@ var WebSerialDaemon = /*#__PURE__*/function (_Daemon) {
 
   }, {
     key: "openSerialMonitor",
-    value: function openSerialMonitor(port) {
-      var _this3 = this;
+    value: function openSerialMonitor(port, baudrate) {
+      var _this5 = this;
 
       if (this.serialMonitorOpened.getValue()) {
         return;
@@ -143,31 +261,30 @@ var WebSerialDaemon = /*#__PURE__*/function (_Daemon) {
         return open;
       })))).subscribe(function (message) {
         if (message.portOpenStatus === 'success') {
-          _this3.serialMonitorOpened.next(true);
+          _this5.serialMonitorOpened.next(true);
         }
 
         if (message.portOpenStatus === 'error') {
-          _this3.serialMonitorError.next("Failed to open serial ".concat(port));
+          _this5.serialMonitorError.next("Failed to open serial ".concat(port));
         }
       });
-      this.uploader.openPort(serialPort).then(function (ports) {
-        _this3.appMessages.next({
-          portOpenStatus: 'success'
-        });
-
-        _this3.appMessages.next({
-          ports: ports
-        });
-      })["catch"](function () {
-        return _this3.appMessages.next({
-          portOpenStatus: 'error'
-        });
-      });
+      this.channel.postMessage({
+        command: 'openPort',
+        data: {
+          name: port,
+          baudrate: baudrate
+        }
+      }); // this.uploader.openPort(serialPort)
+      //   .then(ports => {
+      //     this.appMessages.next({ portOpenStatus: 'success' });
+      //     this.appMessages.next({ ports });
+      //   })
+      //   .catch(() => this.appMessages.next({ portOpenStatus: 'error' }));
     }
   }, {
     key: "closeSerialMonitor",
     value: function closeSerialMonitor(port) {
-      var _this4 = this;
+      var _this6 = this;
 
       if (!this.serialMonitorOpened.getValue()) {
         return;
@@ -185,55 +302,49 @@ var WebSerialDaemon = /*#__PURE__*/function (_Daemon) {
         return !open;
       })))).subscribe(function (message) {
         if (message.portCloseStatus === 'success') {
-          _this4.serialMonitorOpened.next(false);
+          _this6.serialMonitorOpened.next(false);
         }
 
         if (message.portCloseStatus === 'error') {
-          _this4.serialMonitorError.next("Failed to close serial ".concat(port));
+          _this6.serialMonitorError.next("Failed to close serial ".concat(port));
         }
       });
-      this.uploader.closePort(serialPort).then(function (ports) {
-        _this4.appMessages.next({
-          portCloseStatus: 'success'
-        });
-
-        _this4.appMessages.next({
-          ports: ports
-        });
-      })["catch"](function () {
-        return _this4.appMessages.next({
-          portCloseStatus: 'error'
-        });
+      this.channel.postMessage({
+        command: 'closePort',
+        data: {
+          name: port
+        }
       });
     }
   }, {
     key: "cdcReset",
     value: function cdcReset(_ref) {
-      var _this5 = this;
-
       var fqbn = _ref.fqbn;
-      return this.uploader.cdcReset({
-        fqbn: fqbn
-      }).then(function () {
-        _this5.uploading.next({
-          status: _this5.CDC_RESET_DONE,
-          msg: 'Touch operation succeeded'
-        });
-      })["catch"](function (error) {
-        _this5.notifyUploadError(error.message);
+      this.uploading.next({
+        status: this.UPLOAD_IN_PROGRESS,
+        msg: 'CDC reset started'
       });
-    }
-    /** A proxy method to get info from the specified SerialPort object */
-
-  }, {
-    key: "getBoardInfoFromSerialPort",
-    value: function getBoardInfoFromSerialPort(serialPort) {
-      return this.uploader.getBoardInfoFromSerialPort(serialPort);
+      this.channel.postMessage({
+        command: 'cdcReset',
+        data: {
+          fqbn: fqbn
+        }
+      });
     }
   }, {
     key: "connectToSerialDevice",
-    value: function connectToSerialDevice() {
-      return this.uploader.connectToSerialDevice();
+    value: function connectToSerialDevice(_ref2) {
+      var fqbn = _ref2.fqbn;
+      this.uploading.next({
+        status: this.UPLOAD_IN_PROGRESS,
+        msg: 'Board selection started'
+      });
+      this.channel.postMessage({
+        command: 'connectToSerial',
+        data: {
+          fqbn: fqbn
+        }
+      });
     }
     /**
      * @param {object} uploadPayload
@@ -242,17 +353,46 @@ var WebSerialDaemon = /*#__PURE__*/function (_Daemon) {
 
   }, {
     key: "_upload",
-    value: function _upload(uploadPayload) {
-      var _this6 = this;
+    value: function _upload(uploadPayload, uploadCommandInfo) {
+      var _this7 = this;
 
-      return this.uploader.upload(uploadPayload).then(function () {
-        _this6.uploading.next({
-          status: _this6.UPLOAD_DONE,
-          msg: 'Sketch uploaded'
+      var board = uploadPayload.board,
+          port = uploadPayload.port,
+          commandline = uploadPayload.commandline,
+          data = uploadPayload.data,
+          pid = uploadPayload.pid,
+          vid = uploadPayload.vid;
+      var extrafiles = uploadCommandInfo && uploadCommandInfo.files && Array.isArray(uploadCommandInfo.files) ? uploadCommandInfo.files : [];
+
+      try {
+        window.oauth.getAccessToken().then(function (token) {
+          _this7.channel.postMessage({
+            command: 'upload',
+            data: {
+              board: board,
+              port: port,
+              commandline: commandline,
+              data: data,
+              token: token.token,
+              extrafiles: extrafiles,
+              pid: pid,
+              vid: vid
+            }
+          });
         });
-      })["catch"](function (error) {
-        _this6.notifyUploadError(error.message);
-      });
+      } catch (err) {
+        this.uploading.next({
+          status: this.UPLOAD_ERROR,
+          err: 'you need to be logged in on a Create site to upload by Chrome App'
+        });
+      } // return this.uploader.upload(uploadPayload)
+      //   .then(() => {
+      //     this.uploading.next({ status: this.UPLOAD_DONE, msg: 'Sketch uploaded' });
+      //   })
+      //   .catch(error => {
+      //     this.notifyUploadError(error.message);
+      //   });
+
     }
   }]);
 

@@ -32,7 +32,6 @@ export default class Daemon {
     this.BOARDS_URL = boardsUrl;
     this.UPLOAD_NOPE = 'UPLOAD_NOPE';
     this.UPLOAD_DONE = 'UPLOAD_DONE';
-    this.CDC_RESET_DONE = 'CDC_RESET_DONE';
     this.UPLOAD_ERROR = 'UPLOAD_ERROR';
     this.UPLOAD_IN_PROGRESS = 'UPLOAD_IN_PROGRESS';
 
@@ -53,23 +52,14 @@ export default class Daemon {
     this.serialMonitorMessages = new Subject();
     this.serialMonitorMessagesWithPort = new Subject();
     this.uploading = new BehaviorSubject({ status: this.UPLOAD_NOPE });
+    this.uploadInProgress = this.uploading.pipe(filter(upload => upload.status === this.UPLOAD_IN_PROGRESS));
     this.uploadingDone = this.uploading.pipe(filter(upload => upload.status === this.UPLOAD_DONE))
       .pipe(first())
       .pipe(takeUntil(this.uploading.pipe(filter(upload => upload.status === this.UPLOAD_ERROR))));
-    this.cdcResetDone = this.uploading.pipe(
-      filter(upload => upload.status === this.CDC_RESET_DONE),
-      first(),
-      takeUntil(
-        this.uploading.pipe(
-          filter(upload => upload.status === this.UPLOAD_ERROR || upload.status === this.UPLOAD_DONE)
-        )
-      )
-    );
-
     this.uploadingError = this.uploading.pipe(filter(upload => upload.status === this.UPLOAD_ERROR))
       .pipe(first())
       .pipe(takeUntil(this.uploadingDone));
-    this.uploadInProgress = this.uploading.pipe(filter(upload => upload.status === this.UPLOAD_IN_PROGRESS));
+
     this.devicesList = new BehaviorSubject({
       serial: [],
       network: []
@@ -117,12 +107,6 @@ export default class Daemon {
           this.agentFound.next(false);
         }
       });
-  }
-
-  // eslint-disable-next-line class-methods-use-this
-  cdcReset() {
-    // It's a no-op for daemons different from web serial deamon
-    return Promise.resolve(true);
   }
 
   /**
@@ -189,6 +173,10 @@ export default class Daemon {
           });
         });
         const files = [...(uploadCommandInfo.files || []), ...(compilationResult.files || [])];
+        console.dir('******** BEGIN: daemon:176 ********');
+        console.dir(uploadPayload, { depth: null, colors: true });
+        console.dir('********   END: daemon:176 ********');
+
         this._upload(uploadPayload, { ...uploadCommandInfo, files });
       });
   }

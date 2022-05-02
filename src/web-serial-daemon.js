@@ -1,6 +1,7 @@
 import {
-  filter, takeUntil
+  distinctUntilChanged, filter, takeUntil
 } from 'rxjs/operators';
+
 import Daemon from './daemon';
 
 /**
@@ -8,57 +9,162 @@ import Daemon from './daemon';
  * At the moment it doesn't implement all the features available in the Chrome App Deamon
  * Use at your own risk.
  *
- * The `uploader` parameter in the constructor is the component which is
+ * The `channel` parameter in the constructor is the component which is
  * used to interact with the Web Serial API.
  * It must provide a method `upload`.
  */
+
 export default class WebSerialDaemon extends Daemon {
-  constructor(boardsUrl, uploader) {
+  constructor(boardsUrl, channel) {
     super(boardsUrl);
+
     this.port = null;
-    this.agentFound.next(true);
     this.channelOpenStatus.next(true);
-    this.uploader = uploader;
+    this.channel = channel; // channel is injected from the webide
     this.connectedPorts = [];
 
     this.init();
   }
 
   init() {
-    const supportedBoards = this.uploader.getSupportedBoards();
-    this.appMessages.next({ supportedBoards });
+    this.agentFound
+      .pipe(distinctUntilChanged())
+      .subscribe(found => {
+        if (!found) {
+          // Set channelOpen false for the first time
+          if (this.channelOpen.getValue() === null) {
+            this.channelOpen.next(false);
+          }
 
-    this.uploader.listBoards().then(ports => {
-      this.connectedPorts = ports;
-      this.appMessages.next({ ports });
+          this.connectToChannel();
+        }
+        else {
+          this.openChannel(() => this.channel.postMessage({
+            command: 'listPorts'
+          }));
+        }
+      });
+  }
+
+  connectToChannel() {
+    this.channel.onMessage(message => {
+      if (message.version) {
+        this.agentInfo = message.version;
+        this.agentFound.next(true);
+        this.channelOpen.next(true);
+      }
+      else {
+        this.appMessages.next(message);
+      }
     });
+    this.channel.onDisconnect(() => {
+      this.channelOpen.next(false);
+      this.agentFound.next(false);
+    });
+  }
 
-    this.uploader.on('data', data => this.serialMonitorMessages.next(data));
+  _appConnect() {
+    this.channel.onMessage(message => {
+      if (message.version) {
+        this.agentInfo = {
+          version: message.version,
+          os: 'ChromeOS'
+        };
+        this.agentFound.next(true);
+        this.channelOpen.next(true);
+      }
+      else {
+        this.appMessages.next(message);
+      }
+    });
+    this.channel.onDisconnect(() => {
+      this.channelOpen.next(false);
+      this.agentFound.next(false);
+    });
   }
 
   handleAppMessage(message) {
     if (message.ports) {
-      this.devicesList.next({
-        serial: message.ports,
-        network: []
-      });
+      this.handleListMessage(message);
     }
     else if (message.supportedBoards) {
       this.supportedBoards.next(message.supportedBoards);
     }
-    else if (message.connectedSerialPort) {
-      const port = this.uploader.getBoardInfoFromSerialPort(message.connectedSerialPort);
-      this.connectedPorts.push(port);
-      this.devicesList.next({
-        serial: this.connectedPorts,
-        network: []
-      });
+    if (message.serialData) {
+      this.serialMonitorMessages.next(message.serialData);
     }
-    else if (message.disconnectedSerialPort) {
-      const port = this.uploader.getBoardInfoFromSerialPort(message.disconnectedSerialPort);
-      this.connectedPorts = this.connectedPorts.filter(connectedPort => connectedPort.Name !== port.Name);
+
+    if (message.uploadStatus) {
+      this.handleUploadMessage(message);
+    }
+
+    if (message.err) {
+      this.uploading.next({ status: this.UPLOAD_ERROR, err: message.Err });
+    }
+
+    // else if (message.connectedSerialPort) {
+    //   const port = this.uploader.getBoardInfoFromSerialPort(message.connectedSerialPort);
+    //   this.connectedPorts.push(port);
+    //   this.devicesList.next({
+    //     serial: this.connectedPorts,
+    //     network: []
+    //   });
+    // }
+    // else if (message.disconnectedSerialPort) {
+    //   const port = this.uploader.getBoardInfoFromSerialPort(message.disconnectedSerialPort);
+    //   this.connectedPorts = this.connectedPorts.filter(connectedPort => connectedPort.Name !== port.Name);
+    //   this.devicesList.next({
+    //     serial: this.connectedPorts,
+    //     network: []
+    //   });
+    // }
+  }
+
+  handleUploadMessage(message) {
+    if (this.uploading.getValue().status !== this.UPLOAD_IN_PROGRESS) {
+      return;
+    }
+    switch (message.uploadStatus) {
+      case 'message':
+        this.uploading.next({
+          status: this.UPLOAD_IN_PROGRESS,
+          msg: message.message,
+          operation: message.operation,
+          port: message.port
+        });
+        break;
+      case 'error':
+        this.uploading.next({ status: this.UPLOAD_ERROR, err: message.message });
+        break;
+      case 'success':
+        this.uploading.next(
+          {
+            status: this.UPLOAD_DONE,
+            msg: message.message,
+            operation: message.operation,
+            port: message.port
+          }
+        );
+        break;
+
+      default:
+        this.uploading.next({ status: this.UPLOAD_IN_PROGRESS });
+    }
+  }
+
+  handleListMessage(message) {
+    const lastDevices = this.devicesList.getValue();
+    if (!Daemon.devicesListAreEquals(lastDevices.serial, message.ports)) {
       this.devicesList.next({
-        serial: this.connectedPorts,
+        serial: message.ports
+          // .filter(port => Boolean(port.vendorId))
+          .map(port => ({
+            Name: port.name,
+            SerialNumber: port.serialNumber,
+            IsOpen: port.isOpen,
+            VendorID: port.vendorId,
+            ProductID: port.productId
+          })),
         network: []
       });
     }
@@ -70,14 +176,14 @@ export default class WebSerialDaemon extends Daemon {
   // eslint-disable-next-line class-methods-use-this
   closeAllPorts() {
     console.log('should be closing serial ports here');
-    this.uploader.closeAllPorts();
+    // this.uploader.closeAllPorts();
   }
 
   /**
    * Request serial port open
    * @param {string} port the port name
    */
-  openSerialMonitor(port) {
+  openSerialMonitor(port, baudrate) {
     if (this.serialMonitorOpened.getValue()) {
       return;
     }
@@ -95,13 +201,20 @@ export default class WebSerialDaemon extends Daemon {
           this.serialMonitorError.next(`Failed to open serial ${port}`);
         }
       });
+    this.channel.postMessage({
+      command: 'openPort',
+      data: {
+        name: port,
+        baudrate
+      }
+    });
 
-    this.uploader.openPort(serialPort)
-      .then(ports => {
-        this.appMessages.next({ portOpenStatus: 'success' });
-        this.appMessages.next({ ports });
-      })
-      .catch(() => this.appMessages.next({ portOpenStatus: 'error' }));
+    // this.uploader.openPort(serialPort)
+    //   .then(ports => {
+    //     this.appMessages.next({ portOpenStatus: 'success' });
+    //     this.appMessages.next({ ports });
+    //   })
+    //   .catch(() => this.appMessages.next({ portOpenStatus: 'error' }));
   }
 
   closeSerialMonitor(port) {
@@ -122,45 +235,69 @@ export default class WebSerialDaemon extends Daemon {
           this.serialMonitorError.next(`Failed to close serial ${port}`);
         }
       });
-    this.uploader.closePort(serialPort)
-      .then(ports => {
-        this.appMessages.next({ portCloseStatus: 'success' });
-        this.appMessages.next({ ports });
-      })
-      .catch(() => this.appMessages.next({ portCloseStatus: 'error' }));
-
+    this.channel.postMessage({
+      command: 'closePort',
+      data: {
+        name: port
+      }
+    });
   }
 
   cdcReset({ fqbn }) {
-    return this.uploader.cdcReset({ fqbn })
-      .then(() => {
-        this.uploading.next({ status: this.CDC_RESET_DONE, msg: 'Touch operation succeeded' });
-      })
-      .catch(error => {
-        this.notifyUploadError(error.message);
-      });
+    this.uploading.next({ status: this.UPLOAD_IN_PROGRESS, msg: 'CDC reset started' });
+    this.channel.postMessage({
+      command: 'cdcReset',
+      data: {
+        fqbn
+      }
+    });
   }
 
-  /** A proxy method to get info from the specified SerialPort object */
-  getBoardInfoFromSerialPort(serialPort) {
-    return this.uploader.getBoardInfoFromSerialPort(serialPort);
-  }
-
-  connectToSerialDevice() {
-    return this.uploader.connectToSerialDevice();
+  connectToSerialDevice({ fqbn }) {
+    this.uploading.next({ status: this.UPLOAD_IN_PROGRESS, msg: 'Board selection started' });
+    this.channel.postMessage({
+      command: 'connectToSerial',
+      data: {
+        fqbn
+      }
+    });
   }
 
   /**
    * @param {object} uploadPayload
    * TODO: document param's shape
    */
-  _upload(uploadPayload) {
-    return this.uploader.upload(uploadPayload)
-      .then(() => {
-        this.uploading.next({ status: this.UPLOAD_DONE, msg: 'Sketch uploaded' });
-      })
-      .catch(error => {
-        this.notifyUploadError(error.message);
+  _upload(uploadPayload, uploadCommandInfo) {
+    const {
+      board, port, commandline, data, pid, vid
+    } = uploadPayload;
+    const extrafiles = uploadCommandInfo && uploadCommandInfo.files && Array.isArray(uploadCommandInfo.files) ? uploadCommandInfo.files : [];
+    try {
+      window.oauth.getAccessToken().then(token => {
+        this.channel.postMessage({
+          command: 'upload',
+          data: {
+            board,
+            port,
+            commandline,
+            data,
+            token: token.token,
+            extrafiles,
+            pid,
+            vid
+          }
+        });
       });
+    }
+    catch (err) {
+      this.uploading.next({ status: this.UPLOAD_ERROR, err: 'you need to be logged in on a Create site to upload by Chrome App' });
+    }
+    // return this.uploader.upload(uploadPayload)
+    //   .then(() => {
+    //     this.uploading.next({ status: this.UPLOAD_DONE, msg: 'Sketch uploaded' });
+    //   })
+    //   .catch(error => {
+    //     this.notifyUploadError(error.message);
+    //   });
   }
 }
