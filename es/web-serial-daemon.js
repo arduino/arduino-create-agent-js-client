@@ -246,6 +246,20 @@ var WebSerialDaemon = /*#__PURE__*/function (_Daemon) {
       var _this5 = this;
 
       if (this.serialMonitorOpened.getValue()) {
+        console.dir('******** BEGIN: web-serial-daemon:187 ********');
+        console.dir('not found', {
+          depth: null,
+          colors: true
+        });
+        console.dir(port, {
+          depth: null,
+          colors: true
+        });
+        console.dir(baudrate, {
+          depth: null,
+          colors: true
+        });
+        console.dir('********   END: web-serial-daemon:187 ********');
         return;
       }
 
@@ -274,12 +288,7 @@ var WebSerialDaemon = /*#__PURE__*/function (_Daemon) {
           name: port,
           baudrate: baudrate
         }
-      }); // this.uploader.openPort(serialPort)
-      //   .then(ports => {
-      //     this.appMessages.next({ portOpenStatus: 'success' });
-      //     this.appMessages.next({ ports });
-      //   })
-      //   .catch(() => this.appMessages.next({ portOpenStatus: 'error' }));
+      });
     }
   }, {
     key: "closeSerialMonitor",
@@ -287,6 +296,16 @@ var WebSerialDaemon = /*#__PURE__*/function (_Daemon) {
       var _this6 = this;
 
       if (!this.serialMonitorOpened.getValue()) {
+        console.dir('******** BEGIN: web-serial-daemon:218 ********');
+        console.dir('not found', {
+          depth: null,
+          colors: true
+        });
+        console.dir(port, {
+          depth: null,
+          colors: true
+        });
+        console.dir('********   END: web-serial-daemon:218 ********');
         return;
       }
 

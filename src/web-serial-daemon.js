@@ -208,13 +208,6 @@ export default class WebSerialDaemon extends Daemon {
         baudrate
       }
     });
-
-    // this.uploader.openPort(serialPort)
-    //   .then(ports => {
-    //     this.appMessages.next({ portOpenStatus: 'success' });
-    //     this.appMessages.next({ ports });
-    //   })
-    //   .catch(() => this.appMessages.next({ portOpenStatus: 'error' }));
   }
 
   closeSerialMonitor(port) {

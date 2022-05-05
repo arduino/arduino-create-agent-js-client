@@ -173,10 +173,6 @@ export default class Daemon {
           });
         });
         const files = [...(uploadCommandInfo.files || []), ...(compilationResult.files || [])];
-        console.dir('******** BEGIN: daemon:176 ********');
-        console.dir(uploadPayload, { depth: null, colors: true });
-        console.dir('********   END: daemon:176 ********');
-
         this._upload(uploadPayload, { ...uploadCommandInfo, files });
       });
   }

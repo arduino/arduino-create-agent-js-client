@@ -14923,10 +14923,6 @@
    * used to interact with the Web Serial API.
    * It must provide a method `upload`.
    */
-  // const CDC_RESET_NOPE = 'CDC_RESET_NOPE';
-  // const CDC_RESET_IN_PROGRESS = 'CDC_RESET_IN_PROGRESS';
-  // const CDC_RESET_DONE = 'CDC_RESET_DONE';
-  // const CDC_RESET_ERROR = 'CDC_RESET_ERROR';
 
   var WebSerialDaemon = /*#__PURE__*/function (_Daemon) {
     _inherits(WebSerialDaemon, _Daemon);
@@ -14945,20 +14941,7 @@
 
       _this.channel = channel; // channel is injected from the webide
 
-      _this.connectedPorts = []; // this.cdcResetOperation = new BehaviorSubject({ status: CDC_RESET_NOPE });
-      // this.cdcResetInProgress = this.cdcResetOperation.pipe(filter(upload => upload.status === CDC_RESET_IN_PROGRESS));
-      // this.cdcResetDone = this.cdcResetOperation.pipe(
-      //   filter(upload => upload.status === CDC_RESET_DONE),
-      //   first(),
-      //   takeUntil(
-      //     this.cdcResetOperation.pipe(
-      //       filter(upload => upload.status === CDC_RESET_ERROR || upload.status === CDC_RESET_DONE)
-      //     )
-      //   )
-      // );
-      // this.cdcResetError = this.cdcResetOperation.pipe(filter(upload => upload.status === CDC_RESET_ERROR))
-      //   .pipe(first())
-      //   .pipe(takeUntil(this.cdcResetDone));
+      _this.connectedPorts = [];
 
       _this.init();
 
@@ -14971,17 +14954,6 @@
         var _this2 = this;
 
         this.agentFound.pipe(distinctUntilChanged()).subscribe(function (found) {
-          console.dir('******** BEGIN: web-serial-daemon:34 ********');
-          console.dir('agent found?', {
-            depth: null,
-            colors: true
-          });
-          console.dir(found, {
-            depth: null,
-            colors: true
-          });
-          console.dir('********   END: web-serial-daemon:34 ********');
-
           if (!found) {
             // Set channelOpen false for the first time
             if (_this2.channelOpen.getValue() === null) {
@@ -14996,22 +14968,7 @@
               });
             });
           }
-        }); // this.agentFound
-        //   .pipe(distinctUntilChanged((prev, curr) => {
-        //     console.dir('******** BEGIN: web-serial-daemon:36 ********');
-        //     console.dir(prev, { depth: null, colors: true });
-        //     console.dir(curr, { depth: null, colors: true });
-        //     console.dir('********   END: web-serial-daemon:36 ********');
-        //     return prev === curr;
-        //   }))
-        //   .subscribe(agentFound => {
-        //     console.dir('******** BEGIN: web-serial-daemon:37 ********');
-        //     console.dir(agentFound, { depth: null, colors: true });
-        //     console.dir('********   END: web-serial-daemon:37 ********');
-        //     if (!agentFound) {
-        //       this.findApp();
-        //     }
-        //   });
+        });
       }
     }, {
       key: "connectToChannel",
@@ -15020,10 +14977,7 @@
 
         this.channel.onMessage(function (message) {
           if (message.version) {
-            _this3.agentInfo = {
-              version: message.version,
-              os: 'ChromeOS'
-            };
+            _this3.agentInfo = message.version;
 
             _this3.agentFound.next(true);
 
@@ -15036,24 +14990,7 @@
           _this3.channelOpen.next(false);
 
           _this3.agentFound.next(false);
-        }); // this.agentFound.next(true);
-        // interval(POLLING_INTERVAL)
-        //   .pipe(
-        //     take(5),
-        //     map(res => {
-        //       console.dir('******** BEGIN: web-serial-daemon:57 ********');
-        //       console.dir(res, { depth: null, colors: true });
-        //       console.dir('********   END: web-serial-daemon:57 ********');
-        //       return res;
-        //     }),
-        //   )
-        //   .pipe(takeUntil(this.channelOpen.pipe(filter(status => status))))
-        //   .subscribe(() => {
-        //     console.dir('******** BEGIN: web-serial-daemon:50 ********');
-        //     console.dir('trying to connect', { depth: null, colors: true });
-        //     console.dir('********   END: web-serial-daemon:50 ********');
-        //     this._appConnect();
-        //   });
+        });
       }
     }, {
       key: "_appConnect",
@@ -15094,12 +15031,6 @@
         }
 
         if (message.uploadStatus) {
-          console.dir('******** BEGIN: web-serial-daemon:160 ********');
-          console.dir(message, {
-            depth: null,
-            colors: true
-          });
-          console.dir('********   END: web-serial-daemon:160 ********');
           this.handleUploadMessage(message);
         }
 
@@ -15125,22 +15056,7 @@
         //   });
         // }
 
-      } // handleCdcResetMessage(message) {
-      //   if (this.cdcResetOperation.getValue().status !== CDC_RESET_IN_PROGRESS) {
-      //     return;
-      //   }
-      //   switch (message.uploadStatus) {
-      //     case 'error':
-      //       this.cdcResetOperation.next({ status: CDC_RESET_ERROR, msg: message.message });
-      //       break;
-      //     case 'success':
-      //       this.cdcResetOperation.next({ status: CDC_RESET_DONE, msg: message.message });
-      //       break;
-      //     default:
-      //       this.cdcResetOperation.next({ status: CDC_RESET_IN_PROGRESS });
-      //   }
-      // }
-
+      }
     }, {
       key: "handleUploadMessage",
       value: function handleUploadMessage(message) {
@@ -15152,7 +15068,9 @@
           case 'message':
             this.uploading.next({
               status: this.UPLOAD_IN_PROGRESS,
-              msg: message.message
+              msg: message.message,
+              operation: message.operation,
+              port: message.port
             });
             break;
 
@@ -15166,7 +15084,9 @@
           case 'success':
             this.uploading.next({
               status: this.UPLOAD_DONE,
-              msg: message.message
+              msg: message.message,
+              operation: message.operation,
+              port: message.port
             });
             break;
 
@@ -15195,21 +15115,6 @@
             }),
             network: []
           });
-        } else {
-          console.dir('******** BEGIN: web-serial-daemon:133 ********');
-          console.dir('device list is different', {
-            depth: null,
-            colors: true
-          });
-          console.dir(lastDevices.serial, {
-            depth: null,
-            colors: true
-          });
-          console.dir(message.ports, {
-            depth: null,
-            colors: true
-          });
-          console.dir('********   END: web-serial-daemon:133 ********');
         }
       }
       /**
@@ -15261,12 +15166,7 @@
             name: port,
             baudrate: baudrate
           }
-        }); // this.uploader.openPort(serialPort)
-        //   .then(ports => {
-        //     this.appMessages.next({ portOpenStatus: 'success' });
-        //     this.appMessages.next({ ports });
-        //   })
-        //   .catch(() => this.appMessages.next({ portOpenStatus: 'error' }));
+        });
       }
     }, {
       key: "closeSerialMonitor",
@@ -15316,25 +15216,22 @@
           data: {
             fqbn: fqbn
           }
-        }); // return this.uploader.cdcReset({ fqbn })
-        //   .then(() => {
-        //     this.uploading.next({ status: this.CDC_RESET_DONE, msg: 'Touch operation succeeded' });
-        //   })
-        //   .catch(error => {
-        //     this.notifyUploadError(error.message);
-        //   });
-      }
-      /** A proxy method to get info from the specified SerialPort object */
-
-    }, {
-      key: "getBoardInfoFromSerialPort",
-      value: function getBoardInfoFromSerialPort(serialPort) {
-        return this.uploader.getBoardInfoFromSerialPort(serialPort);
+        });
       }
     }, {
       key: "connectToSerialDevice",
-      value: function connectToSerialDevice() {
-        return this.uploader.connectToSerialDevice();
+      value: function connectToSerialDevice(_ref2) {
+        var fqbn = _ref2.fqbn;
+        this.uploading.next({
+          status: this.UPLOAD_IN_PROGRESS,
+          msg: 'Board selection started'
+        });
+        this.channel.postMessage({
+          command: 'connectToSerial',
+          data: {
+            fqbn: fqbn
+          }
+        });
       }
       /**
        * @param {object} uploadPayload
@@ -15343,17 +15240,46 @@
 
     }, {
       key: "_upload",
-      value: function _upload(uploadPayload) {
+      value: function _upload(uploadPayload, uploadCommandInfo) {
         var _this7 = this;
 
-        return this.uploader.upload(uploadPayload).then(function () {
-          _this7.uploading.next({
-            status: _this7.UPLOAD_DONE,
-            msg: 'Sketch uploaded'
+        var board = uploadPayload.board,
+            port = uploadPayload.port,
+            commandline = uploadPayload.commandline,
+            data = uploadPayload.data,
+            pid = uploadPayload.pid,
+            vid = uploadPayload.vid;
+        var extrafiles = uploadCommandInfo && uploadCommandInfo.files && Array.isArray(uploadCommandInfo.files) ? uploadCommandInfo.files : [];
+
+        try {
+          window.oauth.getAccessToken().then(function (token) {
+            _this7.channel.postMessage({
+              command: 'upload',
+              data: {
+                board: board,
+                port: port,
+                commandline: commandline,
+                data: data,
+                token: token.token,
+                extrafiles: extrafiles,
+                pid: pid,
+                vid: vid
+              }
+            });
           });
-        })["catch"](function (error) {
-          _this7.notifyUploadError(error.message);
-        });
+        } catch (err) {
+          this.uploading.next({
+            status: this.UPLOAD_ERROR,
+            err: 'you need to be logged in on a Create site to upload by Chrome App'
+          });
+        } // return this.uploader.upload(uploadPayload)
+        //   .then(() => {
+        //     this.uploading.next({ status: this.UPLOAD_DONE, msg: 'Sketch uploaded' });
+        //   })
+        //   .catch(error => {
+        //     this.notifyUploadError(error.message);
+        //   });
+
       }
     }]);
 
@@ -15612,13 +15538,6 @@
             this.uploading.next({
               status: this.UPLOAD_IN_PROGRESS,
               msg: message.message
-            });
-            break;
-
-          case 'cdc_error':
-            this.uploading.next({
-              status: this.CDC_RESET,
-              err: message.message
             });
             break;
 

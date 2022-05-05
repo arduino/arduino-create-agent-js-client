@@ -233,12 +233,6 @@ var Daemon = /*#__PURE__*/function () {
         });
 
         var files = [].concat(_toConsumableArray(uploadCommandInfo.files || []), _toConsumableArray(compilationResult.files || []));
-        console.dir('******** BEGIN: daemon:176 ********');
-        console.dir(uploadPayload, {
-          depth: null,
-          colors: true
-        });
-        console.dir('********   END: daemon:176 ********');
 
         _this3._upload(uploadPayload, _objectSpread(_objectSpread({}, uploadCommandInfo), {}, {
           files: files
