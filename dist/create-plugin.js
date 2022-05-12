@@ -15206,7 +15206,8 @@
     }, {
       key: "cdcReset",
       value: function cdcReset(_ref) {
-        var fqbn = _ref.fqbn;
+        var fqbn = _ref.fqbn,
+            port = _ref.port;
         this.uploading.next({
           status: this.UPLOAD_IN_PROGRESS,
           msg: 'CDC reset started'
@@ -15214,7 +15215,8 @@
         this.channel.postMessage({
           command: 'cdcReset',
           data: {
-            fqbn: fqbn
+            fqbn: fqbn,
+            port: port
           }
         });
       }

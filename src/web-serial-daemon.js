@@ -236,12 +236,13 @@ export default class WebSerialDaemon extends Daemon {
     });
   }
 
-  cdcReset({ fqbn }) {
+  cdcReset({ fqbn, port }) {
     this.uploading.next({ status: this.UPLOAD_IN_PROGRESS, msg: 'CDC reset started' });
     this.channel.postMessage({
       command: 'cdcReset',
       data: {
-        fqbn
+        fqbn,
+        port
       }
     });
   }
