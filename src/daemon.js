@@ -32,7 +32,6 @@ export default class Daemon {
     this.BOARDS_URL = boardsUrl;
     this.UPLOAD_NOPE = 'UPLOAD_NOPE';
     this.UPLOAD_DONE = 'UPLOAD_DONE';
-    this.CDC_RESET_DONE = 'CDC_RESET_DONE';
     this.UPLOAD_ERROR = 'UPLOAD_ERROR';
     this.UPLOAD_IN_PROGRESS = 'UPLOAD_IN_PROGRESS';
 
@@ -56,15 +55,6 @@ export default class Daemon {
     this.uploadingDone = this.uploading.pipe(filter(upload => upload.status === this.UPLOAD_DONE))
       .pipe(first())
       .pipe(takeUntil(this.uploading.pipe(filter(upload => upload.status === this.UPLOAD_ERROR))));
-    this.cdcResetDone = this.uploading.pipe(
-      filter(upload => upload.status === this.CDC_RESET_DONE),
-      first(),
-      takeUntil(
-        this.uploading.pipe(
-          filter(upload => upload.status === this.UPLOAD_ERROR || upload.status === this.UPLOAD_DONE))
-      )
-    );
-
     this.uploadingError = this.uploading.pipe(filter(upload => upload.status === this.UPLOAD_ERROR))
       .pipe(first())
       .pipe(takeUntil(this.uploadingDone));
@@ -116,12 +106,6 @@ export default class Daemon {
           this.agentFound.next(false);
         }
       });
-  }
-
-  // eslint-disable-next-line class-methods-use-this
-  cdcReset() {
-    // It's a no-op for daemons different from web serial deamon
-    return Promise.resolve(true);
   }
 
   /**
