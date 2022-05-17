@@ -156,19 +156,18 @@ export default class WebSerialDaemon extends Daemon {
   /**
    * Send 'close' command to all the available serial ports
    */
-  // eslint-disable-next-line class-methods-use-this
   closeAllPorts() {
     const devices = this.devicesList.getValue().serial;
-    devices.forEach(device => {
-      this.channel.postMessage({
-        command: 'closePort',
-        data: {
-          name: device.Name
-        }
+    if (Array.isArray(devices)) {
+      devices.forEach(device => {
+        this.channel.postMessage({
+          command: 'closePort',
+          data: {
+            name: device.Name
+          }
+        });
       });
-    });
-
-    // console.log('"closeAllPorts" NOT YET IMPLEMENTED!');
+    }
   }
 
   /**
