@@ -52,14 +52,13 @@ export default class Daemon {
     this.serialMonitorMessages = new Subject();
     this.serialMonitorMessagesWithPort = new Subject();
     this.uploading = new BehaviorSubject({ status: this.UPLOAD_NOPE });
-    this.uploadInProgress = this.uploading.pipe(filter(upload => upload.status === this.UPLOAD_IN_PROGRESS));
     this.uploadingDone = this.uploading.pipe(filter(upload => upload.status === this.UPLOAD_DONE))
       .pipe(first())
       .pipe(takeUntil(this.uploading.pipe(filter(upload => upload.status === this.UPLOAD_ERROR))));
     this.uploadingError = this.uploading.pipe(filter(upload => upload.status === this.UPLOAD_ERROR))
       .pipe(first())
       .pipe(takeUntil(this.uploadingDone));
-
+    this.uploadInProgress = this.uploading.pipe(filter(upload => upload.status === this.UPLOAD_IN_PROGRESS));
     this.devicesList = new BehaviorSubject({
       serial: [],
       network: []

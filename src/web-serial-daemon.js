@@ -11,16 +11,17 @@ import Daemon from './daemon';
  *
  * The `channel` parameter in the constructor is the component which is
  * used to interact with the Web Serial API.
- * It must provide a method `upload`.
+ *
+ * It must provide a `postMessage` method, similarly to the object created with `chrome.runtime.connect` in
+ * the `chrome-app-daemon.js` module, which is used to send messages to interact with the Web Serial API.
  */
-
 export default class WebSerialDaemon extends Daemon {
   constructor(boardsUrl, channel) {
     super(boardsUrl);
 
     this.port = null;
     this.channelOpenStatus.next(true);
-    this.channel = channel; // channel is injected from the webide
+    this.channel = channel; // channel is injected from the client app
     this.connectedPorts = [];
 
     this.init();
@@ -101,23 +102,6 @@ export default class WebSerialDaemon extends Daemon {
     if (message.err) {
       this.uploading.next({ status: this.UPLOAD_ERROR, err: message.Err });
     }
-
-    // else if (message.connectedSerialPort) {
-    //   const port = this.uploader.getBoardInfoFromSerialPort(message.connectedSerialPort);
-    //   this.connectedPorts.push(port);
-    //   this.devicesList.next({
-    //     serial: this.connectedPorts,
-    //     network: []
-    //   });
-    // }
-    // else if (message.disconnectedSerialPort) {
-    //   const port = this.uploader.getBoardInfoFromSerialPort(message.disconnectedSerialPort);
-    //   this.connectedPorts = this.connectedPorts.filter(connectedPort => connectedPort.Name !== port.Name);
-    //   this.devicesList.next({
-    //     serial: this.connectedPorts,
-    //     network: []
-    //   });
-    // }
   }
 
   handleUploadMessage(message) {
@@ -157,7 +141,6 @@ export default class WebSerialDaemon extends Daemon {
     if (!Daemon.devicesListAreEquals(lastDevices.serial, message.ports)) {
       this.devicesList.next({
         serial: message.ports
-          // .filter(port => Boolean(port.vendorId))
           .map(port => ({
             Name: port.name,
             SerialNumber: port.serialNumber,
@@ -175,8 +158,17 @@ export default class WebSerialDaemon extends Daemon {
    */
   // eslint-disable-next-line class-methods-use-this
   closeAllPorts() {
-    console.log('should be closing serial ports here');
-    // this.uploader.closeAllPorts();
+    const devices = this.devicesList.getValue().serial;
+    devices.forEach(device => {
+      this.channel.postMessage({
+        command: 'closePort',
+        data: {
+          name: device.Name
+        }
+      });
+    });
+
+    // console.log('"closeAllPorts" NOT YET IMPLEMENTED!');
   }
 
   /**
@@ -286,12 +278,5 @@ export default class WebSerialDaemon extends Daemon {
     catch (err) {
       this.uploading.next({ status: this.UPLOAD_ERROR, err: 'you need to be logged in on a Create site to upload by Chrome App' });
     }
-    // return this.uploader.upload(uploadPayload)
-    //   .then(() => {
-    //     this.uploading.next({ status: this.UPLOAD_DONE, msg: 'Sketch uploaded' });
-    //   })
-    //   .catch(error => {
-    //     this.notifyUploadError(error.message);
-    //   });
   }
 }
