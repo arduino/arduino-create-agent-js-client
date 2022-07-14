@@ -5,6 +5,12 @@
 JS module providing discovery of the [Arduino Create Agent](https://github.com/arduino/arduino-create-agent) and communication with it
 
 ## Changelog
+[2.9.1] - 2022-07-14
+
+### Added
+- Added the sketch name (as `filename`) when uploading a sketch with the Web Serial API Daemon
+
+## Changelog
 [2.9.0] - 2022-06-06
 
 ### Added

@@ -227,6 +227,10 @@ export default class WebSerialDaemon extends Daemon {
     });
   }
 
+  /** Probably this function will be removed, the CDC reset operation
+   * should not be invoked explicitly, but only as part
+   * of the upload process.
+   */
   cdcReset({ fqbn, port }) {
     this.uploading.next({ status: this.UPLOAD_IN_PROGRESS, msg: 'CDC reset started' });
     this.channel.postMessage({
@@ -254,7 +258,7 @@ export default class WebSerialDaemon extends Daemon {
    */
   _upload(uploadPayload, uploadCommandInfo) {
     const {
-      board, port, commandline, data, pid, vid
+      board, port, commandline, data, pid, vid, filename
     } = uploadPayload;
     const extrafiles = uploadCommandInfo && uploadCommandInfo.files && Array.isArray(uploadCommandInfo.files) ? uploadCommandInfo.files : [];
     try {
@@ -264,6 +268,7 @@ export default class WebSerialDaemon extends Daemon {
           data: {
             board,
             port,
+            filename,
             commandline,
             data,
             token: token.token,
