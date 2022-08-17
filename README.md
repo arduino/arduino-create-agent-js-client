@@ -6,6 +6,12 @@ JS module providing discovery of the [Arduino Create Agent](https://github.com/a
 
 
 ## Changelog
+[2.9.1-alpha.2] - 2022-08-17
+
+### Changed
+- The error `No device found` coming from the `arduino-create-agent` is now treated as an error.
+
+## Changelog
 [2.9.1-alpha.1] - 2022-07-28
 
 ### Added
