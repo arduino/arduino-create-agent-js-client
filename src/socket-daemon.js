@@ -392,7 +392,12 @@ export default class SocketDaemon extends Daemon {
         this.uploading.next({ status: this.UPLOAD_IN_PROGRESS, msg: `Programming with: ${message.Cmd}` });
         break;
       case 'Busy':
-        this.uploading.next({ status: this.UPLOAD_IN_PROGRESS, msg: message.Msg });
+        if (message.Msg && message.Msg.indexOf('No device found') === 0) {
+          this.uploading.next({ status: this.UPLOAD_ERROR, err: message.Msg });
+        }
+        else {
+          this.uploading.next({ status: this.UPLOAD_IN_PROGRESS, msg: message.Msg });
+        }
         break;
       case 'Error':
         this.uploading.next({ status: this.UPLOAD_ERROR, err: message.Msg });
