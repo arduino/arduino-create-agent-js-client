@@ -4,9 +4,21 @@
 # arduino-create-agent-js-client
 JS module providing discovery of the [Arduino Create Agent](https://github.com/arduino/arduino-create-agent) and communication with it
 
+
+## Changelog
+[2.9.1-alpha.2] - 2022-08-17
+
+### Changed
+- The error `No device found` coming from the `arduino-create-agent` is now treated as an error.
+
+## Changelog
+[2.9.1-alpha.1] - 2022-07-28
+
+### Added
+- Added support for ESP boards (experimental)
+
 ## Changelog
 [2.9.0] - 2022-06-06
-
 ### Added
 - Added support for "Arduino RP2040 Connect" board
 ### Changed

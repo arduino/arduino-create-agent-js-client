@@ -130,7 +130,7 @@ export default class Daemon {
     })
       .then(result => result.json())
       .then(uploadCommandInfo => {
-        const projectNameIndex = uploadCommandInfo.commandline.indexOf('{build.project_name}');
+        const projectNameIndex = uploadCommandInfo.commandline.lastIndexOf('{build.project_name}');
         let ext = uploadCommandInfo.commandline.substring(projectNameIndex + 21, projectNameIndex + 24);
         const data = compilationResult[ext] || compilationResult.bin;
         if (!ext || !data) {
