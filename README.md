@@ -4,7 +4,6 @@
 # arduino-create-agent-js-client
 JS module providing discovery of the [Arduino Create Agent](https://github.com/arduino/arduino-create-agent) and communication with it
 
-
 ## Changelog
 See [CHANGELOG.MD](CHANGELOG.MD) for more details.
 
