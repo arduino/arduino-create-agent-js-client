@@ -13,7 +13,6 @@ All notable changes to this project will be documented in this file.
 - Simplified the communication with the Web Serial API via a messaging system which simulates
   the [postMessage](https://developer.chrome.com/docs/extensions/reference/runtime/#method-Port-postMessage) function available in the Chrome App Daemon (see `chrome-app-daemon.js`).
 
-
 ## [2.8.0] - 2022-03-21
 ### Added
 - Added support (still in Beta) for Chrome's Web Serial API on ChromeOS.
