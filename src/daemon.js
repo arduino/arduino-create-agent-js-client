@@ -130,8 +130,7 @@ export default class Daemon {
     })
       .then(result => result.json())
       .then(uploadCommandInfo => {
-        const projectNameIndex = uploadCommandInfo.commandline.lastIndexOf('{build.project_name}');
-        let ext = uploadCommandInfo.commandline.substring(projectNameIndex + 21, projectNameIndex + 24);
+        let ext = this._extractExtensionFromCommandline(uploadCommandInfo.commandline);
         const data = compilationResult[ext] || compilationResult.bin;
         if (!ext || !data) {
           console.log('we received a faulty ext property, defaulting to .bin');
@@ -210,5 +209,14 @@ export default class Daemon {
       timer(1000).subscribe(() => this.closeSerialMonitor(port));
     });
     this.openSerialMonitor(port, 1200);
+  }
+
+  static _extractExtensionFromCommandline(commandline) {
+    const rx = /\{build\.project_name\}\.(\w\w\w)\b/g;
+    const arr = rx.exec(commandline);
+    if (arr && arr.length) {
+      return arr[1];
+    }
+    return null;
   }
 }
