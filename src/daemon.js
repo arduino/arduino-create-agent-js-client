@@ -130,7 +130,7 @@ export default class Daemon {
     })
       .then(result => result.json())
       .then(uploadCommandInfo => {
-        let ext = this._extractExtensionFromCommandline(uploadCommandInfo.commandline);
+        let ext = Daemon._extractExtensionFromCommandline(uploadCommandInfo.commandline);
         const data = compilationResult[ext] || compilationResult.bin;
         if (!ext || !data) {
           console.log('we received a faulty ext property, defaulting to .bin');
@@ -214,7 +214,7 @@ export default class Daemon {
   static _extractExtensionFromCommandline(commandline) {
     const rx = /\{build\.project_name\}\.(\w\w\w)\b/g;
     const arr = rx.exec(commandline);
-    if (arr && arr.length) {
+    if (arr && arr.length > 0) {
       return arr[1];
     }
     return null;
