@@ -1,7 +1,12 @@
 # Changelog
 All notable changes to this project will be documented in this file.
 
-## [2.9.1] - 2022-09-06
+## [2.10.0] - 2022-09-08
+
+### Changed
+- Fixed a bug released in 2.9.1 caused by the wrong assumption that the build filename is always at the end of the command line. This fix makes the library backward compatible with older ESP boards.
+
+## *DEPRECATED* [2.9.1] - 2022-09-06
 ### Added
 - Added support for ESP32 boards
 
