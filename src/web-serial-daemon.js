@@ -191,6 +191,21 @@ export default class WebSerialDaemon extends Daemon {
   }
 
   /**
+   * Send the 'writePort' message to the serial port
+   * @param {string} port the port name
+   * @param {string} message the text to be sent to serial
+   */
+  writeSerial(port, message) {
+    this.channel.postMessage({
+      command: 'writePort',
+      data: {
+        name: port,
+        data: message
+      }
+    });
+  }
+
+  /**
    * Request serial port open
    * @param {string} port the port name
    */
@@ -247,23 +262,12 @@ export default class WebSerialDaemon extends Daemon {
     });
   }
 
-  cdcReset({ fqbn, port }) {
-    this.uploading.next({ status: this.UPLOAD_IN_PROGRESS, msg: 'CDC reset started' });
-    this.channel.postMessage({
-      command: 'cdcReset',
-      data: {
-        fqbn,
-        port
-      }
-    });
-  }
-
-  connectToSerialDevice({ fqbn }) {
-    this.uploading.next({ status: this.UPLOAD_IN_PROGRESS, msg: 'Board selection started' });
+  connectToSerialDevice({ from, dialogCustomization }) {
     this.channel.postMessage({
       command: 'connectToSerial',
       data: {
-        fqbn
+        from,
+        dialogCustomization
       }
     });
   }
@@ -274,9 +278,11 @@ export default class WebSerialDaemon extends Daemon {
    */
   _upload(uploadPayload, uploadCommandInfo) {
     const {
-      board, port, commandline, data, pid, vid
+      board, port, commandline, data, pid, vid, dialogCustomizations
     } = uploadPayload;
+
     const extrafiles = uploadCommandInfo && uploadCommandInfo.files && Array.isArray(uploadCommandInfo.files) ? uploadCommandInfo.files : [];
+
     try {
       window.oauth.getAccessToken().then(token => {
         this.channel.postMessage({
@@ -289,7 +295,8 @@ export default class WebSerialDaemon extends Daemon {
             token: token.token,
             extrafiles,
             pid,
-            vid
+            vid,
+            dialogCustomizations
           }
         });
       });

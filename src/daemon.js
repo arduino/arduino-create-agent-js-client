@@ -115,8 +115,12 @@ export default class Daemon {
    * @param {string} sketchName
    * @param {Object} compilationResult
    * @param {boolean} verbose
+   * @param {any[]} dialogCustomizations Optional - Used in Web Serial API to customize the permission dialogs.
+   *        It's an array because the Web Serial API library can use more than one dialog, e.g. one to
+   *        ask permission and one to give instruction to save an UF2 file.
+   *        It's called 'customizations' because the library already provides a basic non-styled dialog.
    */
-  uploadSerial(target, sketchName, compilationResult, verbose = true) {
+  uploadSerial(target, sketchName, compilationResult, verbose = true, dialogCustomizations) {
     this.uploadingPort = target.port;
     this.uploading.next({ status: this.UPLOAD_IN_PROGRESS, msg: 'Upload started' });
     this.serialDevicesBeforeUpload = this.devicesList.getValue().serial;
@@ -142,7 +146,8 @@ export default class Daemon {
           commandline: uploadCommandInfo.commandline,
           filename: `${sketchName}.${ext}`,
           hex: data, // For desktop agent
-          data // For chromeOS plugin, consider to align this
+          data, // For chromeOS plugin, consider to align this
+          dialogCustomizations // used only in Web Serial API uploader
         };
 
         this.uploadingDone.subscribe(() => {
