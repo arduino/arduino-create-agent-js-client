@@ -11,7 +11,7 @@ All notable changes to this project will be documented in this file.
   It has no effect with other daemons.
 
 ### Removed
-- `connectToSerialDevice` functionality, now it's embedded in the `upload` functionality
+- `cdcReset` functionality, now it's embedded in the `upload` functionality
   in the Web Serial daemon.
 ### Changed
 
