@@ -237,7 +237,7 @@ export default class ChromeAppDaemon extends Daemon {
    */
   _upload(uploadPayload, uploadCommandInfo) {
     const {
-      board, port, commandline, data
+      board, port, commandline, data, filename
     } = uploadPayload;
     const extrafiles = uploadCommandInfo && uploadCommandInfo.files && Array.isArray(uploadCommandInfo.files) ? uploadCommandInfo.files : [];
     try {
@@ -250,6 +250,7 @@ export default class ChromeAppDaemon extends Daemon {
             commandline,
             data,
             token: token.token,
+            filename,
             extrafiles
           }
         });

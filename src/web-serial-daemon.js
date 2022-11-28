@@ -278,7 +278,7 @@ export default class WebSerialDaemon extends Daemon {
    */
   _upload(uploadPayload, uploadCommandInfo) {
     const {
-      board, port, commandline, data, pid, vid, dialogCustomizations
+      board, port, commandline, data, pid, vid, filename, dialogCustomizations
     } = uploadPayload;
 
     const extrafiles = uploadCommandInfo && uploadCommandInfo.files && Array.isArray(uploadCommandInfo.files) ? uploadCommandInfo.files : [];
@@ -296,6 +296,7 @@ export default class WebSerialDaemon extends Daemon {
             extrafiles,
             pid,
             vid,
+            filename,
             dialogCustomizations
           }
         });
