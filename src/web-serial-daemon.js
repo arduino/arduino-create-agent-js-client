@@ -43,6 +43,8 @@ export default class WebSerialDaemon extends Daemon {
     this.channelOpenStatus.next(true);
     this.channel = channel; // channel is injected from the client app
     this.connectedPorts = [];
+    this.agentFound.next(true);
+    this.channelOpen.next(true);
 
     this.init();
   }
@@ -68,23 +70,6 @@ export default class WebSerialDaemon extends Daemon {
   }
 
   connectToChannel() {
-    this.channel.onMessage(message => {
-      if (message.version) {
-        this.agentInfo = message.version;
-        this.agentFound.next(true);
-        this.channelOpen.next(true);
-      }
-      else {
-        this.appMessages.next(message);
-      }
-    });
-    this.channel.onDisconnect(() => {
-      this.channelOpen.next(false);
-      this.agentFound.next(false);
-    });
-  }
-
-  _appConnect() {
     this.channel.onMessage(message => {
       if (message.version) {
         this.agentInfo = {

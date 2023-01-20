@@ -2,6 +2,8 @@
 All notable changes to this project will be documented in this file.
 
 ## [2.11.0] - 2022-09-27
+The main goal of this release is to improve support for the Web Serial API on ChromeOS.
+Other platforms should not be affected.
 
 ### Changed
 - When using Web Serial API, the interactions between the client library
