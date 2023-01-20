@@ -87,26 +87,6 @@ export default class WebSerialDaemon extends Daemon {
     });
   }
 
-  // _appConnect() {
-  //   this.channel.onMessage(message => {
-  //     if (message.version) {
-  //       this.agentInfo = {
-  //         version: message.version,
-  //         os: 'ChromeOS'
-  //       };
-  //       this.agentFound.next(true);
-  //       this.channelOpen.next(true);
-  //     }
-  //     else {
-  //       this.appMessages.next(message);
-  //     }
-  //   });
-  //   this.channel.onDisconnect(() => {
-  //     this.channelOpen.next(false);
-  //     this.agentFound.next(false);
-  //   });
-  // }
-
   handleAppMessage(message) {
     if (message.ports) {
       this.handleListMessage(message);
