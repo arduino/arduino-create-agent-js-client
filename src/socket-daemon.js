@@ -163,7 +163,7 @@ export default class SocketDaemon extends Daemon {
         });
 
         if (found) {
-          return fetch('https://s3.amazonaws.com/arduino-create-static/agent-metadata/agent-version.json')
+          return fetch('https://downloads.arduino.cc/agent-metadata/agent-version.json')
             .then(response => response.json().then(data => {
               if (this.agentInfo.version && (semVerCompare(this.agentInfo.version, data.Version) === 0 || this.agentInfo.version.indexOf('dev') !== -1 || this.agentInfo.version.indexOf('rc') !== -1)) {
                 return this.agentInfo;
