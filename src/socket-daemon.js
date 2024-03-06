@@ -45,6 +45,7 @@ let orderedPluginAddresses = [LOOPBACK_ADDRESS, LOOPBACK_HOST];
 let driversRequested = false;
 
 const CANT_FIND_AGENT_MESSAGE = 'Arduino Create Agent cannot be found';
+const UPLOAD_DONE_TIMER = 5000;
 
 let updateAttempts = 0;
 
@@ -382,7 +383,10 @@ export default class SocketDaemon extends Daemon {
   }
 
   handleUploadMessage(message) {
-    if (message.Flash === 'Ok' && message.ProgrammerStatus === 'Done') return this.uploading.next({ status: this.UPLOAD_DONE, msg: message.Flash });
+    if (message.Flash === 'Ok' && message.ProgrammerStatus === 'Done') {
+      // After the upload is completed the port goes down for a while, so we have to wait a few seconds
+      return timer(UPLOAD_DONE_TIMER).subscribe(() => this.uploading.next({ status: this.UPLOAD_DONE, msg: message.Flash }));
+    }
 
     switch (message.ProgrammerStatus) {
       case 'Starting':
