@@ -45,7 +45,7 @@ let orderedPluginAddresses = [LOOPBACK_ADDRESS, LOOPBACK_HOST];
 let driversRequested = false;
 
 const CANT_FIND_AGENT_MESSAGE = 'Arduino Create Agent cannot be found';
-const UPLOAD_DONE_TIMER = 5000;
+const UPLOAD_DONE_TIMER = 10000;
 
 let updateAttempts = 0;
 
